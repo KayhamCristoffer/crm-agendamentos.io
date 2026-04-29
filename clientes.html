@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Clientes — CRM</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="page-loader" id="pageLoader"><div class="loader-ring"></div></div>
+<div id="sidebarMount"></div>
+
+<div class="app-layout">
+  <div class="main-content">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-title"><h1>Clientes</h1><p id="topbarSub">Gerencie sua base de clientes</p></div>
+      </div>
+      <div class="topbar-actions">
+        <div class="view-toggle">
+          <button class="view-btn active" id="viewGrid" title="Cards"><i class="fas fa-th-large"></i></button>
+          <button class="view-btn" id="viewList" title="Lista"><i class="fas fa-list"></i></button>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btnNovoCliente"><i class="fas fa-user-plus"></i> Novo Cliente</button>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="filter-bar">
+        <div class="search-input-wrap">
+          <i class="fas fa-search"></i>
+          <input class="search-input" type="text" id="searchInput" placeholder="Nome, e-mail, telefone ou CPF…"/>
+        </div>
+        <select id="filterOrdem" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)">
+          <option value="nome">Ordenar: Nome</option>
+          <option value="visitas">Ordenar: Visitas</option>
+          <option value="gasto">Ordenar: Total Gasto</option>
+          <option value="recente">Ordenar: Recente</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" id="clearFilters"><i class="fas fa-times"></i> Limpar</button>
+        <span id="contadorClientes" style="margin-left:auto;font-size:.8rem;color:var(--text2)"></span>
+      </div>
+
+      <!-- Cards View -->
+      <div class="client-list-grid" id="clienteGrid"></div>
+
+      <!-- Table View (hidden by default) -->
+      <div id="clienteTable" style="display:none">
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>Nome</th><th>Telefone</th><th>E-mail</th>
+              <th>Visitas</th><th>Total Gasto</th><th>Última Visita</th><th>Ações</th>
+            </tr></thead>
+            <tbody id="tbodyClientes"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="paginacao" class="pagination"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL CLIENTE ── -->
+<div class="modal-overlay" id="modalCliente">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 id="modalClienteTitle"><i class="fas fa-user-plus"></i> Novo Cliente</h3>
+      <button class="modal-close" id="closeModalCliente"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Nome completo *</label>
+        <input type="text" id="cNome" placeholder="João da Silva"/>
+      </div>
+      <div class="form-group">
+        <label>Telefone</label>
+        <input type="tel" id="cTelefone" placeholder="(11) 99999-9999"/>
+      </div>
+    </div>
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="cEmail" placeholder="joao@email.com"/>
+      </div>
+      <div class="form-group">
+        <label>CPF</label>
+        <input type="text" id="cCpf" placeholder="000.000.000-00"/>
+      </div>
+    </div>
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Data de Nascimento</label>
+        <input type="date" id="cNascimento"/>
+      </div>
+      <div class="form-group">
+        <label>Cidade</label>
+        <input type="text" id="cCidade" placeholder="São Paulo"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Endereço</label>
+      <input type="text" id="cEndereco" placeholder="Rua, número, bairro"/>
+    </div>
+    <div class="form-group">
+      <label>Tags (separadas por vírgula)</label>
+      <input type="text" id="cTags" placeholder="vip, frequente, indicação"/>
+    </div>
+    <div class="form-group">
+      <label>Observações</label>
+      <textarea id="cObs" placeholder="Informações importantes sobre o cliente…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="cancelModalCliente">Cancelar</button>
+      <button class="btn btn-primary" id="salvarCliente"><i class="fas fa-save"></i> Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL PERFIL CLIENTE ── -->
+<div class="modal-overlay" id="modalPerfil">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3><i class="fas fa-user"></i> Perfil do Cliente</h3>
+      <button class="modal-close" id="closeModalPerfil"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="perfilContent"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="editarPerfilBtn"><i class="fas fa-edit"></i> Editar</button>
+      <button class="btn btn-primary" id="agendarPerfilBtn"><i class="fas fa-calendar-plus"></i> Agendar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module">
+import { requireAuth, renderUserInSidebar, showToast, isAdmin } from './supabase/session-manager.js';
+import { getAllClientes, getCliente, createCliente, updateCliente, deleteCliente,
+         getAllAgendamentos, formatCurrency, formatDate, STATUS_LABELS } from './supabase/database.js';
+import { getSidebarHTML, initSidebarToggle, showAdminItems } from './js/sidebar.js';
+
+document.getElementById('sidebarMount').innerHTML = getSidebarHTML('clientes');
+initSidebarToggle();
+const auth = await requireAuth();
+if (!auth) throw new Error('Not authenticated');
+const { user, profile } = auth;
+renderUserInSidebar(profile);
+if (isAdmin(user,profile)) showAdminItems();
+setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
+document.getElementById('logoutBtn')?.addEventListener('click', () =>
+  import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href='index.html'));
+
+let allClientes = [];
+let filteredClientes = [];
+let viewMode = 'grid';
+let currentPage = 1;
+const perPage = 24;
+let editingId = null;
+let viewingId = null;
+
+// ─── Carrega dados ────────────────────────────────────────────
+async function loadClientes() {
+  allClientes = await getAllClientes();
+  applyFilters();
+}
+
+function applyFilters() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const ordem  = document.getElementById('filterOrdem').value;
+  filteredClientes = allClientes.filter(c => {
+    if (!search) return true;
+    return [c.nome,c.email,c.telefone,c.cpf].join(' ').toLowerCase().includes(search);
+  });
+  filteredClientes.sort((a,b) => {
+    if (ordem === 'visitas') return (b.total_visitas||0)-(a.total_visitas||0);
+    if (ordem === 'gasto')   return (b.total_gasto||0)-(a.total_gasto||0);
+    if (ordem === 'recente') return new Date(b.created_at)-new Date(a.created_at);
+    return (a.nome||'').localeCompare(b.nome||'');
+  });
+  currentPage = 1;
+  render();
+}
+
+function render() {
+  const start  = (currentPage-1)*perPage;
+  const page   = filteredClientes.slice(start, start+perPage);
+  const total  = filteredClientes.length;
+  document.getElementById('contadorClientes').textContent =
+    `${total} cliente${total!==1?'s':''} encontrado${total!==1?'s':''}`;
+
+  if (viewMode === 'grid') renderGrid(page);
+  else renderTable(page);
+  renderPagination();
+}
+
+function renderGrid(page) {
+  document.getElementById('clienteGrid').style.display = '';
+  document.getElementById('clienteTable').style.display = 'none';
+  if (!page.length) {
+    document.getElementById('clienteGrid').innerHTML =
+      `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-users"></i><h3>Nenhum cliente encontrado</h3><p>Cadastre seu primeiro cliente clicando em "Novo Cliente".</p></div>`;
+    return;
+  }
+  document.getElementById('clienteGrid').innerHTML = page.map(c => {
+    const initial = (c.nome||'?')[0].toUpperCase();
+    const tags = (c.tags||[]).map(t => `<span style="background:rgba(99,102,241,.15);color:var(--primary-light);padding:2px 8px;border-radius:10px;font-size:.68rem">${t}</span>`).join('');
+    return `
+    <div class="client-card" onclick="verPerfil('${c.id}')">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div class="client-card-avatar">${initial}</div>
+        <div class="client-card-info">
+          <h4>${c.nome}</h4>
+          ${c.telefone?`<p><i class="fas fa-phone" style="font-size:.7rem;margin-right:4px"></i>${c.telefone}</p>`:''}
+          ${c.email?`<p><i class="fas fa-envelope" style="font-size:.7rem;margin-right:4px"></i>${c.email}</p>`:''}
+        </div>
+        <div style="margin-left:auto;display:flex;gap:4px">
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="event.stopPropagation();editarCliente('${c.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="event.stopPropagation();excluirCliente('${c.id}')" title="Excluir" style="color:var(--danger)"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+      ${tags?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">${tags}</div>`:''}
+      <div class="client-card-stats">
+        <div class="client-stat-item"><strong>${c.total_visitas||0}</strong><small>Visitas</small></div>
+        <div class="client-stat-item"><strong>${formatCurrency(c.total_gasto)}</strong><small>Gasto total</small></div>
+        <div class="client-stat-item"><strong>${c.ultima_visita?formatDate(c.ultima_visita):'—'}</strong><small>Última visita</small></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderTable(page) {
+  document.getElementById('clienteGrid').style.display = 'none';
+  document.getElementById('clienteTable').style.display = '';
+  const tbody = document.getElementById('tbodyClientes');
+  if (!page.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><i class="fas fa-users"></i><h3>Nenhum cliente</h3></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = page.map(c => `
+    <tr>
+      <td><strong style="cursor:pointer" onclick="verPerfil('${c.id}')">${c.nome}</strong></td>
+      <td>${c.telefone||'—'}</td>
+      <td>${c.email||'—'}</td>
+      <td>${c.total_visitas||0}</td>
+      <td>${formatCurrency(c.total_gasto)}</td>
+      <td>${c.ultima_visita?formatDate(c.ultima_visita):'—'}</td>
+      <td class="td-actions">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="verPerfil('${c.id}')" title="Ver"><i class="fas fa-eye"></i></button>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="editarCliente('${c.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="excluirCliente('${c.id}')" title="Excluir" style="color:var(--danger)"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>`).join('');
+}
+
+function renderPagination() {
+  const total = Math.ceil(filteredClientes.length/perPage);
+  if (total <= 1) { document.getElementById('paginacao').innerHTML=''; return; }
+  let html = `<button class="page-btn" ${currentPage===1?'disabled':''} onclick="goPage(${currentPage-1})"><i class="fas fa-chevron-left"></i></button>`;
+  for (let p=1;p<=total;p++) {
+    if (p===1||p===total||Math.abs(p-currentPage)<=1)
+      html+=`<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+    else if(Math.abs(p-currentPage)===2) html+=`<span style="padding:0 4px;color:var(--text3)">…</span>`;
+  }
+  html+=`<button class="page-btn" ${currentPage===total?'disabled':''} onclick="goPage(${currentPage+1})"><i class="fas fa-chevron-right"></i></button>`;
+  document.getElementById('paginacao').innerHTML = html;
+}
+window.goPage = p => { currentPage=p; render(); };
+
+// View toggle
+document.getElementById('viewGrid')?.addEventListener('click', () => {
+  viewMode='grid';
+  document.getElementById('viewGrid').classList.add('active');
+  document.getElementById('viewList').classList.remove('active');
+  render();
+});
+document.getElementById('viewList')?.addEventListener('click', () => {
+  viewMode='list';
+  document.getElementById('viewList').classList.add('active');
+  document.getElementById('viewGrid').classList.remove('active');
+  render();
+});
+
+// Filtros
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('filterOrdem').addEventListener('change', applyFilters);
+document.getElementById('clearFilters')?.addEventListener('click', () => {
+  document.getElementById('searchInput').value='';
+  applyFilters();
+});
+
+// ─── Modal Cliente ────────────────────────────────────────────
+function openModal(cliente = null) {
+  editingId = cliente?.id || null;
+  document.getElementById('modalClienteTitle').innerHTML = cliente
+    ? '<i class="fas fa-edit"></i> Editar Cliente'
+    : '<i class="fas fa-user-plus"></i> Novo Cliente';
+  const fields = ['Nome','Telefone','Email','Cpf','Nascimento','Cidade','Endereco','Obs'];
+  fields.forEach(f => {
+    const el = document.getElementById('c'+f);
+    if (!el) return;
+    if (f==='Nascimento') el.value = cliente?.data_nascimento||'';
+    else if (f==='Tags')  el.value = (cliente?.tags||[]).join(', ');
+    else el.value = cliente?.[f.toLowerCase()]||'';
+  });
+  document.getElementById('cTags').value = (cliente?.tags||[]).join(', ');
+  document.getElementById('modalCliente').classList.add('open');
+}
+function closeModal() { document.getElementById('modalCliente').classList.remove('open'); }
+document.getElementById('btnNovoCliente')?.addEventListener('click', () => openModal());
+document.getElementById('closeModalCliente')?.addEventListener('click', closeModal);
+document.getElementById('cancelModalCliente')?.addEventListener('click', closeModal);
+
+window.editarCliente = (id) => {
+  const c = allClientes.find(x => x.id===id);
+  if (c) openModal(c);
+  document.getElementById('modalPerfil').classList.remove('open');
+};
+
+document.getElementById('salvarCliente')?.addEventListener('click', async () => {
+  const nome = document.getElementById('cNome').value.trim();
+  if (!nome) { showToast('Informe o nome do cliente.','warning'); return; }
+  const btn = document.getElementById('salvarCliente');
+  btn.disabled=true; btn.innerHTML='<i class="fas fa-circle-notch spin"></i>';
+  const tagsRaw = document.getElementById('cTags').value;
+  const tags = tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(Boolean) : [];
+  const payload = {
+    nome,
+    telefone:        document.getElementById('cTelefone').value||null,
+    email:           document.getElementById('cEmail').value||null,
+    cpf:             document.getElementById('cCpf').value||null,
+    data_nascimento: document.getElementById('cNascimento').value||null,
+    cidade:          document.getElementById('cCidade').value||null,
+    endereco:        document.getElementById('cEndereco').value||null,
+    observacoes:     document.getElementById('cObs').value||null,
+    tags,
+    criado_por:      user.id
+  };
+  try {
+    if (editingId) { await updateCliente(editingId,payload); showToast('Cliente atualizado!','success'); }
+    else { await createCliente(payload); showToast('Cliente cadastrado!','success'); }
+    closeModal();
+    await loadClientes();
+  } catch(err) { showToast(err.message||'Erro ao salvar.','error'); }
+  finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> Salvar'; }
+});
+
+window.excluirCliente = async (id) => {
+  const c = allClientes.find(x=>x.id===id);
+  if (!confirm(`Excluir cliente "${c?.nome}"? Esta ação não pode ser desfeita.`)) return;
+  try {
+    await deleteCliente(id);
+    showToast('Cliente removido.','success');
+    await loadClientes();
+  } catch(err) { showToast(err.message,'error'); }
+};
+
+// ─── Ver Perfil ───────────────────────────────────────────────
+window.verPerfil = async (id) => {
+  viewingId = id;
+  document.getElementById('modalPerfil').classList.add('open');
+  document.getElementById('perfilContent').innerHTML =
+    '<div class="loading"><i class="fas fa-circle-notch spin"></i> Carregando…</div>';
+
+  const [c, ags] = await Promise.all([
+    getCliente(id),
+    getAllAgendamentos({ cliente_id: id, limit: 10 })
+  ]);
+
+  const initial = (c.nome||'?')[0].toUpperCase();
+  const tags = (c.tags||[]).map(t=>
+    `<span style="background:rgba(99,102,241,.15);color:var(--primary-light);padding:2px 8px;border-radius:10px;font-size:.72rem">${t}</span>`
+  ).join('');
+
+  document.getElementById('perfilContent').innerHTML = `
+  <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:20px">
+    <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;flex-shrink:0">${initial}</div>
+    <div>
+      <h3 style="font-size:1.15rem;margin-bottom:4px">${c.nome}</h3>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.8rem;color:var(--text2)">
+        ${c.telefone?`<span><i class="fas fa-phone"></i> ${c.telefone}</span>`:''}
+        ${c.email?`<span><i class="fas fa-envelope"></i> ${c.email}</span>`:''}
+        ${c.cidade?`<span><i class="fas fa-map-marker-alt"></i> ${c.cidade}</span>`:''}
+        ${c.data_nascimento?`<span><i class="fas fa-birthday-cake"></i> ${formatDate(c.data_nascimento)}</span>`:''}
+      </div>
+      ${tags?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">${tags}</div>`:''}
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:1.4rem;font-weight:800;color:var(--primary-light)">${c.total_visitas||0}</div>
+      <div style="font-size:.76rem;color:var(--text2)">Visitas</div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:1.1rem;font-weight:800;color:var(--secondary)">${formatCurrency(c.total_gasto)}</div>
+      <div style="font-size:.76rem;color:var(--text2)">Total gasto</div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:1rem;font-weight:700">${c.ultima_visita?formatDate(c.ultima_visita):'—'}</div>
+      <div style="font-size:.76rem;color:var(--text2)">Última visita</div>
+    </div>
+  </div>
+
+  ${c.observacoes?`<div class="card" style="margin-bottom:16px;padding:14px"><p style="font-size:.84rem;color:var(--text2)"><i class="fas fa-sticky-note" style="margin-right:6px;color:var(--warning)"></i>${c.observacoes}</p></div>`:''}
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">🗓️ Últimos Agendamentos</span></div>
+    ${!ags.length ? '<div class="empty-state" style="padding:24px"><i class="fas fa-calendar"></i><h3>Sem agendamentos</h3></div>' :
+    ags.map(ag => {
+      const st = STATUS_LABELS[ag.status]||{};
+      return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center">
+        <div style="font-size:.8rem;color:var(--text2);white-space:nowrap;min-width:120px">${formatDate(ag.data_hora)}</div>
+        <div style="flex:1;font-size:.84rem">
+          <div style="font-weight:600">${ag.servicos?.icone||''} ${ag.servicos?.nome||'Serviço'}</div>
+          <div style="font-size:.76rem;color:var(--text2)">${ag.equipe?.nome||'—'}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:.84rem;font-weight:600">${formatCurrency(ag.valor)}</div>
+          <span class="badge" style="background:${st.color}22;color:${st.color};font-size:.68rem">${st.icon} ${st.label}</span>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+};
+
+document.getElementById('closeModalPerfil')?.addEventListener('click', () =>
+  document.getElementById('modalPerfil').classList.remove('open'));
+document.getElementById('editarPerfilBtn')?.addEventListener('click', () => {
+  if (viewingId) window.editarCliente(viewingId);
+});
+document.getElementById('agendarPerfilBtn')?.addEventListener('click', () => {
+  window.location.href = `agendamentos.html?cliente=${viewingId}`;
+});
+
+// Check URL param
+const urlAction = new URLSearchParams(location.search).get('action');
+
+await loadClientes();
+if (urlAction === 'novo') setTimeout(() => openModal(), 200);
+</script>
+</body>
+</html>

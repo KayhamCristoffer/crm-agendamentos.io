@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Agendamentos — CRM</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="page-loader" id="pageLoader"><div class="loader-ring"></div></div>
+<div id="sidebarMount"></div>
+
+<div class="app-layout">
+  <div class="main-content">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-title"><h1>Agendamentos</h1><p id="topbarSub">Gerencie todos os agendamentos</p></div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary btn-sm" id="btnNovo"><i class="fas fa-plus"></i> Novo</button>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- Tabs: Lista | Calendário -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="lista">📋 Lista</button>
+        <button class="tab-btn" data-tab="calendario">📅 Calendário</button>
+      </div>
+
+      <!-- ── TAB LISTA ── -->
+      <div class="tab-content active" id="tab-lista">
+        <div class="filter-bar">
+          <div class="search-input-wrap">
+            <i class="fas fa-search"></i>
+            <input class="search-input" type="text" id="searchInput" placeholder="Buscar cliente, serviço…"/>
+          </div>
+          <select id="filterStatus" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)">
+            <option value="">Todos os status</option>
+            <option value="pendente">Pendente</option>
+            <option value="confirmado">Confirmado</option>
+            <option value="concluido">Concluído</option>
+            <option value="cancelado">Cancelado</option>
+            <option value="faltou">Faltou</option>
+          </select>
+          <select id="filterProf" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)">
+            <option value="">Todos os profissionais</option>
+          </select>
+          <input type="date" id="filterData" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)"/>
+          <button class="btn btn-ghost btn-sm" id="clearFilters"><i class="fas fa-times"></i> Limpar</button>
+        </div>
+
+        <div class="table-container">
+          <table id="tabelaAgendamentos">
+            <thead><tr>
+              <th>Cliente</th><th>Serviço</th><th>Profissional</th>
+              <th>Data/Hora</th><th>Duração</th><th>Valor</th>
+              <th>Status</th><th>Pagamento</th><th>Ações</th>
+            </tr></thead>
+            <tbody id="tbodyAgendamentos">
+              <tr><td colspan="9" class="text-center"><div class="loading"><i class="fas fa-circle-notch spin"></i></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="paginacao" class="pagination"></div>
+      </div>
+
+      <!-- ── TAB CALENDÁRIO ── -->
+      <div class="tab-content" id="tab-calendario">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-ghost btn-sm" id="prevMonth"><i class="fas fa-chevron-left"></i></button>
+            <h3 id="calTitle" style="font-size:1rem;font-weight:700;min-width:160px;text-align:center"></h3>
+            <button class="btn btn-ghost btn-sm" id="nextMonth"><i class="fas fa-chevron-right"></i></button>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="todayBtn">Hoje</button>
+        </div>
+        <div class="calendar-grid" id="calGrid">
+          <div class="calendar-day-header">Dom</div>
+          <div class="calendar-day-header">Seg</div>
+          <div class="calendar-day-header">Ter</div>
+          <div class="calendar-day-header">Qua</div>
+          <div class="calendar-day-header">Qui</div>
+          <div class="calendar-day-header">Sex</div>
+          <div class="calendar-day-header">Sáb</div>
+        </div>
+        <div id="agendamentosDodia" style="margin-top:16px"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL AGENDAMENTO ── -->
+<div class="modal-overlay" id="modalAg">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 id="modalAgTitle"><i class="fas fa-calendar-plus"></i> Novo Agendamento</h3>
+      <button class="modal-close" id="closeModalAg"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Cliente *</label>
+        <select id="agCliente"><option value="">Selecione o cliente</option></select>
+      </div>
+      <div class="form-group">
+        <label>Profissional</label>
+        <select id="agProfissional"><option value="">Qualquer profissional</option></select>
+      </div>
+    </div>
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Serviço</label>
+        <select id="agServico"><option value="">Selecione o serviço</option></select>
+      </div>
+      <div class="form-group">
+        <label>Data e Hora *</label>
+        <input type="datetime-local" id="agDataHora"/>
+      </div>
+    </div>
+    <div class="form-row form-row-3">
+      <div class="form-group">
+        <label>Duração (min)</label>
+        <input type="number" id="agDuracao" value="60" min="15" step="15"/>
+      </div>
+      <div class="form-group">
+        <label>Valor (R$)</label>
+        <input type="number" id="agValor" step="0.01" min="0" placeholder="0,00"/>
+      </div>
+      <div class="form-group">
+        <label>Forma de Pagamento</label>
+        <select id="agPagamento">
+          <option value="dinheiro">Dinheiro</option>
+          <option value="pix">PIX</option>
+          <option value="cartao_debito">Cartão Débito</option>
+          <option value="cartao_credito">Cartão Crédito</option>
+          <option value="outros">Outros</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Status</label>
+        <select id="agStatus">
+          <option value="pendente">🕐 Pendente</option>
+          <option value="confirmado">✅ Confirmado</option>
+          <option value="concluido">✔️ Concluído</option>
+          <option value="cancelado">❌ Cancelado</option>
+          <option value="faltou">⚠️ Faltou</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Desconto (R$)</label>
+        <input type="number" id="agDesconto" step="0.01" min="0" value="0"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Observações</label>
+      <textarea id="agObs" placeholder="Anotações sobre o agendamento…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Notas internas (visível só para equipe)</label>
+      <textarea id="agNotas" placeholder="Informações internas…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="cancelModalAg">Cancelar</button>
+      <button class="btn btn-primary" id="salvarAg"><i class="fas fa-save"></i> Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL DETALHES ── -->
+<div class="modal-overlay" id="modalDetalhes">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3><i class="fas fa-calendar-check"></i> Detalhes do Agendamento</h3>
+      <button class="modal-close" id="closeModalDetalhes"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="detalhesContent"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="editarAgBtn"><i class="fas fa-edit"></i> Editar</button>
+      <button class="btn btn-success" id="concluirAgBtn"><i class="fas fa-check"></i> Concluir</button>
+      <button class="btn btn-danger" id="cancelarAgBtn"><i class="fas fa-times"></i> Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module">
+import { requireAuth, renderUserInSidebar, showToast, isAdmin } from './supabase/session-manager.js';
+import { getAllAgendamentos, createAgendamento, updateAgendamento, deleteAgendamento,
+         getAllClientes, getAllEquipe, getAllServicos,
+         formatCurrency, formatDateTime, formatDate, formatTime, STATUS_LABELS, PAGAMENTO_LABELS,
+         getAgendamentosDoMes } from './supabase/database.js';
+import { getSidebarHTML, initSidebarToggle, showAdminItems } from './js/sidebar.js';
+
+document.getElementById('sidebarMount').innerHTML = getSidebarHTML('agendamentos');
+initSidebarToggle();
+
+const auth = await requireAuth();
+if (!auth) throw new Error('Not authenticated');
+const { user, profile } = auth;
+renderUserInSidebar(profile);
+if (isAdmin(user,profile)) showAdminItems();
+setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
+
+// Logout
+document.getElementById('logoutBtn')?.addEventListener('click', () =>
+  import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href='index.html'));
+
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${btn.dataset.tab}`)?.classList.add('active');
+    if (btn.dataset.tab === 'calendario') renderCalendar(calYear, calMonth);
+  });
+});
+
+// ─── Estado ───────────────────────────────────────────────────
+let allAgs       = [];
+let filteredAgs  = [];
+let currentPage  = 1;
+const perPage    = 20;
+let editingId    = null;
+let viewingAg    = null;
+let clientes = [], equipe = [], servicos = [];
+let calYear  = new Date().getFullYear();
+let calMonth = new Date().getMonth() + 1;
+
+// ─── Carrega dados ────────────────────────────────────────────
+async function loadAll() {
+  [clientes, equipe, servicos, allAgs] = await Promise.all([
+    getAllClientes(), getAllEquipe(), getAllServicos(), getAllAgendamentos()
+  ]);
+  populateFilters();
+  applyFilters();
+}
+
+function populateFilters() {
+  const sel = document.getElementById('filterProf');
+  sel.innerHTML = '<option value="">Todos os profissionais</option>' +
+    equipe.map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+}
+
+function applyFilters() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const status = document.getElementById('filterStatus').value;
+  const prof   = document.getElementById('filterProf').value;
+  const data   = document.getElementById('filterData').value;
+
+  filteredAgs = allAgs.filter(ag => {
+    if (status && ag.status !== status) return false;
+    if (prof   && ag.profissional_id !== prof) return false;
+    if (data   && !ag.data_hora.startsWith(data)) return false;
+    if (search) {
+      const hay = [ag.clientes?.nome, ag.servicos?.nome, ag.equipe?.nome,
+                   ag.observacoes].join(' ').toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+  currentPage = 1;
+  renderTable();
+}
+
+function renderTable() {
+  const start = (currentPage-1)*perPage;
+  const page  = filteredAgs.slice(start, start+perPage);
+  const tbody = document.getElementById('tbodyAgendamentos');
+
+  if (!filteredAgs.length) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><i class="fas fa-calendar-times"></i><h3>Nenhum agendamento encontrado</h3><p>Tente ajustar os filtros ou crie um novo agendamento.</p></div></td></tr>`;
+    document.getElementById('paginacao').innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = page.map(ag => {
+    const st  = STATUS_LABELS[ag.status] || {};
+    const cor = ag.equipe?.cor_agenda || '#6366f1';
+    return `<tr>
+      <td>
+        <strong>${ag.clientes?.nome || '—'}</strong>
+        ${ag.clientes?.telefone ? `<br><small style="color:var(--text2)">${ag.clientes.telefone}</small>` : ''}
+      </td>
+      <td>${ag.servicos?.icone||''} ${ag.servicos?.nome||'—'}</td>
+      <td><span style="display:inline-flex;align-items:center;gap:6px">
+        <span style="width:8px;height:8px;border-radius:50%;background:${cor};flex-shrink:0"></span>
+        ${ag.equipe?.nome || '—'}
+      </span></td>
+      <td>${formatDateTime(ag.data_hora)}</td>
+      <td>${ag.duracao_min}min</td>
+      <td>${formatCurrency(ag.valor)}</td>
+      <td><span class="badge" style="background:${st.color}22;color:${st.color}">${st.icon||''} ${st.label||ag.status}</span></td>
+      <td><span class="badge badge-gray">${PAGAMENTO_LABELS[ag.forma_pagamento]||ag.forma_pagamento}</span></td>
+      <td class="td-actions">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="verDetalhes('${ag.id}')" title="Ver"><i class="fas fa-eye"></i></button>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="editarAg('${ag.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="mudarStatus('${ag.id}','concluido')" title="Concluir" style="color:var(--secondary)"><i class="fas fa-check"></i></button>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="mudarStatus('${ag.id}','cancelado')" title="Cancelar" style="color:var(--danger)"><i class="fas fa-times"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Paginação
+  const totalPages = Math.ceil(filteredAgs.length / perPage);
+  if (totalPages > 1) {
+    let pag = `<button class="page-btn" ${currentPage===1?'disabled':''} onclick="goPage(${currentPage-1})"><i class="fas fa-chevron-left"></i></button>`;
+    for (let p=1; p<=totalPages; p++) {
+      if (p===1||p===totalPages||Math.abs(p-currentPage)<=1)
+        pag += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+      else if (Math.abs(p-currentPage)===2) pag += `<span style="padding:0 4px;color:var(--text3)">…</span>`;
+    }
+    pag += `<button class="page-btn" ${currentPage===totalPages?'disabled':''} onclick="goPage(${currentPage+1})"><i class="fas fa-chevron-right"></i></button>`;
+    document.getElementById('paginacao').innerHTML = pag;
+  } else {
+    document.getElementById('paginacao').innerHTML = '';
+  }
+  document.getElementById('topbarSub').textContent = `${filteredAgs.length} agendamento${filteredAgs.length!==1?'s':''} encontrado${filteredAgs.length!==1?'s':''}`;
+}
+
+window.goPage = (p) => { currentPage = p; renderTable(); };
+
+// Filtros
+['searchInput','filterStatus','filterProf','filterData'].forEach(id =>
+  document.getElementById(id)?.addEventListener('input', applyFilters));
+document.getElementById('clearFilters')?.addEventListener('click', () => {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterProf').value = '';
+  document.getElementById('filterData').value = '';
+  applyFilters();
+});
+
+// ─── Modal Agendamento ────────────────────────────────────────
+function preencherSelects() {
+  document.getElementById('agCliente').innerHTML =
+    '<option value="">Selecione o cliente</option>' +
+    clientes.map(c => `<option value="${c.id}">${c.nome}${c.telefone?' ('+c.telefone+')':''}</option>`).join('');
+  document.getElementById('agProfissional').innerHTML =
+    '<option value="">Qualquer profissional</option>' +
+    equipe.map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+  document.getElementById('agServico').innerHTML =
+    '<option value="">Selecione o serviço</option>' +
+    servicos.map(s => `<option value="${s.id}" data-preco="${s.preco}" data-dur="${s.duracao_min}">${s.icone||''} ${s.nome} — ${formatCurrency(s.preco)}</option>`).join('');
+  document.getElementById('agServico').addEventListener('change', (e) => {
+    const opt = e.target.selectedOptions[0];
+    if (opt?.dataset?.preco) document.getElementById('agValor').value = opt.dataset.preco;
+    if (opt?.dataset?.dur)   document.getElementById('agDuracao').value = opt.dataset.dur;
+  });
+}
+
+function openModal(ag = null) {
+  editingId = ag?.id || null;
+  document.getElementById('modalAgTitle').innerHTML = ag
+    ? '<i class="fas fa-edit"></i> Editar Agendamento'
+    : '<i class="fas fa-calendar-plus"></i> Novo Agendamento';
+  preencherSelects();
+  if (ag) {
+    document.getElementById('agCliente').value    = ag.cliente_id || '';
+    document.getElementById('agProfissional').value = ag.profissional_id || '';
+    document.getElementById('agServico').value    = ag.servico_id || '';
+    document.getElementById('agDataHora').value   = ag.data_hora?.slice(0,16) || '';
+    document.getElementById('agDuracao').value    = ag.duracao_min || 60;
+    document.getElementById('agValor').value      = ag.valor || 0;
+    document.getElementById('agDesconto').value   = ag.desconto || 0;
+    document.getElementById('agPagamento').value  = ag.forma_pagamento || 'dinheiro';
+    document.getElementById('agStatus').value     = ag.status || 'pendente';
+    document.getElementById('agObs').value        = ag.observacoes || '';
+    document.getElementById('agNotas').value      = ag.notas_internas || '';
+  } else {
+    ['agCliente','agProfissional','agServico','agStatus'].forEach(id => document.getElementById(id).selectedIndex=0);
+    ['agObs','agNotas'].forEach(id => document.getElementById(id).value='');
+    document.getElementById('agDuracao').value = 60;
+    document.getElementById('agValor').value   = 0;
+    document.getElementById('agDesconto').value= 0;
+    const next = new Date(); next.setMinutes(0); next.setSeconds(0); next.setHours(next.getHours()+1);
+    document.getElementById('agDataHora').value = next.toISOString().slice(0,16);
+  }
+  document.getElementById('modalAg').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modalAg').classList.remove('open'); }
+document.getElementById('btnNovo')?.addEventListener('click', () => openModal());
+document.getElementById('closeModalAg')?.addEventListener('click', closeModal);
+document.getElementById('cancelModalAg')?.addEventListener('click', closeModal);
+
+document.getElementById('salvarAg')?.addEventListener('click', async () => {
+  const clienteId = document.getElementById('agCliente').value;
+  const dataHora  = document.getElementById('agDataHora').value;
+  if (!clienteId) { showToast('Selecione um cliente.','warning'); return; }
+  if (!dataHora)  { showToast('Informe data e hora.','warning'); return; }
+  const btn = document.getElementById('salvarAg');
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch spin"></i>';
+  try {
+    const payload = {
+      cliente_id:      clienteId,
+      profissional_id: document.getElementById('agProfissional').value || null,
+      servico_id:      document.getElementById('agServico').value || null,
+      data_hora:       new Date(dataHora).toISOString(),
+      duracao_min:     parseInt(document.getElementById('agDuracao').value)||60,
+      valor:           parseFloat(document.getElementById('agValor').value)||0,
+      desconto:        parseFloat(document.getElementById('agDesconto').value)||0,
+      forma_pagamento: document.getElementById('agPagamento').value,
+      status:          document.getElementById('agStatus').value,
+      observacoes:     document.getElementById('agObs').value||null,
+      notas_internas:  document.getElementById('agNotas').value||null,
+    };
+    if (editingId) { await updateAgendamento(editingId, payload); showToast('Agendamento atualizado!','success'); }
+    else { payload.criado_por = user.id; await createAgendamento(payload); showToast('Agendamento criado!','success'); }
+    closeModal();
+    await loadAll();
+  } catch(err) {
+    showToast(err.message||'Erro ao salvar.','error');
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Salvar';
+  }
+});
+
+window.editarAg = (id) => {
+  const ag = allAgs.find(a => a.id === id);
+  if (ag) openModal(ag);
+  document.getElementById('modalDetalhes').classList.remove('open');
+};
+
+window.mudarStatus = async (id, status) => {
+  const labels = { concluido:'Concluído', cancelado:'Cancelado', confirmado:'Confirmado' };
+  if (!confirm(`Marcar como ${labels[status]||status}?`)) return;
+  try {
+    await updateAgendamento(id, { status });
+    showToast(`Agendamento marcado como ${labels[status]}!`,'success');
+    await loadAll();
+    document.getElementById('modalDetalhes').classList.remove('open');
+  } catch(err) { showToast(err.message,'error'); }
+};
+
+// ─── Ver Detalhes ─────────────────────────────────────────────
+window.verDetalhes = (id) => {
+  viewingAg = allAgs.find(a => a.id === id);
+  if (!viewingAg) return;
+  const st = STATUS_LABELS[viewingAg.status] || {};
+  const cor = viewingAg.equipe?.cor_agenda||'#6366f1';
+  document.getElementById('detalhesContent').innerHTML = `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div>
+      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Cliente</label>
+      <p style="font-weight:700">${viewingAg.clientes?.nome||'—'}</p>
+      <p style="font-size:.8rem;color:var(--text2)">${viewingAg.clientes?.telefone||''}</p>
+    </div>
+    <div>
+      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Profissional</label>
+      <p style="font-weight:700;display:flex;align-items:center;gap:6px">
+        <span style="width:10px;height:10px;border-radius:50%;background:${cor}"></span>
+        ${viewingAg.equipe?.nome||'—'}
+      </p>
+      <p style="font-size:.8rem;color:var(--text2)">${viewingAg.equipe?.cargo||''}</p>
+    </div>
+    <div>
+      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Serviço</label>
+      <p style="font-weight:700">${viewingAg.servicos?.icone||''} ${viewingAg.servicos?.nome||'—'}</p>
+    </div>
+    <div>
+      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Data e Hora</label>
+      <p style="font-weight:700">${formatDateTime(viewingAg.data_hora)}</p>
+      <p style="font-size:.8rem;color:var(--text2)">Duração: ${viewingAg.duracao_min}min</p>
+    </div>
+    <div>
+      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Valor</label>
+      <p style="font-weight:700;font-size:1.1rem;color:var(--secondary)">${formatCurrency(viewingAg.valor)}</p>
+      ${viewingAg.desconto>0?`<p style="font-size:.8rem;color:var(--danger)">Desconto: -${formatCurrency(viewingAg.desconto)}</p>`:''}
+    </div>
+    <div>
+      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Status</label>
+      <span class="badge" style="background:${st.color}22;color:${st.color};font-size:.82rem">${st.icon||''} ${st.label||viewingAg.status}</span>
+    </div>
+    ${viewingAg.observacoes?`<div class="col-span-2" style="grid-column:span 2">
+      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Observações</label>
+      <p>${viewingAg.observacoes}</p></div>`:''}
+    ${viewingAg.notas_internas?`<div style="grid-column:span 2">
+      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Notas Internas</label>
+      <p style="color:var(--warning)">${viewingAg.notas_internas}</p></div>`:''}
+  </div>`;
+  document.getElementById('modalDetalhes').classList.add('open');
+};
+
+document.getElementById('closeModalDetalhes')?.addEventListener('click', () =>
+  document.getElementById('modalDetalhes').classList.remove('open'));
+document.getElementById('editarAgBtn')?.addEventListener('click', () => {
+  if (viewingAg) window.editarAg(viewingAg.id);
+});
+document.getElementById('concluirAgBtn')?.addEventListener('click', () => {
+  if (viewingAg) window.mudarStatus(viewingAg.id,'concluido');
+});
+document.getElementById('cancelarAgBtn')?.addEventListener('click', () => {
+  if (viewingAg) window.mudarStatus(viewingAg.id,'cancelado');
+});
+
+// ─── Calendário ───────────────────────────────────────────────
+async function renderCalendar(year, month) {
+  const ags = await getAgendamentosDoMes(year, month);
+  document.getElementById('calTitle').textContent =
+    new Date(year, month-1, 1).toLocaleString('pt-BR',{month:'long',year:'numeric'});
+
+  const firstDay = new Date(year, month-1, 1).getDay();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  const grid = document.getElementById('calGrid');
+  // Remove old day cells (keep headers)
+  while (grid.children.length > 7) grid.removeChild(grid.lastChild);
+
+  // Empty cells before first day
+  for (let i = 0; i < firstDay; i++) {
+    const d = document.createElement('div');
+    d.className = 'calendar-day other-month';
+    grid.appendChild(d);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month-1, day);
+    const isoDate = date.toISOString().slice(0,10);
+    const dayAgs  = ags.filter(a => a.data_hora.startsWith(isoDate));
+    const isToday = date.getTime() === today.getTime();
+
+    const el = document.createElement('div');
+    el.className = `calendar-day ${isToday?'today':''}`;
+    el.innerHTML = `<div class="day-number" style="color:${isToday?'var(--primary)':'var(--text)'}">${day}</div>` +
+      dayAgs.slice(0,3).map(ag => {
+        const cor = ag.equipe?.cor_agenda||'#6366f1';
+        return `<div class="calendar-event" style="background:${cor}" title="${ag.clientes?.nome||'?'} — ${formatTime(ag.data_hora)}">${formatTime(ag.data_hora)} ${ag.clientes?.nome?.split(' ')[0]||'?'}</div>`;
+      }).join('') +
+      (dayAgs.length > 3 ? `<div style="font-size:.65rem;color:var(--text3)">+${dayAgs.length-3} mais</div>` : '');
+
+    el.addEventListener('click', () => {
+      const dayEl = document.getElementById('agendamentosDodia');
+      if (!dayAgs.length) { dayEl.innerHTML = `<div class="empty-state"><i class="fas fa-calendar-day"></i><h3>${day}/${month}/${year}</h3><p>Nenhum agendamento neste dia.</p></div>`; return; }
+      dayEl.innerHTML = `<div class="card"><div class="card-header"><span class="card-title">📅 ${day}/${String(month).padStart(2,'0')}/${year} — ${dayAgs.length} agendamento${dayAgs.length!==1?'s':''}</span></div>` +
+        dayAgs.map(ag => {
+          const st = STATUS_LABELS[ag.status]||{};
+          return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center">
+            <span style="font-size:.82rem;font-weight:700;color:var(--text2);white-space:nowrap">${formatTime(ag.data_hora)}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600">${ag.clientes?.nome||'—'}</div>
+              <div style="font-size:.76rem;color:var(--text2)">${ag.servicos?.nome||'—'} · ${ag.equipe?.nome||'—'}</div>
+            </div>
+            <span class="badge" style="background:${st.color}22;color:${st.color}">${st.icon} ${st.label}</span>
+            <button class="btn btn-ghost btn-sm btn-icon" onclick="verDetalhes('${ag.id}')"><i class="fas fa-eye"></i></button>
+          </div>`;
+        }).join('') + '</div>';
+    });
+    grid.appendChild(el);
+  }
+}
+
+document.getElementById('prevMonth')?.addEventListener('click', () => {
+  calMonth--; if(calMonth<1){calMonth=12;calYear--;} renderCalendar(calYear,calMonth);
+});
+document.getElementById('nextMonth')?.addEventListener('click', () => {
+  calMonth++; if(calMonth>12){calMonth=1;calYear++;} renderCalendar(calYear,calMonth);
+});
+document.getElementById('todayBtn')?.addEventListener('click', () => {
+  calYear=new Date().getFullYear(); calMonth=new Date().getMonth()+1; renderCalendar(calYear,calMonth);
+});
+
+// Check URL param
+const urlId = new URLSearchParams(location.search).get('id');
+
+await loadAll();
+if (urlId) setTimeout(() => window.verDetalhes(urlId), 100);
+</script>
+</body>
+</html>

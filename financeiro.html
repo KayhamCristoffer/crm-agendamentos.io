@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Financeiro — CRM</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="page-loader" id="pageLoader"><div class="loader-ring"></div></div>
+<div id="sidebarMount"></div>
+<div class="app-layout">
+  <div class="main-content">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-title"><h1>Financeiro</h1><p>Controle de receitas e despesas</p></div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-success btn-sm" id="btnNovaReceita"><i class="fas fa-plus"></i> Receita</button>
+        <button class="btn btn-danger btn-sm" id="btnNovaDespesa"><i class="fas fa-minus"></i> Despesa</button>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- Seletor de mês/ano -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-ghost btn-sm" id="prevMes"><i class="fas fa-chevron-left"></i></button>
+          <select id="selMes" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)">
+            <option value="1">Janeiro</option><option value="2">Fevereiro</option>
+            <option value="3">Março</option><option value="4">Abril</option>
+            <option value="5">Maio</option><option value="6">Junho</option>
+            <option value="7">Julho</option><option value="8">Agosto</option>
+            <option value="9">Setembro</option><option value="10">Outubro</option>
+            <option value="11">Novembro</option><option value="12">Dezembro</option>
+          </select>
+          <select id="selAno" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)"></select>
+          <button class="btn btn-ghost btn-sm" id="nextMes"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btnHoje">Mês atual</button>
+      </div>
+
+      <!-- Cards de resumo -->
+      <div class="stats-grid mb-24" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(16,185,129,.15)">💰</div>
+          <div class="stat-info"><label>Receitas</label><h3 id="statReceitas" style="color:var(--secondary)">—</h3><span>este mês</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(239,68,68,.15)">💸</div>
+          <div class="stat-info"><label>Despesas</label><h3 id="statDespesas" style="color:var(--danger)">—</h3><span>este mês</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:rgba(99,102,241,.15)">📈</div>
+          <div class="stat-info"><label>Lucro Líquido</label><h3 id="statLucro">—</h3><span>este mês</span></div>
+        </div>
+      </div>
+
+      <!-- Grid: Gráfico + Tabela -->
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:20px;margin-bottom:24px">
+        <div class="card">
+          <div class="card-header"><span class="card-title">📊 Distribuição</span></div>
+          <div class="chart-wrap" style="height:200px">
+            <canvas id="chartPie"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">📉 Evolução Mensal</span></div>
+          <div class="chart-wrap">
+            <canvas id="chartBar"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtros da tabela -->
+      <div class="filter-bar mb-16">
+        <select id="filterTipo" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)">
+          <option value="">Todos os tipos</option>
+          <option value="receita">Receitas</option>
+          <option value="despesa">Despesas</option>
+        </select>
+        <select id="filterCat" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)">
+          <option value="">Todas as categorias</option>
+          <option value="servico">Serviço</option>
+          <option value="produto">Produto</option>
+          <option value="aluguel">Aluguel</option>
+          <option value="material">Material</option>
+          <option value="salario">Salário</option>
+          <option value="outros">Outros</option>
+        </select>
+      </div>
+
+      <!-- Tabela de lançamentos -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📋 Lançamentos</span>
+          <span id="totalLancamentos" style="font-size:.8rem;color:var(--text2)"></span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>Tipo</th><th>Data</th><th>Descrição</th>
+              <th>Categoria</th><th>Valor</th><th>Ações</th>
+            </tr></thead>
+            <tbody id="tbodyFinanceiro">
+              <tr><td colspan="6"><div class="loading"><i class="fas fa-circle-notch spin"></i></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Novo Lançamento</h3>
+      <button class="modal-close" id="closeModal"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Tipo</label>
+        <select id="lTipo">
+          <option value="receita">💰 Receita</option>
+          <option value="despesa">💸 Despesa</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Data *</label>
+        <input type="date" id="lData"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Descrição *</label>
+      <input type="text" id="lDescricao" placeholder="Ex: Pagamento de serviço, Compra de material…"/>
+    </div>
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Valor (R$) *</label>
+        <input type="number" id="lValor" step="0.01" min="0" placeholder="0,00"/>
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <select id="lCategoria">
+          <option value="servico">Serviço</option>
+          <option value="produto">Produto</option>
+          <option value="aluguel">Aluguel</option>
+          <option value="material">Material</option>
+          <option value="salario">Salário</option>
+          <option value="outros">Outros</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="cancelModal">Cancelar</button>
+      <button class="btn btn-primary" id="salvar"><i class="fas fa-save"></i> Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module">
+import { requireAuth, renderUserInSidebar, showToast, isAdmin } from './supabase/session-manager.js';
+import { getLancamentos, createLancamento, deleteLancamento,
+         getResumoFinanceiro, getResumoFinanceiroMensal,
+         formatCurrency, formatDate } from './supabase/database.js';
+import { getSidebarHTML, initSidebarToggle, showAdminItems } from './js/sidebar.js';
+
+document.getElementById('sidebarMount').innerHTML = getSidebarHTML('financeiro');
+initSidebarToggle();
+const auth = await requireAuth();
+if (!auth) throw new Error('Not authenticated');
+const { user, profile } = auth;
+renderUserInSidebar(profile);
+if (isAdmin(user,profile)) showAdminItems();
+setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
+document.getElementById('logoutBtn')?.addEventListener('click', () =>
+  import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href='index.html'));
+
+const now = new Date();
+let curAno = now.getFullYear();
+let curMes = now.getMonth() + 1;
+
+// Preenche select de ano
+const selAno = document.getElementById('selAno');
+for (let y = now.getFullYear(); y >= now.getFullYear()-4; y--) {
+  selAno.insertAdjacentHTML('beforeend', `<option value="${y}">${y}</option>`);
+}
+document.getElementById('selMes').value = curMes;
+selAno.value = curAno;
+
+async function loadPeriod() {
+  const ano = parseInt(selAno.value);
+  const mes = parseInt(document.getElementById('selMes').value);
+  curAno = ano; curMes = mes;
+
+  const inicio = `${ano}-${String(mes).padStart(2,'0')}-01`;
+  const fim    = `${ano}-${String(mes).padStart(2,'0')}-31`;
+
+  const [lancamentos, resumo, mensal] = await Promise.all([
+    getLancamentos({ dataInicio: inicio, dataFim: fim }),
+    getResumoFinanceiro(ano, mes),
+    getResumoFinanceiroMensal(ano)
+  ]);
+
+  // Resumo cards
+  document.getElementById('statReceitas').textContent = formatCurrency(resumo.receitas);
+  document.getElementById('statDespesas').textContent = formatCurrency(resumo.despesas);
+  const lucroEl = document.getElementById('statLucro');
+  lucroEl.textContent  = formatCurrency(resumo.lucro);
+  lucroEl.style.color  = resumo.lucro >= 0 ? 'var(--secondary)' : 'var(--danger)';
+
+  renderTabela(lancamentos);
+  renderCharts(resumo, mensal);
+}
+
+function renderTabela(list) {
+  const tipo = document.getElementById('filterTipo').value;
+  const cat  = document.getElementById('filterCat').value;
+  const filtered = list.filter(l => {
+    if (tipo && l.tipo !== tipo) return false;
+    if (cat  && l.categoria !== cat) return false;
+    return true;
+  });
+
+  document.getElementById('totalLancamentos').textContent =
+    `${filtered.length} lançamento${filtered.length!==1?'s':''}`;
+
+  const tbody = document.getElementById('tbodyFinanceiro');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><i class="fas fa-receipt"></i><h3>Nenhum lançamento</h3><p>Nenhum registro encontrado para este período.</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map(l => `
+    <tr>
+      <td><span class="badge ${l.tipo==='receita'?'badge-success':'badge-danger'}">${l.tipo==='receita'?'💰 Receita':'💸 Despesa'}</span></td>
+      <td>${formatDate(l.data)}</td>
+      <td>${l.descricao}</td>
+      <td><span class="badge badge-gray">${l.categoria||'—'}</span></td>
+      <td style="font-weight:700;color:${l.tipo==='receita'?'var(--secondary)':'var(--danger)'}">
+        ${l.tipo==='despesa'?'-':''}${formatCurrency(l.valor)}
+      </td>
+      <td class="td-actions">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="excluir('${l.id}')" style="color:var(--danger)" title="Excluir"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>`).join('');
+}
+
+let pieChart = null, barChart = null;
+function renderCharts(resumo, mensal) {
+  // Pie
+  const ctxPie = document.getElementById('chartPie')?.getContext('2d');
+  if (ctxPie) {
+    if (pieChart) pieChart.destroy();
+    pieChart = new Chart(ctxPie, {
+      type: 'doughnut',
+      data: {
+        labels: ['Receitas', 'Despesas'],
+        datasets: [{
+          data: [resumo.receitas||0, resumo.despesas||0],
+          backgroundColor: ['rgba(16,185,129,.7)','rgba(239,68,68,.6)'],
+          borderColor: ['#10b981','#ef4444'], borderWidth: 2
+        }]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false, cutout:'65%',
+        plugins: {
+          legend: { position:'bottom', labels: { color:'#94a3b8', font:{size:11}, padding:12 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${formatCurrency(ctx.raw)}` } }
+        }
+      }
+    });
+  }
+  // Bar
+  const ctxBar = document.getElementById('chartBar')?.getContext('2d');
+  if (ctxBar) {
+    if (barChart) barChart.destroy();
+    const labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    barChart = new Chart(ctxBar, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label:'Receitas', data: mensal.map(m=>m.receitas), borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.1)', fill:true, tension:.3, pointRadius:4 },
+          { label:'Despesas', data: mensal.map(m=>m.despesas), borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,.08)', fill:true, tension:.3, pointRadius:4 },
+          { label:'Lucro',    data: mensal.map(m=>m.lucro),    borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,.08)', fill:false, tension:.3, pointRadius:4, borderDash:[4,4] }
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins: { legend: { labels: { color:'#94a3b8', font:{size:11} } } },
+        scales: {
+          x: { ticks: { color:'#64748b', font:{size:10} }, grid: { color:'rgba(51,65,85,.4)' } },
+          y: { ticks: { color:'#64748b', font:{size:10}, callback: v=>'R$'+v.toLocaleString('pt-BR') }, grid: { color:'rgba(51,65,85,.4)' } }
+        }
+      }
+    });
+  }
+}
+
+// Navegação mês
+document.getElementById('prevMes')?.addEventListener('click', () => {
+  let m = parseInt(document.getElementById('selMes').value);
+  let a = parseInt(selAno.value);
+  m--; if(m<1){m=12;a--;selAno.value=a;}
+  document.getElementById('selMes').value=m; loadPeriod();
+});
+document.getElementById('nextMes')?.addEventListener('click', () => {
+  let m = parseInt(document.getElementById('selMes').value);
+  let a = parseInt(selAno.value);
+  m++; if(m>12){m=1;a++;selAno.value=a;}
+  document.getElementById('selMes').value=m; loadPeriod();
+});
+document.getElementById('btnHoje')?.addEventListener('click', () => {
+  document.getElementById('selMes').value = now.getMonth()+1;
+  selAno.value = now.getFullYear();
+  loadPeriod();
+});
+document.getElementById('selMes')?.addEventListener('change', loadPeriod);
+selAno.addEventListener('change', loadPeriod);
+['filterTipo','filterCat'].forEach(id => document.getElementById(id)?.addEventListener('change', loadPeriod));
+
+// Modal
+let lancamentos_cache = [];
+function openModal(tipo = 'receita') {
+  document.getElementById('modalTitle').textContent = tipo==='receita' ? '💰 Nova Receita' : '💸 Nova Despesa';
+  document.getElementById('lTipo').value  = tipo;
+  document.getElementById('lData').value  = new Date().toISOString().slice(0,10);
+  document.getElementById('lDescricao').value = '';
+  document.getElementById('lValor').value = '';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+document.getElementById('btnNovaReceita')?.addEventListener('click', () => openModal('receita'));
+document.getElementById('btnNovaDespesa')?.addEventListener('click', () => openModal('despesa'));
+document.getElementById('closeModal')?.addEventListener('click', closeModal);
+document.getElementById('cancelModal')?.addEventListener('click', closeModal);
+
+document.getElementById('salvar')?.addEventListener('click', async () => {
+  const descricao = document.getElementById('lDescricao').value.trim();
+  const valor     = parseFloat(document.getElementById('lValor').value);
+  const data      = document.getElementById('lData').value;
+  if (!descricao) { showToast('Informe a descrição.','warning'); return; }
+  if (!valor || valor <= 0) { showToast('Informe um valor válido.','warning'); return; }
+  if (!data) { showToast('Informe a data.','warning'); return; }
+  const btn = document.getElementById('salvar'); btn.disabled=true;
+  try {
+    await createLancamento({
+      tipo:       document.getElementById('lTipo').value,
+      descricao,  valor,  data,
+      categoria:  document.getElementById('lCategoria').value,
+      criado_por: user.id
+    });
+    showToast('Lançamento registrado!','success');
+    closeModal(); loadPeriod();
+  } catch(err) { showToast(err.message,'error'); }
+  finally { btn.disabled=false; }
+});
+
+window.excluir = async (id) => {
+  if (!confirm('Excluir este lançamento?')) return;
+  try { await deleteLancamento(id); showToast('Removido.','success'); loadPeriod(); }
+  catch(err) { showToast(err.message,'error'); }
+};
+
+await loadPeriod();
+</script>
+</body>
+</html>

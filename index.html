@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CRM Agendamentos — Login</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<!-- Page Loader -->
+<div class="page-loader" id="pageLoader">
+  <div class="loader-ring"></div>
+  <p style="color:var(--text2);font-size:.85rem">Carregando…</p>
+</div>
+
+<!-- Partículas de fundo -->
+<div id="particles" style="position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0"></div>
+
+<div class="auth-page" style="position:relative;z-index:1">
+  <div class="auth-container">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="auth-logo-icon">📅</div>
+      <h1>CRM Agendamentos</h1>
+      <p>Gerencie seu negócio com eficiência</p>
+    </div>
+
+    <!-- ── LOGIN BOX ── -->
+    <div class="auth-box" id="loginBox">
+      <h2>Bem-vindo de volta!</h2>
+      <p>Entre com suas credenciais para acessar o sistema</p>
+
+      <div class="error-msg" id="loginError"><i class="fas fa-exclamation-circle"></i><span></span></div>
+
+      <div class="form-group">
+        <label>E-mail</label>
+        <div class="input-group">
+          <i class="fas fa-envelope"></i>
+          <input type="email" id="loginEmail" placeholder="seu@email.com" autocomplete="email"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Senha</label>
+        <div class="input-group" style="position:relative">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"/>
+          <button class="toggle-password" id="toggleLoginPwd" tabindex="-1" type="button">
+            <i class="fas fa-eye" id="eyeLoginIcon"></i>
+          </button>
+        </div>
+      </div>
+
+      <div style="text-align:right;margin-bottom:16px">
+        <span class="auth-link" id="forgotPasswordLink" style="font-size:.8rem">Esqueci minha senha</span>
+      </div>
+
+      <button class="btn btn-primary w-full" id="submitLoginBtn" data-original-text='<i class="fas fa-sign-in-alt"></i> Entrar'>
+        <i class="fas fa-sign-in-alt"></i> Entrar
+      </button>
+
+      <div class="auth-divider">ou</div>
+      <p style="text-align:center;font-size:.84rem;color:var(--text2)">
+        Não tem conta? <span class="auth-link" id="goToRegister">Cadastre-se</span>
+      </p>
+    </div>
+
+    <!-- ── REGISTER BOX ── -->
+    <div class="auth-box" id="registerBox" style="display:none">
+      <h2>Criar conta</h2>
+      <p>Preencha seus dados para começar</p>
+
+      <div class="error-msg" id="registerError"><i class="fas fa-exclamation-circle"></i><span></span></div>
+
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label>Nome completo</label>
+          <input type="text" id="regNome" placeholder="João Silva"/>
+        </div>
+        <div class="form-group">
+          <label>Telefone</label>
+          <input type="tel" id="regTelefone" placeholder="(11) 99999-9999"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>E-mail</label>
+        <div class="input-group">
+          <i class="fas fa-envelope"></i>
+          <input type="email" id="regEmail" placeholder="seu@email.com"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Senha</label>
+        <div class="input-group" style="position:relative">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres"/>
+          <button class="toggle-password" id="toggleRegPwd" type="button">
+            <i class="fas fa-eye" id="eyeRegIcon"></i>
+          </button>
+        </div>
+        <div id="pwdStrengthWrap" class="pwd-strength-wrap" style="margin-top:6px;display:none">
+          <div style="display:flex;gap:4px;margin-bottom:4px" id="pwdBars">
+            <div style="flex:1;height:4px;border-radius:2px;background:var(--border)" id="bar1"></div>
+            <div style="flex:1;height:4px;border-radius:2px;background:var(--border)" id="bar2"></div>
+            <div style="flex:1;height:4px;border-radius:2px;background:var(--border)" id="bar3"></div>
+            <div style="flex:1;height:4px;border-radius:2px;background:var(--border)" id="bar4"></div>
+          </div>
+          <span id="pwdStrengthLabel" style="font-size:.72rem;color:var(--text2)"></span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Confirmar senha</label>
+        <div class="input-group" style="position:relative">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="regConfirm" placeholder="Repita a senha"/>
+          <button class="toggle-password" id="toggleRegConfirm" type="button">
+            <i class="fas fa-eye" id="eyeRegConfirmIcon"></i>
+          </button>
+        </div>
+        <div class="field-hint" id="regConfirmHint"></div>
+      </div>
+
+      <button class="btn btn-primary w-full" id="submitRegisterBtn">
+        <i class="fas fa-user-plus"></i> Criar conta
+      </button>
+
+      <div class="auth-divider">ou</div>
+      <p style="text-align:center;font-size:.84rem;color:var(--text2)">
+        Já tem conta? <span class="auth-link" id="goToLogin">Entrar</span>
+      </p>
+    </div>
+
+    <!-- ── FORGOT PASSWORD BOX ── -->
+    <div class="auth-box" id="forgotBox" style="display:none">
+      <h2>Recuperar senha</h2>
+      <p>Informe seu e-mail para receber o link de redefinição</p>
+
+      <div class="error-msg" id="forgotError"><i class="fas fa-exclamation-circle"></i><span></span></div>
+
+      <div id="forgotStep1">
+        <div class="form-group">
+          <label>E-mail cadastrado</label>
+          <div class="input-group">
+            <i class="fas fa-envelope"></i>
+            <input type="email" id="forgotEmail" placeholder="seu@email.com"/>
+          </div>
+        </div>
+        <button class="btn btn-primary w-full" id="sendResetBtn">
+          <i class="fas fa-paper-plane"></i> Enviar link
+        </button>
+      </div>
+
+      <div id="forgotStep2" style="display:none;text-align:center;padding:12px 0">
+        <i class="fas fa-envelope-open-text" style="font-size:2.5rem;color:var(--secondary);margin-bottom:12px;display:block"></i>
+        <h3 style="margin-bottom:8px">E-mail enviado!</h3>
+        <p style="font-size:.84rem;color:var(--text2)">Verifique sua caixa de entrada e clique no link para redefinir sua senha.</p>
+        <button class="btn btn-secondary w-full mt-16" id="backToLoginBtn">
+          <i class="fas fa-arrow-left"></i> Voltar ao login
+        </button>
+      </div>
+    </div>
+
+    <p style="text-align:center;margin-top:20px;font-size:.75rem;color:var(--text3)">
+      CRM Agendamentos v1.0 · Powered by Supabase
+    </p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module">
+import { signIn, signUp, resetPassword, onAuthStateChange } from './supabase/database.js';
+import { showToast } from './supabase/session-manager.js';
+
+// Redireciona se já logado
+onAuthStateChange((user) => {
+  if (user) window.location.href = 'dashboard.html';
+});
+
+window.addEventListener('load', () => {
+  setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 600);
+});
+
+// Partículas
+(function() {
+  const c = document.getElementById('particles');
+  if (!c) return;
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('div');
+    const s = Math.random() * 4 + 2;
+    p.style.cssText = `position:absolute;width:${s}px;height:${s}px;background:rgba(99,102,241,${Math.random()*.4+.1});border-radius:50%;left:${Math.random()*100}%;top:${Math.random()*100}%;animation:float${i%3} ${Math.random()*12+8}s ease-in-out infinite;animation-delay:${Math.random()*8}s`;
+    c.appendChild(p);
+  }
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes float0{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(-30px) translateX(15px)}}
+    @keyframes float1{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(20px) translateX(-20px)}}
+    @keyframes float2{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(-15px) translateX(-10px)}}
+  `;
+  document.head.appendChild(style);
+})();
+
+// UI helpers
+function showBox(id) {
+  ['loginBox','registerBox','forgotBox'].forEach(b => {
+    document.getElementById(b).style.display = b === id ? 'block' : 'none';
+  });
+}
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('show');
+  el.querySelector('span').textContent = msg;
+}
+function hideError(id) { document.getElementById(id)?.classList.remove('show'); }
+function setLoading(id, loading) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.disabled = loading;
+  if (loading) btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Aguarde…';
+  else btn.innerHTML = btn.dataset.originalText || btn.textContent;
+}
+// Save original texts
+['submitLoginBtn','submitRegisterBtn','sendResetBtn'].forEach(id => {
+  const b = document.getElementById(id);
+  if (b) b.dataset.originalText = b.innerHTML;
+});
+
+// Navigation
+document.getElementById('goToRegister')?.addEventListener('click', () => showBox('registerBox'));
+document.getElementById('goToLogin')?.addEventListener('click', () => showBox('loginBox'));
+document.getElementById('forgotPasswordLink')?.addEventListener('click', () => showBox('forgotBox'));
+document.getElementById('backToLoginBtn')?.addEventListener('click', () => {
+  showBox('loginBox');
+  document.getElementById('forgotStep1').style.display = 'block';
+  document.getElementById('forgotStep2').style.display = 'none';
+});
+
+// Toggle passwords
+function togglePwd(inputId, iconId) {
+  const input = document.getElementById(inputId);
+  const icon  = document.getElementById(iconId);
+  if (!input || !icon) return;
+  input.type = input.type === 'password' ? 'text' : 'password';
+  icon.className = input.type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+}
+document.getElementById('toggleLoginPwd')?.addEventListener('click', () => togglePwd('loginPassword','eyeLoginIcon'));
+document.getElementById('toggleRegPwd')?.addEventListener('click',   () => togglePwd('regPassword','eyeRegIcon'));
+document.getElementById('toggleRegConfirm')?.addEventListener('click',() => togglePwd('regConfirm','eyeRegConfirmIcon'));
+
+// Password strength
+document.getElementById('regPassword')?.addEventListener('input', (e) => {
+  const val = e.target.value;
+  const wrap = document.getElementById('pwdStrengthWrap');
+  if (!wrap) return;
+  wrap.style.display = val ? 'block' : 'none';
+  let score = 0;
+  if (val.length >= 6)  score++;
+  if (val.length >= 10) score++;
+  if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  score = Math.min(4, score);
+  const colors = ['#ef4444','#f59e0b','#f59e0b','#10b981','#10b981'];
+  const labels = ['Muito fraca','Fraca','Regular','Boa','Forte'];
+  for (let i = 1; i <= 4; i++) {
+    const bar = document.getElementById(`bar${i}`);
+    if (bar) bar.style.background = i <= score ? colors[score] : 'var(--border)';
+  }
+  const lbl = document.getElementById('pwdStrengthLabel');
+  if (lbl) { lbl.textContent = labels[score]; lbl.style.color = colors[score]; }
+});
+
+// Confirm password
+document.getElementById('regConfirm')?.addEventListener('input', () => {
+  const pwd  = document.getElementById('regPassword')?.value;
+  const conf = document.getElementById('regConfirm')?.value;
+  const hint = document.getElementById('regConfirmHint');
+  if (!hint || !conf) return;
+  hint.textContent = pwd === conf ? '✓ Senhas conferem' : '✗ Senhas não conferem';
+  hint.className   = `field-hint ${pwd === conf ? 'ok' : 'err'}`;
+});
+
+// LOGIN
+document.getElementById('submitLoginBtn')?.addEventListener('click', async () => {
+  hideError('loginError');
+  const email    = document.getElementById('loginEmail')?.value?.trim();
+  const password = document.getElementById('loginPassword')?.value;
+  if (!email || !password) { showError('loginError', 'Preencha e-mail e senha.'); return; }
+  setLoading('submitLoginBtn', true);
+  try {
+    await signIn(email, password);
+    showToast('Login realizado! Redirecionando…', 'success');
+    setTimeout(() => window.location.href = 'dashboard.html', 800);
+  } catch (err) {
+    setLoading('submitLoginBtn', false);
+    const msgs = {
+      'Invalid login credentials': 'E-mail ou senha incorretos.',
+      'Email not confirmed':       'Confirme seu e-mail antes de entrar.',
+      'Too many requests':         'Muitas tentativas. Aguarde alguns minutos.'
+    };
+    showError('loginError', msgs[err.message] || err.message);
+  }
+});
+document.getElementById('loginPassword')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('submitLoginBtn')?.click();
+});
+
+// REGISTER
+document.getElementById('submitRegisterBtn')?.addEventListener('click', async () => {
+  hideError('registerError');
+  const nome     = document.getElementById('regNome')?.value?.trim();
+  const telefone = document.getElementById('regTelefone')?.value?.trim();
+  const email    = document.getElementById('regEmail')?.value?.trim();
+  const password = document.getElementById('regPassword')?.value;
+  const confirm  = document.getElementById('regConfirm')?.value;
+  if (!nome || nome.length < 2) { showError('registerError','Nome deve ter pelo menos 2 caracteres.'); return; }
+  if (!email) { showError('registerError','Informe um e-mail válido.'); return; }
+  if (!password || password.length < 6) { showError('registerError','Senha deve ter pelo menos 6 caracteres.'); return; }
+  if (password !== confirm) { showError('registerError','As senhas não conferem.'); return; }
+  setLoading('submitRegisterBtn', true);
+  try {
+    await signUp(email, password, nome, telefone);
+    showToast('Conta criada! Verifique seu e-mail para confirmar.', 'success', 7000);
+    showBox('loginBox');
+  } catch (err) {
+    setLoading('submitRegisterBtn', false);
+    const msgs = {
+      'User already registered':      'Este e-mail já está cadastrado.',
+      'Password should be at least 6':'Senha muito curta (mínimo 6 caracteres).'
+    };
+    const msg = Object.entries(msgs).find(([k]) => err.message?.includes(k));
+    showError('registerError', msg ? msg[1] : err.message);
+  }
+});
+
+// RESET PASSWORD
+document.getElementById('sendResetBtn')?.addEventListener('click', async () => {
+  hideError('forgotError');
+  const email = document.getElementById('forgotEmail')?.value?.trim();
+  if (!email) { showError('forgotError','Informe um e-mail.'); return; }
+  setLoading('sendResetBtn', true);
+  try {
+    await resetPassword(email);
+    document.getElementById('forgotStep1').style.display = 'none';
+    document.getElementById('forgotStep2').style.display = 'block';
+  } catch (err) {
+    setLoading('sendResetBtn', false);
+    showError('forgotError', err.message || 'Erro ao enviar e-mail.');
+  }
+});
+</script>
+</body>
+</html>

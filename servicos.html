@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Serviços — CRM</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="page-loader" id="pageLoader"><div class="loader-ring"></div></div>
+<div id="sidebarMount"></div>
+<div class="app-layout">
+  <div class="main-content">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-title"><h1>Serviços & Produtos</h1><p>Gerencie o catálogo de serviços</p></div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary btn-sm" id="btnNovo"><i class="fas fa-plus"></i> Novo</button>
+      </div>
+    </div>
+    <div class="page-content">
+      <div class="filter-bar mb-16">
+        <div class="search-input-wrap">
+          <i class="fas fa-search"></i>
+          <input class="search-input" type="text" id="searchInput" placeholder="Buscar serviço…"/>
+        </div>
+        <select id="filterCat" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)">
+          <option value="">Todos</option>
+          <option value="servico">Serviços</option>
+          <option value="produto">Produtos</option>
+        </select>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead><tr>
+            <th>Ícone</th><th>Nome</th><th>Categoria</th>
+            <th>Preço</th><th>Duração</th><th>Estoque</th><th>Status</th><th>Ações</th>
+          </tr></thead>
+          <tbody id="tbodyServicos">
+            <tr><td colspan="8"><div class="loading"><i class="fas fa-circle-notch spin"></i></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle"><i class="fas fa-plus"></i> Novo Serviço</h3>
+      <button class="modal-close" id="closeModal"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Nome *</label>
+        <input type="text" id="sNome" placeholder="Nome do serviço"/>
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <select id="sCategoria">
+          <option value="servico">Serviço</option>
+          <option value="produto">Produto</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Descrição</label>
+      <textarea id="sDescricao" placeholder="Descreva o serviço…"></textarea>
+    </div>
+    <div class="form-row form-row-3">
+      <div class="form-group">
+        <label>Preço (R$) *</label>
+        <input type="number" id="sPreco" step="0.01" min="0" placeholder="0,00"/>
+      </div>
+      <div class="form-group">
+        <label>Duração (min)</label>
+        <input type="number" id="sDuracao" value="60" min="15" step="15"/>
+      </div>
+      <div class="form-group">
+        <label>Estoque (-1 = ilimitado)</label>
+        <input type="number" id="sEstoque" value="-1" min="-1"/>
+      </div>
+    </div>
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Ícone (emoji)</label>
+        <input type="text" id="sIcone" placeholder="✂️" maxlength="4"/>
+      </div>
+      <div class="form-group">
+        <label>Cor</label>
+        <input type="color" id="sCor" value="#6366f1"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="sAtivo" checked style="width:auto"/>
+        Serviço ativo
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="cancelModal">Cancelar</button>
+      <button class="btn btn-primary" id="salvar"><i class="fas fa-save"></i> Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module">
+import { requireAuth, renderUserInSidebar, showToast, isAdmin } from './supabase/session-manager.js';
+import { getAllServicos, createServico, updateServico, deleteServico, formatCurrency } from './supabase/database.js';
+import { getSidebarHTML, initSidebarToggle, showAdminItems } from './js/sidebar.js';
+
+document.getElementById('sidebarMount').innerHTML = getSidebarHTML('servicos');
+initSidebarToggle();
+const auth = await requireAuth();
+if (!auth) throw new Error('Not authenticated');
+const { user, profile } = auth;
+renderUserInSidebar(profile);
+if (isAdmin(user,profile)) showAdminItems();
+setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
+document.getElementById('logoutBtn')?.addEventListener('click', () =>
+  import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href='index.html'));
+
+let all = [], editingId = null;
+
+async function loadAll() {
+  all = await getAllServicos(true);
+  render();
+}
+
+function render() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const cat    = document.getElementById('filterCat').value;
+  const list   = all.filter(s => {
+    if (cat && s.categoria !== cat) return false;
+    return !search || s.nome.toLowerCase().includes(search);
+  });
+  const tbody = document.getElementById('tbodyServicos');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><i class="fas fa-tags"></i><h3>Nenhum serviço encontrado</h3></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(s => `
+    <tr>
+      <td style="font-size:1.4rem;text-align:center">${s.icone||'—'}</td>
+      <td><strong>${s.nome}</strong>${s.descricao?`<br><small style="color:var(--text2)">${s.descricao.slice(0,50)}</small>`:''}</td>
+      <td><span class="badge ${s.categoria==='servico'?'badge-primary':'badge-info'}">${s.categoria==='servico'?'Serviço':'Produto'}</span></td>
+      <td><strong style="color:var(--secondary)">${formatCurrency(s.preco)}</strong></td>
+      <td>${s.duracao_min}min</td>
+      <td>${s.estoque===-1?'♾️ Ilimitado':s.estoque}</td>
+      <td><span class="badge ${s.ativo?'badge-success':'badge-gray'}">${s.ativo?'Ativo':'Inativo'}</span></td>
+      <td class="td-actions">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="editar('${s.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="toggleAtivo('${s.id}',${!s.ativo})" title="${s.ativo?'Desativar':'Ativar'}"><i class="fas fa-${s.ativo?'toggle-on':'toggle-off'}"></i></button>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="excluir('${s.id}')" title="Excluir" style="color:var(--danger)"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>`).join('');
+}
+
+['searchInput','filterCat'].forEach(id => document.getElementById(id)?.addEventListener('input', render));
+
+function openModal(s = null) {
+  editingId = s?.id || null;
+  document.getElementById('modalTitle').innerHTML = s ? '<i class="fas fa-edit"></i> Editar' : '<i class="fas fa-plus"></i> Novo Serviço';
+  document.getElementById('sNome').value      = s?.nome       || '';
+  document.getElementById('sCategoria').value = s?.categoria  || 'servico';
+  document.getElementById('sDescricao').value = s?.descricao  || '';
+  document.getElementById('sPreco').value     = s?.preco      || 0;
+  document.getElementById('sDuracao').value   = s?.duracao_min|| 60;
+  document.getElementById('sEstoque').value   = s?.estoque    ?? -1;
+  document.getElementById('sIcone').value     = s?.icone      || '';
+  document.getElementById('sCor').value       = s?.cor        || '#6366f1';
+  document.getElementById('sAtivo').checked   = s?.ativo      ?? true;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+document.getElementById('btnNovo')?.addEventListener('click', () => openModal());
+document.getElementById('closeModal')?.addEventListener('click', closeModal);
+document.getElementById('cancelModal')?.addEventListener('click', closeModal);
+
+window.editar = (id) => { const s = all.find(x=>x.id===id); if(s) openModal(s); };
+window.excluir = async (id) => {
+  const s = all.find(x=>x.id===id);
+  if (!confirm(`Excluir "${s?.nome}"?`)) return;
+  try { await deleteServico(id); showToast('Removido.','success'); await loadAll(); }
+  catch(err) { showToast(err.message,'error'); }
+};
+window.toggleAtivo = async (id, ativo) => {
+  try { await updateServico(id, { ativo }); showToast(ativo?'Ativado!':'Desativado!','success'); await loadAll(); }
+  catch(err) { showToast(err.message,'error'); }
+};
+
+document.getElementById('salvar')?.addEventListener('click', async () => {
+  const nome = document.getElementById('sNome').value.trim();
+  if (!nome) { showToast('Informe o nome.','warning'); return; }
+  const btn = document.getElementById('salvar'); btn.disabled=true;
+  try {
+    const payload = {
+      nome, descricao: document.getElementById('sDescricao').value||null,
+      categoria: document.getElementById('sCategoria').value,
+      preco:     parseFloat(document.getElementById('sPreco').value)||0,
+      duracao_min: parseInt(document.getElementById('sDuracao').value)||60,
+      estoque:   parseInt(document.getElementById('sEstoque').value)||0,
+      icone:     document.getElementById('sIcone').value||'✂️',
+      cor:       document.getElementById('sCor').value,
+      ativo:     document.getElementById('sAtivo').checked
+    };
+    if (editingId) { await updateServico(editingId, payload); showToast('Atualizado!','success'); }
+    else { await createServico(payload); showToast('Criado!','success'); }
+    closeModal(); await loadAll();
+  } catch(err) { showToast(err.message,'error'); }
+  finally { btn.disabled=false; }
+});
+
+await loadAll();
+</script>
+</body>
+</html>

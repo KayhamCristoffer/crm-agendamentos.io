@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Meu Perfil — CRM Agendamentos</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+<div class="page-loader" id="pageLoader"><div class="loader-ring"></div></div>
+<div id="sidebarMount"></div>
+
+<div class="app-layout">
+  <div class="main-content">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-title"><h1>Meu Perfil</h1><p>Gerencie suas informações pessoais</p></div>
+      </div>
+      <div class="topbar-actions">
+        <a href="dashboard.html" class="btn btn-ghost btn-sm"><i class="fas fa-arrow-left"></i> Voltar</a>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div style="max-width:720px;margin:0 auto">
+
+        <!-- Avatar e Info Básica -->
+        <div class="card mb-24">
+          <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px">
+            <div id="profileAvatar"
+                 style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));
+                        display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;
+                        flex-shrink:0;cursor:pointer;position:relative;overflow:hidden"
+                 title="Clique para alterar foto">
+              <span id="avatarInitial">?</span>
+            </div>
+            <div>
+              <h2 id="profileName" style="font-size:1.2rem">Carregando…</h2>
+              <p id="profileEmail" style="color:var(--text2);font-size:.85rem;margin-top:2px"></p>
+              <span id="profileRoleBadge" class="badge badge-primary" style="margin-top:6px"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulário de edição -->
+        <div class="card mb-24">
+          <div class="card-header">
+            <span class="card-title"><i class="fas fa-user-edit" style="color:var(--primary-light)"></i> Editar Informações</span>
+          </div>
+
+          <div class="form-row form-row-2">
+            <div class="form-group">
+              <label>Nome completo *</label>
+              <input type="text" id="fNome" placeholder="Seu nome"/>
+            </div>
+            <div class="form-group">
+              <label>Telefone</label>
+              <input type="tel" id="fTelefone" placeholder="(11) 99999-9999"/>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>URL do Avatar (opcional)</label>
+            <input type="url" id="fAvatar" placeholder="https://exemplo.com/foto.jpg"/>
+          </div>
+
+          <div style="text-align:right">
+            <button class="btn btn-primary" id="salvarPerfil">
+              <i class="fas fa-save"></i> Salvar Alterações
+            </button>
+          </div>
+        </div>
+
+        <!-- Alterar Senha -->
+        <div class="card mb-24">
+          <div class="card-header">
+            <span class="card-title"><i class="fas fa-lock" style="color:var(--warning)"></i> Alterar Senha</span>
+          </div>
+
+          <div class="form-group">
+            <label>Nova Senha</label>
+            <div class="input-group" style="position:relative">
+              <i class="fas fa-lock"></i>
+              <input type="password" id="newPwd" placeholder="Mínimo 6 caracteres"/>
+              <button class="toggle-password" id="toggleNew" type="button">
+                <i class="fas fa-eye" id="eyeNew"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Confirmar Nova Senha</label>
+            <div class="input-group" style="position:relative">
+              <i class="fas fa-lock"></i>
+              <input type="password" id="confirmPwd" placeholder="Repita a nova senha"/>
+              <button class="toggle-password" id="toggleConfirm" type="button">
+                <i class="fas fa-eye" id="eyeConfirm"></i>
+              </button>
+            </div>
+            <div class="field-hint" id="pwdHint"></div>
+          </div>
+
+          <div style="text-align:right">
+            <button class="btn btn-warning" id="alterarSenha">
+              <i class="fas fa-key"></i> Alterar Senha
+            </button>
+          </div>
+        </div>
+
+        <!-- Informações da Conta -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"><i class="fas fa-info-circle" style="color:var(--info)"></i> Informações da Conta</span>
+          </div>
+          <div id="accountInfo" style="display:flex;flex-direction:column;gap:10px">
+            <div class="loading"><i class="fas fa-circle-notch spin"></i></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module">
+import { requireAuth, renderUserInSidebar, showToast, isAdmin } from './supabase/session-manager.js';
+import { updateUserProfile } from './supabase/database.js';
+import { sb } from './supabase/client.js';
+import { getSidebarHTML, initSidebarToggle, showAdminItems } from './js/sidebar.js';
+
+document.getElementById('sidebarMount').innerHTML = getSidebarHTML('');
+initSidebarToggle();
+
+const auth = await requireAuth();
+if (!auth) throw new Error('Not authenticated');
+const { user, profile } = auth;
+renderUserInSidebar(profile);
+if (isAdmin(user, profile)) showAdminItems();
+setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
+
+document.getElementById('logoutBtn')?.addEventListener('click', () =>
+  import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href = 'index.html'));
+
+// Preencher dados
+const roleLabels = { admin: '👑 Admin', atendente: '🧑‍💼 Atendente', user: '👤 Usuário' };
+document.getElementById('profileName').textContent    = profile.nome || '—';
+document.getElementById('profileEmail').textContent   = user.email || '—';
+document.getElementById('profileRoleBadge').textContent = roleLabels[profile.role] || '👤 Usuário';
+document.getElementById('avatarInitial').textContent  = (profile.nome || user.email || '?')[0].toUpperCase();
+
+if (profile.avatar_url) {
+  const av = document.getElementById('profileAvatar');
+  av.style.backgroundImage = `url(${profile.avatar_url})`;
+  av.style.backgroundSize  = 'cover';
+  document.getElementById('avatarInitial').style.display = 'none';
+}
+
+// Preencher form
+document.getElementById('fNome').value     = profile.nome || '';
+document.getElementById('fTelefone').value = profile.telefone || '';
+document.getElementById('fAvatar').value   = profile.avatar_url || '';
+
+// Informações da conta
+document.getElementById('accountInfo').innerHTML = [
+  { label: 'E-mail',            value: user.email },
+  { label: 'Nível de Acesso',   value: roleLabels[profile.role] || '—' },
+  { label: 'Membro desde',      value: new Date(profile.created_at || user.created_at).toLocaleDateString('pt-BR') },
+  { label: 'Última atualização',value: profile.updated_at ? new Date(profile.updated_at).toLocaleDateString('pt-BR') : '—' },
+].map(i => `
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:.84rem">
+    <span style="color:var(--text2)">${i.label}</span>
+    <strong>${i.value}</strong>
+  </div>`).join('');
+
+// Salvar perfil
+document.getElementById('salvarPerfil')?.addEventListener('click', async () => {
+  const nome     = document.getElementById('fNome').value.trim();
+  const telefone = document.getElementById('fTelefone').value.trim();
+  const avatar   = document.getElementById('fAvatar').value.trim();
+  if (!nome) { showToast('Informe seu nome.', 'warning'); return; }
+  const btn = document.getElementById('salvarPerfil');
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Salvando…';
+  try {
+    await updateUserProfile(user.id, { nome, telefone: telefone || null, avatar_url: avatar || null });
+    showToast('Perfil atualizado!', 'success');
+    document.getElementById('profileName').textContent = nome;
+    document.getElementById('avatarInitial').textContent = nome[0].toUpperCase();
+    renderUserInSidebar({ ...profile, nome, telefone, avatar_url: avatar });
+    if (avatar) {
+      const av = document.getElementById('profileAvatar');
+      av.style.backgroundImage = `url(${avatar})`;
+      av.style.backgroundSize  = 'cover';
+      document.getElementById('avatarInitial').style.display = 'none';
+    }
+  } catch (err) {
+    showToast(err.message || 'Erro ao salvar.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> Salvar Alterações';
+  }
+});
+
+// Toggle password visibility
+function togglePwd(inputId, iconId) {
+  const input = document.getElementById(inputId);
+  const icon  = document.getElementById(iconId);
+  if (!input || !icon) return;
+  input.type = input.type === 'password' ? 'text' : 'password';
+  icon.className = input.type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+}
+document.getElementById('toggleNew')?.addEventListener('click', () => togglePwd('newPwd', 'eyeNew'));
+document.getElementById('toggleConfirm')?.addEventListener('click', () => togglePwd('confirmPwd', 'eyeConfirm'));
+
+// Validação confirm senha
+document.getElementById('confirmPwd')?.addEventListener('input', () => {
+  const pwd  = document.getElementById('newPwd')?.value;
+  const conf = document.getElementById('confirmPwd')?.value;
+  const hint = document.getElementById('pwdHint');
+  if (!hint || !conf) return;
+  hint.textContent = pwd === conf ? '✓ Senhas conferem' : '✗ Senhas não conferem';
+  hint.className   = `field-hint ${pwd === conf ? 'ok' : 'err'}`;
+});
+
+// Alterar senha
+document.getElementById('alterarSenha')?.addEventListener('click', async () => {
+  const pwd     = document.getElementById('newPwd').value;
+  const confirm = document.getElementById('confirmPwd').value;
+  if (!pwd || pwd.length < 6) { showToast('Senha deve ter pelo menos 6 caracteres.', 'warning'); return; }
+  if (pwd !== confirm)        { showToast('As senhas não conferem.', 'warning'); return; }
+  const btn = document.getElementById('alterarSenha');
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Alterando…';
+  try {
+    const { error } = await sb.auth.updateUser({ password: pwd });
+    if (error) throw error;
+    showToast('Senha alterada com sucesso!', 'success');
+    document.getElementById('newPwd').value     = '';
+    document.getElementById('confirmPwd').value = '';
+    document.getElementById('pwdHint').textContent = '';
+  } catch (err) {
+    showToast(err.message || 'Erro ao alterar senha.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-key"></i> Alterar Senha';
+  }
+});
+</script>
+</body>
+</html>

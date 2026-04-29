@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — CRM Agendamentos</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="page-loader" id="pageLoader"><div class="loader-ring"></div></div>
+
+<div id="sidebarMount"></div>
+
+<div class="app-layout">
+  <div class="main-content">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+        <div class="topbar-title">
+          <h1>Dashboard</h1>
+          <p id="topbarDate">Carregando…</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary btn-sm" id="btnNovoAgendamento">
+          <i class="fas fa-plus"></i> Novo Agendamento
+        </button>
+        <div class="profile-dropdown">
+          <button class="profile-btn" id="profileBtn">
+            <div class="profile-btn-avatar" id="topbarAvatar">?</div>
+            <span id="topbarNome" style="font-size:.82rem;font-weight:600">…</span>
+            <i class="fas fa-chevron-down" style="font-size:.7rem;color:var(--text2)"></i>
+          </button>
+          <div class="profile-dropdown-menu" id="profileMenu">
+            <a href="perfil.html" class="dropdown-item"><i class="fas fa-user"></i> Meu Perfil</a>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-item danger" id="dropLogout"><i class="fas fa-sign-out-alt"></i> Sair</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="page-content">
+
+      <!-- STATS -->
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="stat-icon" style="background:rgba(99,102,241,.15)">📅</div><div class="stat-info"><label>Hoje</label><h3 id="statHoje">—</h3><span>agendamentos</span></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:rgba(16,185,129,.15)">👥</div><div class="stat-info"><label>Clientes</label><h3 id="statClientes">—</h3><span>cadastrados</span></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:rgba(245,158,11,.15)">🗓️</div><div class="stat-info"><label>Este mês</label><h3 id="statMes">—</h3><span>agendamentos</span></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:rgba(239,68,68,.15)">⏳</div><div class="stat-info"><label>Pendentes</label><h3 id="statPendentes">—</h3><span>confirmação</span></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:rgba(16,185,129,.15)">💰</div><div class="stat-info"><label>Receita/Mês</label><h3 id="statReceita">—</h3><span>este mês</span></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:rgba(6,182,212,.15)">📈</div><div class="stat-info"><label>Lucro/Mês</label><h3 id="statLucro">—</h3><span>líquido</span></div></div>
+      </div>
+
+      <!-- QUICK ACTIONS -->
+      <div class="card mb-24">
+        <div class="card-header"><span class="card-title">⚡ Ações Rápidas</span></div>
+        <div class="quick-actions">
+          <div class="quick-action-btn" id="qaNovoAgendamento">
+            <i class="fas fa-calendar-plus"></i><span>Novo Agendamento</span>
+          </div>
+          <div class="quick-action-btn" onclick="window.location.href='clientes.html?action=novo'">
+            <i class="fas fa-user-plus"></i><span>Novo Cliente</span>
+          </div>
+          <div class="quick-action-btn" onclick="window.location.href='agendamentos.html'">
+            <i class="fas fa-calendar-alt"></i><span>Ver Agenda</span>
+          </div>
+          <div class="quick-action-btn" onclick="window.location.href='financeiro.html'">
+            <i class="fas fa-chart-bar"></i><span>Financeiro</span>
+          </div>
+          <div class="quick-action-btn" onclick="window.location.href='clientes.html'">
+            <i class="fas fa-users"></i><span>Clientes</span>
+          </div>
+          <div class="quick-action-btn" onclick="window.location.href='equipe.html'">
+            <i class="fas fa-user-tie"></i><span>Equipe</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DASHBOARD GRID -->
+      <div class="dashboard-grid">
+
+        <!-- Próximos Agendamentos -->
+        <div class="card col-2">
+          <div class="card-header">
+            <span class="card-title">📋 Próximos Agendamentos</span>
+            <a href="agendamentos.html" class="btn btn-ghost btn-sm">Ver todos</a>
+          </div>
+          <div id="proximosAgendamentos">
+            <div class="loading"><i class="fas fa-circle-notch spin"></i> Carregando…</div>
+          </div>
+        </div>
+
+        <!-- Top Clientes -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🏆 Top Clientes</span>
+            <a href="clientes.html" class="btn btn-ghost btn-sm">Ver todos</a>
+          </div>
+          <div id="topClientes">
+            <div class="loading"><i class="fas fa-circle-notch spin"></i> Carregando…</div>
+          </div>
+        </div>
+
+        <!-- Gráfico Financeiro -->
+        <div class="card col-2">
+          <div class="card-header">
+            <span class="card-title">📊 Faturamento Anual</span>
+            <select id="chartYear" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)"></select>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="chartFaturamento"></canvas>
+          </div>
+        </div>
+
+        <!-- Distribuição de Status -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🎯 Status do Mês</span>
+          </div>
+          <div class="chart-wrap" style="height:190px">
+            <canvas id="chartStatus"></canvas>
+          </div>
+          <div id="statusLegend" style="margin-top:12px;display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Novo Agendamento (rápido) -->
+<div class="modal-overlay" id="modalAgendamento">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3><i class="fas fa-calendar-plus"></i> Novo Agendamento</h3>
+      <button class="modal-close" id="closeModalAgendamento"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Cliente *</label>
+        <select id="agCliente"><option value="">Selecione o cliente</option></select>
+      </div>
+      <div class="form-group">
+        <label>Profissional</label>
+        <select id="agProfissional"><option value="">Qualquer profissional</option></select>
+      </div>
+    </div>
+    <div class="form-row form-row-2">
+      <div class="form-group">
+        <label>Serviço</label>
+        <select id="agServico"><option value="">Selecione o serviço</option></select>
+      </div>
+      <div class="form-group">
+        <label>Data e Hora *</label>
+        <input type="datetime-local" id="agDataHora"/>
+      </div>
+    </div>
+    <div class="form-row form-row-3">
+      <div class="form-group">
+        <label>Duração (min)</label>
+        <input type="number" id="agDuracao" value="60" min="15" step="15"/>
+      </div>
+      <div class="form-group">
+        <label>Valor (R$)</label>
+        <input type="number" id="agValor" step="0.01" min="0" placeholder="0,00"/>
+      </div>
+      <div class="form-group">
+        <label>Pagamento</label>
+        <select id="agPagamento">
+          <option value="dinheiro">Dinheiro</option>
+          <option value="pix">PIX</option>
+          <option value="cartao_debito">Cartão Débito</option>
+          <option value="cartao_credito">Cartão Crédito</option>
+          <option value="outros">Outros</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Observações</label>
+      <textarea id="agObs" placeholder="Anotações sobre o agendamento…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="cancelModalAgendamento">Cancelar</button>
+      <button class="btn btn-primary" id="salvarAgendamento">
+        <i class="fas fa-save"></i> Salvar Agendamento
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module">
+import { requireAuth, renderUserInSidebar, showToast, isAdmin } from './supabase/session-manager.js';
+import { getDashboardStats, getAllClientes, getAllEquipe, getAllServicos,
+         createAgendamento, getResumoFinanceiroMensal, getAllAgendamentos,
+         formatCurrency, formatDateTime, formatTime, STATUS_LABELS } from './supabase/database.js';
+import { getSidebarHTML, initSidebarToggle, showAdminItems } from './js/sidebar.js';
+
+// Sidebar
+document.getElementById('sidebarMount').innerHTML = getSidebarHTML('dashboard');
+initSidebarToggle();
+
+const auth = await requireAuth();
+if (!auth) throw new Error('Not authenticated');
+const { user, profile } = auth;
+
+renderUserInSidebar(profile);
+if (isAdmin(user, profile)) showAdminItems();
+
+// Topbar avatar
+const ta = document.getElementById('topbarAvatar');
+const tn = document.getElementById('topbarNome');
+if (ta) ta.textContent = (profile.nome || 'U')[0].toUpperCase();
+if (tn) tn.textContent = profile.nome?.split(' ')[0] || 'Usuário';
+
+// Date
+document.getElementById('topbarDate').textContent =
+  new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+
+// Profile dropdown
+const profileBtn  = document.getElementById('profileBtn');
+const profileMenu = document.getElementById('profileMenu');
+profileBtn?.addEventListener('click', (e) => { e.stopPropagation(); profileMenu?.classList.toggle('open'); });
+document.addEventListener('click', () => profileMenu?.classList.remove('open'));
+document.getElementById('dropLogout')?.addEventListener('click', () => { import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href='index.html'); });
+
+// Logout
+document.getElementById('logoutBtn')?.addEventListener('click', () => {
+  import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href='index.html');
+});
+
+// Hide loader
+setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 500);
+
+// ─── Load Dashboard ───────────────────────────────────────────
+
+async function loadDashboard() {
+  const stats = await getDashboardStats();
+  if (!stats) return;
+
+  document.getElementById('statHoje').textContent     = stats.agendamentosHoje;
+  document.getElementById('statClientes').textContent = stats.totalClientes;
+  document.getElementById('statMes').textContent      = stats.agendamentosMes;
+  document.getElementById('statPendentes').textContent= stats.pendentes;
+  document.getElementById('statReceita').textContent  = formatCurrency(stats.receitaMes);
+  document.getElementById('statLucro').textContent    = formatCurrency(stats.lucroMes);
+
+  // Badge nav
+  const badge = document.getElementById('badgePendentes');
+  if (badge && stats.pendentes > 0) {
+    badge.textContent = stats.pendentes;
+    badge.style.display = 'inline-flex';
+  }
+
+  // Próximos agendamentos
+  renderProximosAgendamentos(stats.proximosAgendamentos);
+  // Top clientes
+  renderTopClientes(stats.topClientes);
+  // Charts
+  await loadCharts();
+}
+
+function renderProximosAgendamentos(ags) {
+  const el = document.getElementById('proximosAgendamentos');
+  if (!ags?.length) {
+    el.innerHTML = '<div class="empty-state"><i class="fas fa-calendar-check"></i><h3>Sem agendamentos próximos</h3><p>Nenhum agendamento pendente ou confirmado.</p></div>';
+    return;
+  }
+  el.innerHTML = `
+  <div class="table-container">
+  <table>
+    <thead><tr>
+      <th>Cliente</th><th>Serviço</th><th>Profissional</th>
+      <th>Data/Hora</th><th>Status</th><th>Ações</th>
+    </tr></thead>
+    <tbody>
+    ${ags.map(ag => {
+      const st = STATUS_LABELS[ag.status] || {};
+      const cor = ag.equipe?.cor_agenda || '#6366f1';
+      return `<tr>
+        <td><strong>${ag.clientes?.nome || '—'}</strong><br><small style="color:var(--text2)">${ag.clientes?.telefone || ''}</small></td>
+        <td>${ag.servicos?.icone || ''} ${ag.servicos?.nome || '—'}</td>
+        <td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:${cor};flex-shrink:0"></span>${ag.equipe?.nome || '—'}</span></td>
+        <td>${formatDateTime(ag.data_hora)}</td>
+        <td><span class="badge" style="background:${st.color}22;color:${st.color}">${st.icon || ''} ${st.label || ag.status}</span></td>
+        <td class="td-actions">
+          <a href="agendamentos.html?id=${ag.id}" class="btn btn-ghost btn-sm btn-icon" title="Ver"><i class="fas fa-eye"></i></a>
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+function renderTopClientes(clientes) {
+  const el = document.getElementById('topClientes');
+  if (!clientes?.length) {
+    el.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i><h3>Sem dados</h3></div>';
+    return;
+  }
+  el.innerHTML = clientes.map((c,i) => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:1.1rem;font-weight:800;color:var(--text3);width:20px;text-align:center">${i+1}</span>
+      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">${(c.nome||'?')[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.84rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nome}</div>
+        <div style="font-size:.74rem;color:var(--text2)">${c.total_visitas} visitas · ${formatCurrency(c.total_gasto)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadCharts() {
+  const ano = new Date().getFullYear();
+  const yearSelect = document.getElementById('chartYear');
+  if (yearSelect) {
+    for (let y = ano; y >= ano - 3; y--) {
+      yearSelect.insertAdjacentHTML('beforeend', `<option value="${y}">${y}</option>`);
+    }
+    yearSelect.addEventListener('change', () => renderFaturamentoChart(parseInt(yearSelect.value)));
+  }
+  await renderFaturamentoChart(ano);
+  await renderStatusChart();
+}
+
+let chartFatur = null;
+async function renderFaturamentoChart(ano) {
+  const meses = await getResumoFinanceiroMensal(ano);
+  const labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const receitas = meses.map(m => m.receitas);
+  const despesas = meses.map(m => m.despesas);
+  const ctx = document.getElementById('chartFaturamento')?.getContext('2d');
+  if (!ctx) return;
+  if (chartFatur) chartFatur.destroy();
+  chartFatur = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Receitas', data: receitas, backgroundColor: 'rgba(16,185,129,.6)', borderColor: '#10b981', borderWidth: 1, borderRadius: 4 },
+        { label: 'Despesas', data: despesas, backgroundColor: 'rgba(239,68,68,.5)', borderColor: '#ef4444', borderWidth: 1, borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(51,65,85,.4)' } },
+        y: { ticks: { color: '#64748b', font: { size: 10 }, callback: v => 'R$'+v.toLocaleString('pt-BR') }, grid: { color: 'rgba(51,65,85,.4)' } }
+      }
+    }
+  });
+}
+
+let chartSt = null;
+async function renderStatusChart() {
+  const now = new Date();
+  const ags = await getAllAgendamentos({
+    dataInicio: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+    dataFim:    new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59).toISOString()
+  });
+  const counts = { pendente:0, confirmado:0, concluido:0, cancelado:0, faltou:0 };
+  ags.forEach(a => { if (counts[a.status] !== undefined) counts[a.status]++; });
+  const labels = Object.keys(counts).map(k => STATUS_LABELS[k]?.label || k);
+  const data   = Object.values(counts);
+  const colors = Object.keys(counts).map(k => STATUS_LABELS[k]?.color || '#6b7280');
+  const ctx = document.getElementById('chartStatus')?.getContext('2d');
+  if (!ctx) return;
+  if (chartSt) chartSt.destroy();
+  chartSt = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors.map(c => c+'99'), borderColor: colors, borderWidth: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}` } }
+      }
+    }
+  });
+  // Legend
+  const legend = document.getElementById('statusLegend');
+  if (legend) {
+    legend.innerHTML = Object.entries(counts).map(([k,v]) =>
+      `<div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem">
+        <span style="display:flex;align-items:center;gap:6px">
+          <span style="width:10px;height:10px;border-radius:2px;background:${STATUS_LABELS[k]?.color};flex-shrink:0"></span>
+          ${STATUS_LABELS[k]?.label || k}
+        </span>
+        <strong>${v}</strong>
+      </div>`
+    ).join('');
+  }
+}
+
+// ─── Modal Novo Agendamento ────────────────────────────────────
+
+async function openModalAgendamento() {
+  document.getElementById('modalAgendamento')?.classList.add('open');
+  const [clientes, equipe, servicos] = await Promise.all([
+    getAllClientes(), getAllEquipe(), getAllServicos()
+  ]);
+  const selCliente = document.getElementById('agCliente');
+  const selProf    = document.getElementById('agProfissional');
+  const selServ    = document.getElementById('agServico');
+  selCliente.innerHTML = '<option value="">Selecione o cliente</option>' +
+    clientes.map(c => `<option value="${c.id}">${c.nome} ${c.telefone ? '('+c.telefone+')' : ''}</option>`).join('');
+  selProf.innerHTML = '<option value="">Qualquer profissional</option>' +
+    equipe.map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+  selServ.innerHTML = '<option value="">Selecione o serviço</option>' +
+    servicos.map(s => `<option value="${s.id}" data-preco="${s.preco}" data-dur="${s.duracao_min}">${s.icone||''} ${s.nome} — ${formatCurrency(s.preco)}</option>`).join('');
+
+  // Set default datetime to next full hour
+  const next = new Date(); next.setMinutes(0); next.setSeconds(0); next.setHours(next.getHours()+1);
+  document.getElementById('agDataHora').value = next.toISOString().slice(0,16);
+
+  // Auto-fill valor/duração from service
+  document.getElementById('agServico').addEventListener('change', (e) => {
+    const opt = e.target.selectedOptions[0];
+    if (opt?.dataset?.preco) document.getElementById('agValor').value = opt.dataset.preco;
+    if (opt?.dataset?.dur)   document.getElementById('agDuracao').value = opt.dataset.dur;
+  });
+}
+function closeModalAgendamento() { document.getElementById('modalAgendamento')?.classList.remove('open'); }
+
+document.getElementById('btnNovoAgendamento')?.addEventListener('click', openModalAgendamento);
+document.getElementById('qaNovoAgendamento')?.addEventListener('click', openModalAgendamento);
+document.getElementById('closeModalAgendamento')?.addEventListener('click', closeModalAgendamento);
+document.getElementById('cancelModalAgendamento')?.addEventListener('click', closeModalAgendamento);
+
+document.getElementById('salvarAgendamento')?.addEventListener('click', async () => {
+  const clienteId = document.getElementById('agCliente').value;
+  const dataHora  = document.getElementById('agDataHora').value;
+  if (!clienteId) { showToast('Selecione um cliente.', 'warning'); return; }
+  if (!dataHora)  { showToast('Informe a data e hora.', 'warning'); return; }
+  const btn = document.getElementById('salvarAgendamento');
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Salvando…';
+  try {
+    await createAgendamento({
+      cliente_id:      clienteId,
+      profissional_id: document.getElementById('agProfissional').value || null,
+      servico_id:      document.getElementById('agServico').value || null,
+      criado_por:      user.id,
+      data_hora:       new Date(dataHora).toISOString(),
+      duracao_min:     parseInt(document.getElementById('agDuracao').value) || 60,
+      valor:           parseFloat(document.getElementById('agValor').value) || 0,
+      forma_pagamento: document.getElementById('agPagamento').value,
+      observacoes:     document.getElementById('agObs').value || null,
+      status:          'pendente'
+    });
+    showToast('Agendamento criado com sucesso!', 'success');
+    closeModalAgendamento();
+    loadDashboard();
+  } catch(err) {
+    showToast(err.message || 'Erro ao criar agendamento.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> Salvar Agendamento';
+  }
+});
+
+loadDashboard();
+</script>
+</body>
+</html>
