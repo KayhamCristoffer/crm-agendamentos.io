@@ -7,6 +7,21 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .team-photo-wrap { width:72px;height:72px;border-radius:50%;overflow:hidden;flex-shrink:0;
+      background:var(--primary);display:flex;align-items:center;justify-content:center;
+      font-size:1.5rem;font-weight:800;color:#fff; }
+    .team-photo-wrap img { width:100%;height:100%;object-fit:cover; }
+    .like-btn { background:none;border:none;cursor:pointer;display:flex;align-items:center;
+      gap:5px;font-size:.8rem;color:var(--text2);padding:4px 8px;border-radius:6px;transition:.15s; }
+    .like-btn:hover { background:rgba(239,68,68,.1);color:var(--danger); }
+    .like-btn.liked { color:var(--danger); }
+    .like-btn i { font-size:.9rem; }
+    .salary-badge { background:rgba(16,185,129,.12);color:#34d399;font-size:.72rem;
+      font-weight:700;padding:3px 10px;border-radius:10px;border:1px solid rgba(16,185,129,.2); }
+    .admin-badge { background:rgba(245,158,11,.12);color:#fbbf24;font-size:.72rem;
+      font-weight:600;padding:2px 8px;border-radius:8px;border:1px solid rgba(245,158,11,.2); }
+  </style>
 </head>
 <body>
 <div class="page-loader" id="pageLoader"><div class="loader-ring"></div></div>
@@ -16,21 +31,26 @@
     <div class="topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h1>Equipe</h1><p>Gerencie os profissionais</p></div>
+        <div class="topbar-title"><h1>Equipe</h1><p>Profissionais do estabelecimento</p></div>
       </div>
       <div class="topbar-actions">
-        <button class="btn btn-primary btn-sm" id="btnNovo"><i class="fas fa-user-plus"></i> Novo Profissional</button>
+        <button class="btn btn-ghost btn-sm" id="btnRefresh" title="Atualizar">
+          <i class="fas fa-sync-alt"></i> Atualizar
+        </button>
+        <button class="btn btn-primary btn-sm" id="btnNovo" data-admin-only="true" style="display:none">
+          <i class="fas fa-user-plus"></i> Novo Profissional
+        </button>
       </div>
     </div>
     <div class="page-content">
       <div id="equipeGrid" class="client-list-grid">
-        <div class="loading" style="grid-column:1/-1"><i class="fas fa-circle-notch spin"></i></div>
+        <div class="loading" style="grid-column:1/-1"><i class="fas fa-circle-notch spin"></i> Carregando equipe…</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- MODAL -->
+<!-- MODAL (admin only) -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <div class="modal-header">
@@ -38,21 +58,27 @@
       <button class="modal-close" id="closeModal"><i class="fas fa-times"></i></button>
     </div>
     <div class="form-row form-row-2">
-      <div class="form-group"><label>Nome *</label><input type="text" id="pNome" placeholder="Ana Silva"/></div>
+      <div class="form-group"><label>Nome *</label><input type="text" id="pNome" placeholder="Taisa Joelma"/></div>
       <div class="form-group"><label>Cargo</label><input type="text" id="pCargo" placeholder="Cabeleireira"/></div>
     </div>
-    <div class="form-group"><label>Especialidade</label><input type="text" id="pEspecialidade" placeholder="Cortes e coloração"/></div>
+    <div class="form-group"><label>Especialidade</label>
+      <input type="text" id="pEspecialidade" placeholder="Cortes e coloração"/></div>
     <div class="form-row form-row-2">
-      <div class="form-group"><label>Telefone</label><input type="tel" id="pTelefone" placeholder="(11) 99999-9999"/></div>
-      <div class="form-group"><label>E-mail</label><input type="email" id="pEmail" placeholder="ana@email.com"/></div>
+      <div class="form-group"><label>Telefone</label>
+        <input type="tel" id="pTelefone" placeholder="(11) 99999-9999"/></div>
+      <div class="form-group"><label>E-mail</label>
+        <input type="email" id="pEmail" placeholder="ana@email.com"/></div>
     </div>
     <div class="form-row form-row-2">
-      <div class="form-group"><label>Cor na Agenda</label><input type="color" id="pCor" value="#6366f1"/></div>
-      <div class="form-group">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:24px">
-          <input type="checkbox" id="pAtivo" checked style="width:auto"/> Profissional ativo
-        </label>
-      </div>
+      <div class="form-group"><label>Salário (R$)</label>
+        <input type="number" id="pSalario" placeholder="2500.00" step="0.01" min="0"/></div>
+      <div class="form-group"><label>Cor na Agenda</label>
+        <input type="color" id="pCor" value="#6366f1"/></div>
+    </div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="pAtivo" checked style="width:auto"/> Profissional ativo
+      </label>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" id="cancelModal">Cancelar</button>
@@ -65,7 +91,8 @@
 <script type="module">
 import { requireAuth, renderUserInSidebar, showToast, isAdmin } from './supabase/session-manager.js';
 import { getAllEquipe, createProfissional, updateProfissional, deleteProfissional,
-         getAllAgendamentos, formatCurrency } from './supabase/database.js';
+         getAllAgendamentos, formatCurrency, toggleLike, getLikesPorProfissional,
+         applyPhoneMask } from './supabase/database.js';
 import { getSidebarHTML, initSidebarToggle, showAdminItems } from './js/sidebar.js';
 
 document.getElementById('sidebarMount').innerHTML = getSidebarHTML('equipe');
@@ -73,93 +100,187 @@ initSidebarToggle();
 const auth = await requireAuth();
 if (!auth) throw new Error('Not authenticated');
 const { user, profile } = auth;
+const adminMode = isAdmin(user, profile);
 renderUserInSidebar(profile);
-if (isAdmin(user,profile)) showAdminItems();
+if (adminMode) showAdminItems();
 setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
+
 document.getElementById('logoutBtn')?.addEventListener('click', () =>
   import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href='index.html'));
 
-let all = [], editingId = null;
+// Phone mask
+applyPhoneMask(document.getElementById('pTelefone'));
+
+let all = [], editingId = null, likesMap = {};
+
+// Auto-refresh every 30 seconds
+let autoRefreshTimer = setInterval(loadAll, 30000);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { clearInterval(autoRefreshTimer); }
+  else { loadAll(); autoRefreshTimer = setInterval(loadAll, 30000); }
+});
+
+document.getElementById('btnRefresh')?.addEventListener('click', () => {
+  showToast('Atualizando…','info',1500);
+  loadAll();
+});
+
+// Team photos lookup — SVG avatars (reliable), JPG as optional override
+const TEAM_PHOTOS = {
+  'Taisa Joelma':      { svg: 'img/taisa.svg',  jpg: 'img/taisa.jpg'  },
+  'Kayham Cristoffer': { svg: 'img/kayham.svg', jpg: 'img/kayham.jpg' },
+  'Camila Ferrari':    { svg: 'img/camila.svg', jpg: 'img/camila.jpg' },
+  'Marcos Tiago':      { svg: 'img/marcos.svg', jpg: 'img/marcos.jpg' },
+  'Felipe Emiliano':   { svg: 'img/felipe.svg', jpg: 'img/felipe.jpg' },
+};
 
 async function loadAll() {
-  all = await getAllEquipe(true);
-  // Carrega stats de agendamentos por profissional
-  const ags = await getAllAgendamentos({ limit: 500 });
-  const stats = {};
-  ags.forEach(a => {
-    if (!a.profissional_id) return;
-    if (!stats[a.profissional_id]) stats[a.profissional_id] = { total:0, receita:0 };
-    stats[a.profissional_id].total++;
-    if (a.status === 'concluido') stats[a.profissional_id].receita += (a.valor||0);
-  });
-  render(stats);
+  try {
+    [all, likesMap] = await Promise.all([
+      getAllEquipe(true),
+      getLikesPorProfissional()
+    ]);
+    // Stats de agendamentos
+    const ags = await getAllAgendamentos({ limit: 1000 });
+    const stats = {};
+    ags.forEach(a => {
+      const profs = a.agendamento_servicos?.map(s=>s.equipe?.id).filter(Boolean) || [];
+      profs.forEach(pid => {
+        if (!stats[pid]) stats[pid] = { total:0, receita:0 };
+        stats[pid].total++;
+        if (a.status==='concluido') stats[pid].receita += (a.valor_total||0);
+      });
+    });
+    render(stats);
+  } catch(err) {
+    console.error('loadAll equipe:', err);
+    showToast('Erro ao carregar equipe.','error');
+  }
 }
 
 function render(stats = {}) {
   const grid = document.getElementById('equipeGrid');
   if (!all.length) {
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-user-tie"></i><h3>Nenhum profissional cadastrado</h3><p>Adicione sua equipe clicando em "Novo Profissional".</p></div>`;
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <i class="fas fa-user-tie"></i><h3>Nenhum profissional cadastrado</h3>
+      <p>${adminMode?'Adicione profissionais clicando em "Novo Profissional".':'Nenhum profissional disponível.'}</p>
+    </div>`;
     return;
   }
   grid.innerHTML = all.map(p => {
     const s = stats[p.id] || { total:0, receita:0 };
-    const initial = (p.nome||'?')[0].toUpperCase();
+    const photoEntry = TEAM_PHOTOS[p.nome];
+    // Use SVG as primary source (always available), jpg only if avatar_url is set
+    const photoSrc = p.avatar_url || (photoEntry ? photoEntry.svg : '');
+    const initial  = (p.nome||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const myLike   = (likesMap[p.id]||[]).includes(user.id);
+    const totalLikes = (likesMap[p.id]||[]).length;
     return `
-    <div class="client-card">
-      <div style="display:flex;gap:12px;align-items:flex-start">
-        <div style="width:44px;height:44px;border-radius:50%;background:${p.cor_agenda||'#6366f1'};display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;flex-shrink:0">${initial}</div>
+    <div class="client-card" id="card-${p.id}">
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div class="team-photo-wrap" style="border:2px solid ${p.cor_agenda||'#6366f1'}">
+          ${photoSrc
+            ? `<img src="${photoSrc}" alt="${p.nome}" onerror="this.onerror=null;this.parentElement.innerHTML='<span style=\"font-size:1.3rem;font-weight:800\">${initial}</span>'">`
+            : `<span style="font-size:1.3rem;font-weight:800">${initial}</span>`}
+        </div>
         <div style="flex:1;min-width:0">
-          <h4 style="font-size:.92rem;font-weight:700;margin-bottom:2px">${p.nome}</h4>
-          <p style="font-size:.76rem;color:var(--text2)">${p.cargo||'—'}</p>
-          ${p.especialidade?`<p style="font-size:.74rem;color:var(--text3)">${p.especialidade}</p>`:''}
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px">
+            <h4 style="font-size:.95rem;font-weight:700">${p.nome}</h4>
+            ${!p.ativo?'<span class="badge badge-gray" style="font-size:.68rem">Inativo</span>':''}
+          </div>
+          <p style="font-size:.78rem;color:var(--text2)">${p.cargo||'—'}
+            ${p.especialidade?` · <span style="color:var(--text3)">${p.especialidade}</span>`:''}
+          </p>
+          ${adminMode && p.salario
+            ? `<div class="salary-badge" style="margin-top:5px;display:inline-block">
+                <i class="fas fa-dollar-sign"></i> Salário: ${formatCurrency(p.salario)}
+               </div>`
+            : ''}
         </div>
+        ${adminMode ? `
         <div style="display:flex;gap:4px">
-          <button class="btn btn-ghost btn-sm btn-icon" onclick="editar('${p.id}')" title="Editar"><i class="fas fa-edit"></i></button>
-          <button class="btn btn-ghost btn-sm btn-icon" onclick="excluir('${p.id}')" title="Remover" style="color:var(--danger)"><i class="fas fa-trash"></i></button>
-        </div>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="editar('${p.id}')" title="Editar">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="excluir('${p.id}')" title="Remover" style="color:var(--danger)">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>` : ''}
       </div>
-      ${p.telefone||p.email?`<div style="margin-top:10px;font-size:.76rem;color:var(--text2);display:flex;gap:12px;flex-wrap:wrap">
+      ${p.telefone||p.email?`
+      <div style="margin-top:10px;font-size:.76rem;color:var(--text2);display:flex;gap:12px;flex-wrap:wrap">
         ${p.telefone?`<span><i class="fas fa-phone"></i> ${p.telefone}</span>`:''}
         ${p.email?`<span><i class="fas fa-envelope"></i> ${p.email}</span>`:''}
       </div>`:''}
-      <div class="client-card-stats">
-        <div class="client-stat-item"><strong>${s.total}</strong><small>Agendamentos</small></div>
-        <div class="client-stat-item"><strong>${formatCurrency(s.receita)}</strong><small>Receita</small></div>
-        <div class="client-stat-item"><strong><span class="badge ${p.ativo?'badge-success':'badge-gray'}" style="font-size:.7rem">${p.ativo?'Ativo':'Inativo'}</span></strong><small>&nbsp;</small></div>
+      <div style="display:flex;align-items:center;border-top:1px solid var(--border);margin-top:12px;padding-top:12px;gap:16px">
+        <div class="client-card-stats" style="flex:1;border:none;padding:0;margin:0">
+          <div class="client-stat-item"><strong>${s.total}</strong><small>Agendamentos</small></div>
+          <div class="client-stat-item"><strong>${formatCurrency(s.receita)}</strong><small>Receita</small></div>
+        </div>
+        <button class="like-btn ${myLike?'liked':''}" onclick="curtir('${p.id}')" id="like-${p.id}">
+          <i class="fas fa-heart"></i>
+          <span id="likeCount-${p.id}">${totalLikes}</span>
+        </button>
       </div>
     </div>`;
   }).join('');
 }
 
+// LIKE / UNLIKE
+window.curtir = async (profId) => {
+  try {
+    const liked = await toggleLike(profId, user.id);
+    // Update locally
+    if (!likesMap[profId]) likesMap[profId] = [];
+    if (liked) likesMap[profId].push(user.id);
+    else likesMap[profId] = likesMap[profId].filter(id => id !== user.id);
+    const btn = document.getElementById(`like-${profId}`);
+    const cnt = document.getElementById(`likeCount-${profId}`);
+    if (btn) btn.classList.toggle('liked', liked);
+    if (cnt) cnt.textContent = likesMap[profId].length;
+  } catch(err) { showToast('Erro ao curtir.','error'); }
+};
+
+// MODAL
 function openModal(p = null) {
+  if (!adminMode) { showToast('Apenas administradores podem editar.','warning'); return; }
   editingId = p?.id || null;
-  document.getElementById('modalTitle').innerHTML = p ? '<i class="fas fa-edit"></i> Editar Profissional' : '<i class="fas fa-user-plus"></i> Novo Profissional';
+  document.getElementById('modalTitle').innerHTML = p
+    ? '<i class="fas fa-edit"></i> Editar Profissional'
+    : '<i class="fas fa-user-plus"></i> Novo Profissional';
   document.getElementById('pNome').value         = p?.nome||'';
   document.getElementById('pCargo').value        = p?.cargo||'';
   document.getElementById('pEspecialidade').value= p?.especialidade||'';
   document.getElementById('pTelefone').value     = p?.telefone||'';
   document.getElementById('pEmail').value        = p?.email||'';
+  document.getElementById('pSalario').value      = p?.salario||'';
   document.getElementById('pCor').value          = p?.cor_agenda||'#6366f1';
   document.getElementById('pAtivo').checked      = p?.ativo??true;
   document.getElementById('modal').classList.add('open');
 }
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
 document.getElementById('btnNovo')?.addEventListener('click', () => openModal());
 document.getElementById('closeModal')?.addEventListener('click', closeModal);
 document.getElementById('cancelModal')?.addEventListener('click', closeModal);
 
 window.editar = (id) => { const p = all.find(x=>x.id===id); if(p) openModal(p); };
 window.excluir = async (id) => {
+  if (!adminMode) { showToast('Sem permissão.','warning'); return; }
   const p = all.find(x=>x.id===id);
   if (!confirm(`Remover "${p?.nome}"?`)) return;
-  try { await deleteProfissional(id); showToast('Removido.','success'); await loadAll(); }
-  catch(err) { showToast(err.message,'error'); }
+  try {
+    await deleteProfissional(id);
+    showToast('Profissional removido.','success');
+    await loadAll();
+  } catch(err) { showToast(err.message,'error'); }
 };
 
 document.getElementById('salvar')?.addEventListener('click', async () => {
+  if (!adminMode) { showToast('Sem permissão.','warning'); return; }
   const nome = document.getElementById('pNome').value.trim();
   if (!nome) { showToast('Informe o nome.','warning'); return; }
-  const btn = document.getElementById('salvar'); btn.disabled=true;
+  const btn = document.getElementById('salvar'); btn.disabled = true;
   try {
     const payload = {
       nome,
@@ -167,14 +288,21 @@ document.getElementById('salvar')?.addEventListener('click', async () => {
       especialidade: document.getElementById('pEspecialidade').value||null,
       telefone:      document.getElementById('pTelefone').value||null,
       email:         document.getElementById('pEmail').value||null,
+      salario:       parseFloat(document.getElementById('pSalario').value)||0,
       cor_agenda:    document.getElementById('pCor').value,
       ativo:         document.getElementById('pAtivo').checked
     };
-    if (editingId) { await updateProfissional(editingId, payload); showToast('Atualizado!','success'); }
-    else { await createProfissional(payload); showToast('Profissional adicionado!','success'); }
-    closeModal(); await loadAll();
+    if (editingId) {
+      await updateProfissional(editingId, payload);
+      showToast('Profissional atualizado!','success');
+    } else {
+      await createProfissional(payload);
+      showToast('Profissional adicionado!','success');
+    }
+    closeModal();
+    await loadAll();
   } catch(err) { showToast(err.message,'error'); }
-  finally { btn.disabled=false; }
+  finally { btn.disabled = false; }
 });
 
 await loadAll();

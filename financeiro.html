@@ -20,6 +20,12 @@
         <div class="topbar-title"><h1>Financeiro</h1><p>Controle de receitas e despesas</p></div>
       </div>
       <div class="topbar-actions">
+        <span id="autoRefreshBadge" style="font-size:.72rem;color:var(--text3);display:flex;align-items:center;gap:4px">
+          <i class="fas fa-circle" style="font-size:.4rem;color:var(--secondary)"></i> auto <span id="arCountdown">30</span>s
+        </span>
+        <button class="btn btn-ghost btn-sm" id="btnRefresh" title="Atualizar agora">
+          <i class="fas fa-sync-alt"></i> Atualizar
+        </button>
         <button class="btn btn-success btn-sm" id="btnNovaReceita"><i class="fas fa-plus"></i> Receita</button>
         <button class="btn btn-danger btn-sm" id="btnNovaDespesa"><i class="fas fa-minus"></i> Despesa</button>
       </div>
@@ -372,6 +378,36 @@ window.excluir = async (id) => {
 };
 
 await loadPeriod();
+
+// ── Refresh button ──────────────────────────────────────────
+document.getElementById('btnRefresh')?.addEventListener('click', async () => {
+  const icon = document.querySelector('#btnRefresh i');
+  icon?.classList.add('spin');
+  await loadPeriod();
+  icon?.classList.remove('spin');
+  showToast('Dados atualizados!', 'success', 1500);
+});
+
+// ── Auto-refresh every 30 seconds ──────────────────────────
+let arSecs = 30;
+const countdownEl = document.getElementById('arCountdown');
+function resetCountdown() { arSecs = 30; if(countdownEl) countdownEl.textContent = arSecs; }
+const arInterval = setInterval(async () => {
+  arSecs--;
+  if (countdownEl) countdownEl.textContent = arSecs;
+  if (arSecs <= 0) {
+    await loadPeriod();
+    resetCountdown();
+  }
+}, 1000);
+
+// Pause auto-refresh when tab is hidden
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { loadPeriod(); resetCountdown(); }
+});
+
+// Clean up on unload
+window.addEventListener('beforeunload', () => clearInterval(arInterval));
 </script>
 </body>
 </html>

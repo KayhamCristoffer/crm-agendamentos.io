@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ec4899"/>
+      <stop offset="100%" style="stop-color:#db2777"/>
+    </linearGradient>
+    <radialGradient id="face" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" style="stop-color:#fde8d8"/>
+      <stop offset="100%" style="stop-color:#f5c5a3"/>
+    </radialGradient>
+  </defs>
+  <circle cx="100" cy="100" r="100" fill="url(#bg)"/>
+  <!-- hair (long, light brown) -->
+  <path d="M56 100 Q54 60 100 42 Q146 60 144 100 Q148 140 145 200" fill="#92400e" opacity="0.9"/>
+  <path d="M56 100 Q52 140 55 200" fill="#92400e" opacity="0.9"/>
+  <!-- neck -->
+  <rect x="88" y="120" width="24" height="28" rx="8" fill="url(#face)"/>
+  <!-- face -->
+  <circle cx="100" cy="84" r="36" fill="url(#face)"/>
+  <!-- hair front/top -->
+  <path d="M64 84 Q68 50 100 44 Q132 50 136 84 Q130 58 100 56 Q70 58 64 84Z" fill="#78350f"/>
+  <!-- eyes (large, defined) -->
+  <ellipse cx="87" cy="80" rx="6" ry="6.5" fill="#1c1917"/>
+  <ellipse cx="113" cy="80" rx="6" ry="6.5" fill="#1c1917"/>
+  <ellipse cx="87" cy="80" rx="5.5" ry="6" fill="#374151"/>
+  <ellipse cx="113" cy="80" rx="5.5" ry="6" fill="#374151"/>
+  <circle cx="88.5" cy="78.5" r="1.5" fill="#fff" opacity="0.9"/>
+  <circle cx="114.5" cy="78.5" r="1.5" fill="#fff" opacity="0.9"/>
+  <!-- lashes top -->
+  <path d="M81 75 Q87 73 93 75" stroke="#1c1917" stroke-width="1.5" fill="none"/>
+  <path d="M107 75 Q113 73 119 75" stroke="#1c1917" stroke-width="1.5" fill="none"/>
+  <!-- eyebrows (arched) -->
+  <path d="M80 73 Q87 70 94 72" stroke="#78350f" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M106 72 Q113 70 120 73" stroke="#78350f" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- nose -->
+  <path d="M97 88 Q100 94 103 88" stroke="#c7906a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- lips (fuller) -->
+  <path d="M87 97 Q94 102 100 100 Q106 102 113 97" stroke="#be185d" stroke-width="1" fill="none"/>
+  <path d="M87 97 Q100 107 113 97" fill="#fb7185" opacity="0.7"/>
+  <!-- cheeks blush -->
+  <ellipse cx="79" cy="92" rx="9" ry="5" fill="#fda4af" opacity="0.5"/>
+  <ellipse cx="121" cy="92" rx="9" ry="5" fill="#fda4af" opacity="0.5"/>
+  <!-- body / top -->
+  <path d="M54 200 Q60 145 82 133 Q91 128 100 128 Q109 128 118 133 Q140 145 146 200Z" fill="#9d174d"/>
+  <!-- nail polish detail -->
+  <path d="M90 133 L100 148 L110 133" stroke="#f9a8d4" stroke-width="2" fill="none"/>
+</svg>

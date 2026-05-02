@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#5b21b6"/>
+    </linearGradient>
+    <radialGradient id="face" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" style="stop-color:#fddcb5"/>
+      <stop offset="100%" style="stop-color:#f5c088"/>
+    </radialGradient>
+  </defs>
+  <circle cx="100" cy="100" r="100" fill="url(#bg)"/>
+  <!-- hair (medium, dark brown) -->
+  <path d="M62 85 Q64 48 100 44 Q136 48 138 85 Q140 55 100 53 Q60 55 62 85Z" fill="#292524"/>
+  <!-- side hair -->
+  <ellipse cx="64" cy="88" rx="6" ry="14" fill="#292524"/>
+  <ellipse cx="136" cy="88" rx="6" ry="14" fill="#292524"/>
+  <!-- neck -->
+  <rect x="88" y="120" width="24" height="28" rx="8" fill="url(#face)"/>
+  <!-- face -->
+  <circle cx="100" cy="84" r="36" fill="url(#face)"/>
+  <!-- hair front -->
+  <path d="M64 80 Q68 50 100 46 Q132 50 136 80 Q128 58 100 57 Q72 58 64 80Z" fill="#1c1917"/>
+  <!-- eyes -->
+  <ellipse cx="87" cy="80" rx="5.5" ry="6" fill="#1c1917"/>
+  <ellipse cx="113" cy="80" rx="5.5" ry="6" fill="#1c1917"/>
+  <ellipse cx="87" cy="80" rx="4.5" ry="5" fill="#374151"/>
+  <ellipse cx="113" cy="80" rx="4.5" ry="5" fill="#374151"/>
+  <circle cx="88.5" cy="78.5" r="1.5" fill="#fff" opacity="0.8"/>
+  <circle cx="114.5" cy="78.5" r="1.5" fill="#fff" opacity="0.8"/>
+  <!-- eyebrows -->
+  <path d="M80 73 Q87 70 94 73" stroke="#1c1917" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M106 73 Q113 70 121 73" stroke="#1c1917" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- nose -->
+  <path d="M97 88 Q100 94 103 88" stroke="#c4834d" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- smile (confident) -->
+  <path d="M88 97 Q100 107 112 97" stroke="#9a5a2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- small goatee -->
+  <ellipse cx="100" cy="112" rx="8" ry="5" fill="#1c1917" opacity="0.4"/>
+  <!-- body -->
+  <path d="M54 200 Q60 144 80 133 Q90 128 100 128 Q110 128 120 133 Q140 144 146 200Z" fill="#4c1d95"/>
+  <path d="M90 133 L100 148 L110 133" stroke="#c4b5fd" stroke-width="2" fill="none"/>
+</svg>

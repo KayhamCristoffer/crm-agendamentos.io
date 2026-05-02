@@ -7,133 +7,136 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    /* Heatmap */
+    .heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:8px 0;}
+    .heatmap-labels{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;}
+    .heatmap-labels span{text-align:center;font-size:.66rem;color:var(--text3);font-weight:600;text-transform:uppercase;}
+    .heatmap-day{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;
+      font-size:.72rem;font-weight:600;cursor:pointer;transition:.15s;border:2px solid transparent;}
+    .heatmap-day:hover{border-color:var(--primary);}
+    .heatmap-day.empty{background:transparent;cursor:default;border:none;}
+    .heatmap-day.heat-0{background:var(--bg3);color:var(--text3);}
+    .heatmap-day.heat-1{background:rgba(99,102,241,.18);color:#a5b4fc;}
+    .heatmap-day.heat-2{background:rgba(99,102,241,.38);color:#c7d2fe;}
+    .heatmap-day.heat-3{background:rgba(99,102,241,.62);color:#e0e7ff;}
+    .heatmap-day.heat-4{background:rgba(99,102,241,.88);color:#fff;}
+    .heatmap-day.today{box-shadow:0 0 0 2px var(--secondary);}
+    .heatmap-day.past{opacity:.45;}
+    .heatmap-day.closed{background:repeating-linear-gradient(45deg,var(--bg3) 0,var(--bg3) 2px,transparent 2px,transparent 6px);
+      color:var(--text3);cursor:default;}
+    .heatmap-day.selected{border-color:var(--secondary);box-shadow:0 0 0 2px var(--secondary);}
+    /* Slots */
+    .slots-grid{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;}
+    .slot-btn{padding:6px 13px;border-radius:8px;border:1px solid var(--border);
+      background:var(--bg3);color:var(--text);font-size:.79rem;font-weight:600;cursor:pointer;transition:.15s;}
+    .slot-btn:hover{border-color:var(--primary);background:rgba(99,102,241,.12);}
+    .slot-btn.selected{background:var(--primary);color:#fff;border-color:var(--primary);}
+    .slot-btn.busy{opacity:.35;cursor:not-allowed;text-decoration:line-through;}
+    /* Service / Product rows in modal */
+    .svc-row{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:9px;}
+    .prod-row{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px;margin-bottom:8px;
+      display:grid;grid-template-columns:1fr 90px auto;gap:8px;align-items:end;}
+  </style>
 </head>
 <body>
 <div class="page-loader" id="pageLoader"><div class="loader-ring"></div></div>
 <div id="sidebarMount"></div>
-
 <div class="app-layout">
   <div class="main-content">
     <div class="topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h1>Agendamentos</h1><p id="topbarSub">Gerencie todos os agendamentos</p></div>
+        <div class="topbar-title"><h1>Agendamentos</h1><p>Gerencie os atendimentos</p></div>
       </div>
       <div class="topbar-actions">
-        <button class="btn btn-primary btn-sm" id="btnNovo"><i class="fas fa-plus"></i> Novo</button>
+        <button class="btn btn-ghost btn-sm" id="btnRefresh" title="Atualizar">
+          <i class="fas fa-sync-alt"></i> <span id="refreshCountdown">30s</span>
+        </button>
+        <button class="btn btn-primary btn-sm" id="btnNovo">
+          <i class="fas fa-plus"></i> Novo
+        </button>
       </div>
     </div>
 
     <div class="page-content">
-
-      <!-- Tabs: Lista | Calendário -->
+      <!-- Tabs -->
       <div class="tabs">
         <button class="tab-btn active" data-tab="lista">📋 Lista</button>
         <button class="tab-btn" data-tab="calendario">📅 Calendário</button>
       </div>
 
-      <!-- ── TAB LISTA ── -->
+      <!-- TAB LISTA -->
       <div class="tab-content active" id="tab-lista">
-        <div class="filter-bar">
+        <div class="filter-bar mb-16">
           <div class="search-input-wrap">
             <i class="fas fa-search"></i>
-            <input class="search-input" type="text" id="searchInput" placeholder="Buscar cliente, serviço…"/>
+            <input class="search-input" type="text" id="searchInput" placeholder="Buscar cliente…"/>
           </div>
           <select id="filterStatus" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)">
             <option value="">Todos os status</option>
-            <option value="pendente">Pendente</option>
-            <option value="confirmado">Confirmado</option>
-            <option value="concluido">Concluído</option>
-            <option value="cancelado">Cancelado</option>
-            <option value="faltou">Faltou</option>
+            <option value="pendente">🕐 Pendente</option>
+            <option value="confirmado">✅ Confirmado</option>
+            <option value="concluido">✔️ Concluído</option>
+            <option value="cancelado">❌ Cancelado</option>
+            <option value="faltou">⚠️ Faltou</option>
           </select>
           <select id="filterProf" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)">
-            <option value="">Todos os profissionais</option>
+            <option value="">Todos profissionais</option>
           </select>
           <input type="date" id="filterData" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)"/>
-          <button class="btn btn-ghost btn-sm" id="clearFilters"><i class="fas fa-times"></i> Limpar</button>
+          <button class="btn btn-ghost btn-sm" id="clearFilters"><i class="fas fa-times"></i></button>
         </div>
-
         <div class="table-container">
-          <table id="tabelaAgendamentos">
+          <table>
             <thead><tr>
-              <th>Cliente</th><th>Serviço</th><th>Profissional</th>
-              <th>Data/Hora</th><th>Duração</th><th>Valor</th>
-              <th>Status</th><th>Pagamento</th><th>Ações</th>
+              <th>Cliente</th><th>Serviços / Profissional</th>
+              <th>Data/Hora</th><th>Total</th><th>Status</th><th>Ações</th>
             </tr></thead>
-            <tbody id="tbodyAgendamentos">
-              <tr><td colspan="9" class="text-center"><div class="loading"><i class="fas fa-circle-notch spin"></i></div></td></tr>
+            <tbody id="tbodyAgs">
+              <tr><td colspan="6"><div class="loading"><i class="fas fa-circle-notch spin"></i></div></td></tr>
             </tbody>
           </table>
         </div>
         <div id="paginacao" class="pagination"></div>
       </div>
 
-      <!-- ── TAB CALENDÁRIO ── -->
+      <!-- TAB CALENDÁRIO -->
       <div class="tab-content" id="tab-calendario">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="btn btn-ghost btn-sm" id="prevMonth"><i class="fas fa-chevron-left"></i></button>
-            <h3 id="calTitle" style="font-size:1rem;font-weight:700;min-width:160px;text-align:center"></h3>
-            <button class="btn btn-ghost btn-sm" id="nextMonth"><i class="fas fa-chevron-right"></i></button>
-          </div>
-          <button class="btn btn-ghost btn-sm" id="todayBtn">Hoje</button>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" id="prevMonth"><i class="fas fa-chevron-left"></i></button>
+          <h3 id="calTitle" style="font-size:1rem;font-weight:700;flex:1;text-align:center"></h3>
+          <button class="btn btn-ghost btn-sm" id="nextMonth"><i class="fas fa-chevron-right"></i></button>
+          <button class="btn btn-secondary btn-sm" id="todayBtn">Hoje</button>
         </div>
-        <div class="calendar-grid" id="calGrid">
-          <div class="calendar-day-header">Dom</div>
-          <div class="calendar-day-header">Seg</div>
-          <div class="calendar-day-header">Ter</div>
-          <div class="calendar-day-header">Qua</div>
-          <div class="calendar-day-header">Qui</div>
-          <div class="calendar-day-header">Sex</div>
-          <div class="calendar-day-header">Sáb</div>
+        <div class="heatmap-labels">
+          <span>Dom</span><span>Seg</span><span>Ter</span>
+          <span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
         </div>
-        <div id="agendamentosDodia" style="margin-top:16px"></div>
+        <div class="heatmap-grid" id="calGrid"></div>
+        <div id="calDayDetail" style="margin-top:16px"></div>
       </div>
-
     </div>
   </div>
 </div>
 
-<!-- ── MODAL AGENDAMENTO ── -->
-<div class="modal-overlay" id="modalAg">
-  <div class="modal modal-lg">
+<!-- ══ MODAL NOVO/EDITAR AGENDAMENTO ══ -->
+<div class="modal-overlay" id="modal">
+  <div class="modal modal-xl">
     <div class="modal-header">
-      <h3 id="modalAgTitle"><i class="fas fa-calendar-plus"></i> Novo Agendamento</h3>
-      <button class="modal-close" id="closeModalAg"><i class="fas fa-times"></i></button>
+      <h3 id="modalTitle"><i class="fas fa-calendar-plus"></i> Novo Agendamento</h3>
+      <button class="modal-close" id="closeModal"><i class="fas fa-times"></i></button>
     </div>
+
+    <!-- Cliente -->
     <div class="form-row form-row-2">
       <div class="form-group">
         <label>Cliente *</label>
-        <select id="agCliente"><option value="">Selecione o cliente</option></select>
-      </div>
-      <div class="form-group">
-        <label>Profissional</label>
-        <select id="agProfissional"><option value="">Qualquer profissional</option></select>
-      </div>
-    </div>
-    <div class="form-row form-row-2">
-      <div class="form-group">
-        <label>Serviço</label>
-        <select id="agServico"><option value="">Selecione o serviço</option></select>
-      </div>
-      <div class="form-group">
-        <label>Data e Hora *</label>
-        <input type="datetime-local" id="agDataHora"/>
-      </div>
-    </div>
-    <div class="form-row form-row-3">
-      <div class="form-group">
-        <label>Duração (min)</label>
-        <input type="number" id="agDuracao" value="60" min="15" step="15"/>
-      </div>
-      <div class="form-group">
-        <label>Valor (R$)</label>
-        <input type="number" id="agValor" step="0.01" min="0" placeholder="0,00"/>
+        <select id="mCliente"><option value="">Selecione o cliente…</option></select>
       </div>
       <div class="form-group">
         <label>Forma de Pagamento</label>
-        <select id="agPagamento">
+        <select id="mPagamento">
           <option value="dinheiro">Dinheiro</option>
           <option value="pix">PIX</option>
           <option value="cartao_debito">Cartão Débito</option>
@@ -142,38 +145,88 @@
         </select>
       </div>
     </div>
-    <div class="form-row form-row-2">
-      <div class="form-group">
-        <label>Status</label>
-        <select id="agStatus">
-          <option value="pendente">🕐 Pendente</option>
-          <option value="confirmado">✅ Confirmado</option>
-          <option value="concluido">✔️ Concluído</option>
-          <option value="cancelado">❌ Cancelado</option>
-          <option value="faltou">⚠️ Faltou</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Desconto (R$)</label>
-        <input type="number" id="agDesconto" step="0.01" min="0" value="0"/>
+
+    <!-- Para outro -->
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px">
+        <input type="checkbox" id="mParaOutro" style="width:auto"/>
+        Agendar para outra pessoa
+      </label>
+      <div id="mOutroWrap" style="display:none">
+        <input type="text" id="mNomeOutro" placeholder="Nome da pessoa que será atendida"/>
       </div>
     </div>
+
+    <!-- Serviços (com duração) -->
+    <div class="form-group">
+      <label><i class="fas fa-cut" style="color:var(--primary-light)"></i> Serviços <small style="color:var(--text3)">(com duração)</small></label>
+      <div id="mServicosList"></div>
+      <button class="btn btn-ghost btn-sm mt-8" id="mAddServico" type="button">
+        <i class="fas fa-plus"></i> Adicionar serviço
+      </button>
+    </div>
+
+    <!-- Produtos (sem duração) -->
+    <div class="form-group">
+      <label><i class="fas fa-shopping-bag" style="color:var(--secondary)"></i> Produtos <small style="color:var(--text3)">(sem duração — opcional)</small></label>
+      <div id="mProdutosList"></div>
+      <button class="btn btn-ghost btn-sm" id="mAddProduto" type="button">
+        <i class="fas fa-plus"></i> Adicionar produto
+      </button>
+    </div>
+
+    <!-- Heatmap de seleção de data -->
+    <div class="form-group">
+      <label><i class="fas fa-calendar-alt" style="color:var(--warning)"></i> Selecione a Data</label>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <button class="btn btn-ghost btn-sm" id="heatPrev"><i class="fas fa-chevron-left"></i></button>
+        <span id="heatTitle" style="flex:1;text-align:center;font-size:.88rem;font-weight:700"></span>
+        <button class="btn btn-ghost btn-sm" id="heatNext"><i class="fas fa-chevron-right"></i></button>
+      </div>
+      <div class="heatmap-labels">
+        <span>Dom</span><span>Seg</span><span>Ter</span>
+        <span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+      </div>
+      <div class="heatmap-grid" id="heatGrid"></div>
+      <div style="display:flex;gap:14px;margin-top:6px;font-size:.71rem;color:var(--text2);flex-wrap:wrap">
+        <span><span style="display:inline-block;width:11px;height:11px;background:var(--bg3);border-radius:2px;margin-right:4px;vertical-align:middle"></span>Disponível</span>
+        <span><span style="display:inline-block;width:11px;height:11px;background:rgba(99,102,241,.6);border-radius:2px;margin-right:4px;vertical-align:middle"></span>Lotado</span>
+        <span><span style="display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:4px;vertical-align:middle;background:repeating-linear-gradient(45deg,var(--bg3) 0,var(--bg3) 2px,transparent 2px,transparent 5px);border:1px solid var(--border)"></span>Fechado</span>
+      </div>
+    </div>
+
+    <!-- Slots de horário -->
+    <div class="form-group" id="slotsWrap" style="display:none">
+      <label><i class="fas fa-clock" style="color:var(--secondary)"></i> Horários disponíveis — <span id="slotDate"></span></label>
+      <div class="slots-grid" id="slotsContainer"></div>
+      <div style="margin-top:10px;font-size:.78rem;color:var(--text2);display:flex;align-items:center;gap:8px">
+        Ou informe manualmente:
+        <input type="time" id="mHoraManual"
+          style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+                 padding:5px 8px;color:var(--text);font-size:.8rem"/>
+      </div>
+    </div>
+
     <div class="form-group">
       <label>Observações</label>
-      <textarea id="agObs" placeholder="Anotações sobre o agendamento…"></textarea>
+      <textarea id="mObs" placeholder="Anotações sobre o agendamento…" rows="2"></textarea>
     </div>
-    <div class="form-group">
-      <label>Notas internas (visível só para equipe)</label>
-      <textarea id="agNotas" placeholder="Informações internas…"></textarea>
+
+    <!-- Resumo -->
+    <div id="mResumo" style="display:none;background:var(--bg3);border:1px solid var(--border);
+         border-radius:10px;padding:14px;margin-bottom:12px">
+      <div style="font-size:.84rem;font-weight:700;margin-bottom:8px">📋 Resumo do Agendamento</div>
+      <div id="mResumoContent" style="font-size:.82rem;color:var(--text2);display:flex;flex-direction:column;gap:4px"></div>
     </div>
+
     <div class="modal-footer">
-      <button class="btn btn-secondary" id="cancelModalAg">Cancelar</button>
-      <button class="btn btn-primary" id="salvarAg"><i class="fas fa-save"></i> Salvar</button>
+      <button class="btn btn-secondary" id="cancelModal">Cancelar</button>
+      <button class="btn btn-primary" id="salvar"><i class="fas fa-save"></i> Salvar Agendamento</button>
     </div>
   </div>
 </div>
 
-<!-- ── MODAL DETALHES ── -->
+<!-- ══ MODAL DETALHES ══ -->
 <div class="modal-overlay" id="modalDetalhes">
   <div class="modal modal-lg">
     <div class="modal-header">
@@ -181,398 +234,690 @@
       <button class="modal-close" id="closeModalDetalhes"><i class="fas fa-times"></i></button>
     </div>
     <div id="detalhesContent"></div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" id="editarAgBtn"><i class="fas fa-edit"></i> Editar</button>
-      <button class="btn btn-success" id="concluirAgBtn"><i class="fas fa-check"></i> Concluir</button>
-      <button class="btn btn-danger" id="cancelarAgBtn"><i class="fas fa-times"></i> Cancelar</button>
-    </div>
+    <div class="modal-footer" id="detalhesFtr"></div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
 import { requireAuth, renderUserInSidebar, showToast, isAdmin } from './supabase/session-manager.js';
-import { getAllAgendamentos, createAgendamento, updateAgendamento, deleteAgendamento,
-         getAllClientes, getAllEquipe, getAllServicos,
-         formatCurrency, formatDateTime, formatDate, formatTime, STATUS_LABELS, PAGAMENTO_LABELS,
-         getAgendamentosDoMes } from './supabase/database.js';
+import {
+  getAllAgendamentos, getAgendamento, createAgendamento, updateAgendamento,
+  getHeatmapDoMes, getSlotsDisponiveis,
+  getAllClientes, getAllEquipe, getAllServicos, getHorarios,
+  formatCurrency, formatDateTime, formatDate, formatTime,
+  STATUS_LABELS, PAGAMENTO_LABELS
+} from './supabase/database.js';
 import { getSidebarHTML, initSidebarToggle, showAdminItems } from './js/sidebar.js';
 
 document.getElementById('sidebarMount').innerHTML = getSidebarHTML('agendamentos');
 initSidebarToggle();
-
 const auth = await requireAuth();
 if (!auth) throw new Error('Not authenticated');
 const { user, profile } = auth;
+const adminMode = isAdmin(user, profile);
 renderUserInSidebar(profile);
-if (isAdmin(user,profile)) showAdminItems();
+if (adminMode) showAdminItems();
 setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
-
-// Logout
 document.getElementById('logoutBtn')?.addEventListener('click', () =>
-  import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href='index.html'));
+  import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href = 'index.html'));
 
-// Tabs
-document.querySelectorAll('.tab-btn').forEach(btn => {
+// ── Tabs ─────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`tab-${btn.dataset.tab}`)?.classList.add('active');
-    if (btn.dataset.tab === 'calendario') renderCalendar(calYear, calMonth);
+    if (btn.dataset.tab === 'calendario') renderCalendar();
   });
 });
 
-// ─── Estado ───────────────────────────────────────────────────
-let allAgs       = [];
-let filteredAgs  = [];
-let currentPage  = 1;
-const perPage    = 20;
-let editingId    = null;
-let viewingAg    = null;
-let clientes = [], equipe = [], servicos = [];
-let calYear  = new Date().getFullYear();
-let calMonth = new Date().getMonth() + 1;
+// ── Auto-refresh every 30s ────────────────────────────────────
+let countdown = 30;
+const countdownEl = document.getElementById('refreshCountdown');
+function tickCountdown() {
+  countdown--;
+  if (countdownEl) countdownEl.textContent = countdown + 's';
+  if (countdown <= 0) { countdown = 30; loadAll(); }
+}
+let countdownTimer = setInterval(tickCountdown, 1000);
+document.getElementById('btnRefresh')?.addEventListener('click', () => {
+  clearInterval(countdownTimer); countdown = 30;
+  if (countdownEl) countdownEl.textContent = '30s';
+  loadAll(); countdownTimer = setInterval(tickCountdown, 1000);
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) clearInterval(countdownTimer);
+  else { countdown = 30; loadAll(); countdownTimer = setInterval(tickCountdown, 1000); }
+});
 
-// ─── Carrega dados ────────────────────────────────────────────
+// ── State ────────────────────────────────────────────────────
+let allAgs = [], filteredAgs = [], equipe = [], clientes = [], servicos = [], horarios = [];
+let currentPage = 1, perPage = 20;
+let calYear = new Date().getFullYear(), calMonth = new Date().getMonth() + 1;
+let heatYear = new Date().getFullYear(), heatMonth = new Date().getMonth() + 1;
+let selectedDate = null, selectedTime = null;
+
+// ── Load all data ─────────────────────────────────────────────
 async function loadAll() {
-  [clientes, equipe, servicos, allAgs] = await Promise.all([
-    getAllClientes(), getAllEquipe(), getAllServicos(), getAllAgendamentos()
-  ]);
-  populateFilters();
-  applyFilters();
+  try {
+    [equipe, clientes, servicos, horarios] = await Promise.all([
+      getAllEquipe(), getAllClientes(), getAllServicos(), getHorarios()
+    ]);
+
+    // Populate prof filter
+    const selProf = document.getElementById('filterProf');
+    const curVal  = selProf.value;
+    selProf.innerHTML = '<option value="">Todos profissionais</option>' +
+      equipe.map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+    if (curVal) selProf.value = curVal;
+
+    allAgs = await getAllAgendamentos({});
+    // Non-admin: only show agendamentos they created
+    if (!adminMode) allAgs = allAgs.filter(a => a.criado_por === user.id);
+
+    applyFilters();
+  } catch (err) {
+    console.error('loadAll agendamentos:', err);
+    showToast('Erro ao carregar agendamentos.', 'error');
+  }
 }
 
-function populateFilters() {
-  const sel = document.getElementById('filterProf');
-  sel.innerHTML = '<option value="">Todos os profissionais</option>' +
-    equipe.map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
-}
-
+// ── Filters ───────────────────────────────────────────────────
 function applyFilters() {
   const search = document.getElementById('searchInput').value.toLowerCase();
   const status = document.getElementById('filterStatus').value;
-  const prof   = document.getElementById('filterProf').value;
+  const profId = document.getElementById('filterProf').value;
   const data   = document.getElementById('filterData').value;
 
-  filteredAgs = allAgs.filter(ag => {
-    if (status && ag.status !== status) return false;
-    if (prof   && ag.profissional_id !== prof) return false;
-    if (data   && !ag.data_hora.startsWith(data)) return false;
-    if (search) {
-      const hay = [ag.clientes?.nome, ag.servicos?.nome, ag.equipe?.nome,
-                   ag.observacoes].join(' ').toLowerCase();
-      if (!hay.includes(search)) return false;
-    }
+  filteredAgs = allAgs.filter(a => {
+    if (search && !a.clientes?.nome?.toLowerCase().includes(search)) return false;
+    if (status && a.status !== status) return false;
+    if (profId && !a.agendamento_servicos?.some(s => s.equipe?.id === profId)) return false;
+    if (data   && !a.data_hora?.startsWith(data)) return false;
     return true;
   });
   currentPage = 1;
-  renderTable();
+  render();
 }
 
-function renderTable() {
-  const start = (currentPage-1)*perPage;
-  const page  = filteredAgs.slice(start, start+perPage);
-  const tbody = document.getElementById('tbodyAgendamentos');
+function render() {
+  const start = (currentPage - 1) * perPage;
+  const page  = filteredAgs.slice(start, start + perPage);
+  const tbody = document.getElementById('tbodyAgs');
 
   if (!filteredAgs.length) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><i class="fas fa-calendar-times"></i><h3>Nenhum agendamento encontrado</h3><p>Tente ajustar os filtros ou crie um novo agendamento.</p></div></td></tr>`;
-    document.getElementById('paginacao').innerHTML = '';
-    return;
-  }
-
-  tbody.innerHTML = page.map(ag => {
-    const st  = STATUS_LABELS[ag.status] || {};
-    const cor = ag.equipe?.cor_agenda || '#6366f1';
-    return `<tr>
-      <td>
-        <strong>${ag.clientes?.nome || '—'}</strong>
-        ${ag.clientes?.telefone ? `<br><small style="color:var(--text2)">${ag.clientes.telefone}</small>` : ''}
-      </td>
-      <td>${ag.servicos?.icone||''} ${ag.servicos?.nome||'—'}</td>
-      <td><span style="display:inline-flex;align-items:center;gap:6px">
-        <span style="width:8px;height:8px;border-radius:50%;background:${cor};flex-shrink:0"></span>
-        ${ag.equipe?.nome || '—'}
-      </span></td>
-      <td>${formatDateTime(ag.data_hora)}</td>
-      <td>${ag.duracao_min}min</td>
-      <td>${formatCurrency(ag.valor)}</td>
-      <td><span class="badge" style="background:${st.color}22;color:${st.color}">${st.icon||''} ${st.label||ag.status}</span></td>
-      <td><span class="badge badge-gray">${PAGAMENTO_LABELS[ag.forma_pagamento]||ag.forma_pagamento}</span></td>
-      <td class="td-actions">
-        <button class="btn btn-ghost btn-sm btn-icon" onclick="verDetalhes('${ag.id}')" title="Ver"><i class="fas fa-eye"></i></button>
-        <button class="btn btn-ghost btn-sm btn-icon" onclick="editarAg('${ag.id}')" title="Editar"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-ghost btn-sm btn-icon" onclick="mudarStatus('${ag.id}','concluido')" title="Concluir" style="color:var(--secondary)"><i class="fas fa-check"></i></button>
-        <button class="btn btn-ghost btn-sm btn-icon" onclick="mudarStatus('${ag.id}','cancelado')" title="Cancelar" style="color:var(--danger)"><i class="fas fa-times"></i></button>
-      </td>
-    </tr>`;
-  }).join('');
-
-  // Paginação
-  const totalPages = Math.ceil(filteredAgs.length / perPage);
-  if (totalPages > 1) {
-    let pag = `<button class="page-btn" ${currentPage===1?'disabled':''} onclick="goPage(${currentPage-1})"><i class="fas fa-chevron-left"></i></button>`;
-    for (let p=1; p<=totalPages; p++) {
-      if (p===1||p===totalPages||Math.abs(p-currentPage)<=1)
-        pag += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
-      else if (Math.abs(p-currentPage)===2) pag += `<span style="padding:0 4px;color:var(--text3)">…</span>`;
-    }
-    pag += `<button class="page-btn" ${currentPage===totalPages?'disabled':''} onclick="goPage(${currentPage+1})"><i class="fas fa-chevron-right"></i></button>`;
-    document.getElementById('paginacao').innerHTML = pag;
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">
+      <i class="fas fa-calendar-times"></i><h3>Nenhum agendamento encontrado</h3>
+      <p>Clique em "Novo" para criar um agendamento.</p></div></td></tr>`;
   } else {
-    document.getElementById('paginacao').innerHTML = '';
+    tbody.innerHTML = page.map(ag => {
+      const st       = STATUS_LABELS[ag.status] || {};
+      const servNomes = ag.agendamento_servicos?.map(s => s.servicos?.nome || '').filter(Boolean).join(', ') || '—';
+      const profNome  = ag.agendamento_servicos?.map(s => s.equipe?.nome || '').filter(Boolean).join(', ') || '—';
+      const cor       = ag.agendamento_servicos?.[0]?.equipe?.cor_agenda || '#6366f1';
+      const canEdit   = adminMode || ag.status === 'pendente';
+      return `<tr>
+        <td>
+          <strong>${ag.clientes?.nome || '—'}</strong>
+          ${ag.para_outro ? `<br><small style="color:var(--warning)"><i class="fas fa-user-friends"></i> Para: ${ag.nome_outro || 'outro'}</small>` : ''}
+          <br><small style="color:var(--text3)">${ag.clientes?.telefone || ''}</small>
+        </td>
+        <td>
+          <div style="font-size:.84rem">${servNomes}</div>
+          <div style="font-size:.76rem;color:var(--text2);display:flex;align-items:center;gap:5px">
+            <span style="width:7px;height:7px;border-radius:50%;background:${cor};flex-shrink:0"></span>${profNome}
+          </div>
+        </td>
+        <td>${formatDateTime(ag.data_hora)}</td>
+        <td><strong>${formatCurrency(ag.valor_total || 0)}</strong></td>
+        <td><span class="badge" style="background:${st.color}22;color:${st.color}">${st.icon || ''} ${st.label || ag.status}</span></td>
+        <td class="td-actions">
+          <button class="btn btn-ghost btn-sm btn-icon" onclick="verDetalhes('${ag.id}')" title="Ver detalhes">
+            <i class="fas fa-eye"></i>
+          </button>
+          ${canEdit && adminMode ? `<button class="btn btn-ghost btn-sm btn-icon" onclick="verDetalhes('${ag.id}')" title="Alterar status">
+            <i class="fas fa-exchange-alt"></i>
+          </button>` : ''}
+        </td>
+      </tr>`;
+    }).join('');
   }
-  document.getElementById('topbarSub').textContent = `${filteredAgs.length} agendamento${filteredAgs.length!==1?'s':''} encontrado${filteredAgs.length!==1?'s':''}`;
+  renderPagination();
 }
 
-window.goPage = (p) => { currentPage = p; renderTable(); };
+function renderPagination() {
+  const total = Math.ceil(filteredAgs.length / perPage);
+  if (total <= 1) { document.getElementById('paginacao').innerHTML = ''; return; }
+  let html = `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="goPage(${currentPage - 1})"><i class="fas fa-chevron-left"></i></button>`;
+  for (let p = 1; p <= total; p++) {
+    if (p === 1 || p === total || Math.abs(p - currentPage) <= 1)
+      html += `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="goPage(${p})">${p}</button>`;
+    else if (Math.abs(p - currentPage) === 2)
+      html += `<span style="padding:0 4px;color:var(--text3)">…</span>`;
+  }
+  html += `<button class="page-btn" ${currentPage === total ? 'disabled' : ''} onclick="goPage(${currentPage + 1})"><i class="fas fa-chevron-right"></i></button>`;
+  document.getElementById('paginacao').innerHTML = html;
+}
+window.goPage = p => { currentPage = p; render(); };
 
-// Filtros
-['searchInput','filterStatus','filterProf','filterData'].forEach(id =>
-  document.getElementById(id)?.addEventListener('input', applyFilters));
+['filterStatus', 'filterProf', 'filterData'].forEach(id =>
+  document.getElementById(id)?.addEventListener('change', applyFilters));
+document.getElementById('searchInput')?.addEventListener('input', applyFilters);
 document.getElementById('clearFilters')?.addEventListener('click', () => {
-  document.getElementById('searchInput').value = '';
-  document.getElementById('filterStatus').value = '';
-  document.getElementById('filterProf').value = '';
-  document.getElementById('filterData').value = '';
+  ['searchInput', 'filterStatus', 'filterProf', 'filterData'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
   applyFilters();
 });
 
-// ─── Modal Agendamento ────────────────────────────────────────
-function preencherSelects() {
-  document.getElementById('agCliente').innerHTML =
-    '<option value="">Selecione o cliente</option>' +
-    clientes.map(c => `<option value="${c.id}">${c.nome}${c.telefone?' ('+c.telefone+')':''}</option>`).join('');
-  document.getElementById('agProfissional').innerHTML =
-    '<option value="">Qualquer profissional</option>' +
-    equipe.map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
-  document.getElementById('agServico').innerHTML =
-    '<option value="">Selecione o serviço</option>' +
-    servicos.map(s => `<option value="${s.id}" data-preco="${s.preco}" data-dur="${s.duracao_min}">${s.icone||''} ${s.nome} — ${formatCurrency(s.preco)}</option>`).join('');
-  document.getElementById('agServico').addEventListener('change', (e) => {
-    const opt = e.target.selectedOptions[0];
-    if (opt?.dataset?.preco) document.getElementById('agValor').value = opt.dataset.preco;
-    if (opt?.dataset?.dur)   document.getElementById('agDuracao').value = opt.dataset.dur;
-  });
-}
+// ── Calendário ────────────────────────────────────────────────
+async function renderCalendar() {
+  document.getElementById('calTitle').textContent =
+    new Date(calYear, calMonth - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const heatmap   = await getHeatmapDoMes(calYear, calMonth);
+  const firstDay  = new Date(calYear, calMonth - 1, 1).getDay();
+  const daysInMon = new Date(calYear, calMonth, 0).getDate();
+  const today     = new Date();
 
-function openModal(ag = null) {
-  editingId = ag?.id || null;
-  document.getElementById('modalAgTitle').innerHTML = ag
-    ? '<i class="fas fa-edit"></i> Editar Agendamento'
-    : '<i class="fas fa-calendar-plus"></i> Novo Agendamento';
-  preencherSelects();
-  if (ag) {
-    document.getElementById('agCliente').value    = ag.cliente_id || '';
-    document.getElementById('agProfissional').value = ag.profissional_id || '';
-    document.getElementById('agServico').value    = ag.servico_id || '';
-    document.getElementById('agDataHora').value   = ag.data_hora?.slice(0,16) || '';
-    document.getElementById('agDuracao').value    = ag.duracao_min || 60;
-    document.getElementById('agValor').value      = ag.valor || 0;
-    document.getElementById('agDesconto').value   = ag.desconto || 0;
-    document.getElementById('agPagamento').value  = ag.forma_pagamento || 'dinheiro';
-    document.getElementById('agStatus').value     = ag.status || 'pendente';
-    document.getElementById('agObs').value        = ag.observacoes || '';
-    document.getElementById('agNotas').value      = ag.notas_internas || '';
-  } else {
-    ['agCliente','agProfissional','agServico','agStatus'].forEach(id => document.getElementById(id).selectedIndex=0);
-    ['agObs','agNotas'].forEach(id => document.getElementById(id).value='');
-    document.getElementById('agDuracao').value = 60;
-    document.getElementById('agValor').value   = 0;
-    document.getElementById('agDesconto').value= 0;
-    const next = new Date(); next.setMinutes(0); next.setSeconds(0); next.setHours(next.getHours()+1);
-    document.getElementById('agDataHora').value = next.toISOString().slice(0,16);
+  let html = '';
+  for (let i = 0; i < firstDay; i++) html += '<div class="heatmap-day empty"></div>';
+  for (let d = 1; d <= daysInMon; d++) {
+    const count   = heatmap[d] || 0;
+    const heat    = count === 0 ? 0 : count <= 2 ? 1 : count <= 4 ? 2 : count <= 7 ? 3 : 4;
+    const date    = new Date(calYear, calMonth - 1, d);
+    const isToday = date.toDateString() === today.toDateString();
+    const isPast  = date < new Date(today.toDateString());
+    const dow     = date.getDay();
+    const horar   = horarios.find(x => x.dia_semana === dow);
+    const closed  = horar && !horar.aberto;
+    let cls = `heatmap-day heat-${heat}`;
+    if (isToday) cls += ' today';
+    if (isPast)  cls += ' past';
+    if (closed)  cls += ' closed';
+    html += `<div class="${cls}" onclick="showCalDay(${calYear},${calMonth},${d})" title="${count} agendamento(s)">${d}</div>`;
   }
-  document.getElementById('modalAg').classList.add('open');
+  document.getElementById('calGrid').innerHTML = html;
+  document.getElementById('calDayDetail').innerHTML = '';
 }
 
-function closeModal() { document.getElementById('modalAg').classList.remove('open'); }
-document.getElementById('btnNovo')?.addEventListener('click', () => openModal());
-document.getElementById('closeModalAg')?.addEventListener('click', closeModal);
-document.getElementById('cancelModalAg')?.addEventListener('click', closeModal);
+window.showCalDay = async (y, m, d) => {
+  const ags = allAgs.filter(a => {
+    const dt = new Date(a.data_hora);
+    return dt.getFullYear() === y && dt.getMonth() + 1 === m && dt.getDate() === d;
+  });
+  const dateStr = new Date(y, m - 1, d).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+  const el = document.getElementById('calDayDetail');
+  if (!ags.length) {
+    el.innerHTML = `<div class="card" style="padding:14px"><p style="color:var(--text2)">📭 Nenhum agendamento em ${dateStr}.</p></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="card">
+    <div class="card-header"><span class="card-title">📅 ${dateStr} — ${ags.length} agendamento(s)</span></div>
+    ${ags.map(ag => {
+      const st = STATUS_LABELS[ag.status] || {};
+      const servNomes = ag.agendamento_servicos?.map(s => s.servicos?.nome || '').filter(Boolean).join(', ') || '—';
+      return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);
+                  align-items:center;cursor:pointer" onclick="verDetalhes('${ag.id}')">
+        <div style="font-size:.82rem;color:var(--text2);white-space:nowrap;min-width:50px">${formatTime(ag.data_hora)}</div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:.87rem">${ag.clientes?.nome || '—'}</div>
+          <div style="font-size:.75rem;color:var(--text2)">${servNomes}</div>
+        </div>
+        <span class="badge" style="background:${st.color}22;color:${st.color};font-size:.68rem">${st.icon || ''} ${st.label || ag.status}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+};
 
-document.getElementById('salvarAg')?.addEventListener('click', async () => {
-  const clienteId = document.getElementById('agCliente').value;
-  const dataHora  = document.getElementById('agDataHora').value;
-  if (!clienteId) { showToast('Selecione um cliente.','warning'); return; }
-  if (!dataHora)  { showToast('Informe data e hora.','warning'); return; }
-  const btn = document.getElementById('salvarAg');
-  btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch spin"></i>';
+document.getElementById('prevMonth')?.addEventListener('click', () => {
+  calMonth--; if (calMonth < 1) { calMonth = 12; calYear--; } renderCalendar();
+});
+document.getElementById('nextMonth')?.addEventListener('click', () => {
+  calMonth++; if (calMonth > 12) { calMonth = 1; calYear++; } renderCalendar();
+});
+document.getElementById('todayBtn')?.addEventListener('click', () => {
+  calYear = new Date().getFullYear(); calMonth = new Date().getMonth() + 1; renderCalendar();
+});
+
+// ── Modal Novo Agendamento ─────────────────────────────────────
+let svcRows = [], prodRows = [];
+
+function openModal() {
+  svcRows = []; prodRows = [];
+  selectedDate = null; selectedTime = null;
+  heatYear = new Date().getFullYear(); heatMonth = new Date().getMonth() + 1;
+
+  // Populate client select
+  document.getElementById('mCliente').innerHTML =
+    '<option value="">Selecione o cliente…</option>' +
+    clientes.map(c => `<option value="${c.id}">${c.nome}${c.telefone ? ' (' + c.telefone + ')' : ''}</option>`).join('');
+
+  document.getElementById('mServicosList').innerHTML = '';
+  document.getElementById('mProdutosList').innerHTML = '';
+  document.getElementById('slotsWrap').style.display = 'none';
+  document.getElementById('mResumo').style.display   = 'none';
+  document.getElementById('mParaOutro').checked      = false;
+  document.getElementById('mOutroWrap').style.display = 'none';
+  document.getElementById('mObs').value   = '';
+  document.getElementById('mHoraManual').value = '';
+
+  // Pre-select client from URL
+  const urlCliente = new URLSearchParams(location.search).get('cliente');
+  if (urlCliente) document.getElementById('mCliente').value = urlCliente;
+
+  renderHeatmap();
+  addSvcRow();
+  document.getElementById('modalTitle').innerHTML = '<i class="fas fa-calendar-plus"></i> Novo Agendamento';
+  document.getElementById('modal').classList.add('open');
+}
+
+// ── Heatmap picker ────────────────────────────────────────────
+async function renderHeatmap() {
+  document.getElementById('heatTitle').textContent =
+    new Date(heatYear, heatMonth - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const heatmap  = await getHeatmapDoMes(heatYear, heatMonth);
+  const firstDay = new Date(heatYear, heatMonth - 1, 1).getDay();
+  const days     = new Date(heatYear, heatMonth, 0).getDate();
+  const today    = new Date();
+
+  let html = '';
+  for (let i = 0; i < firstDay; i++) html += '<div class="heatmap-day empty"></div>';
+  for (let d = 1; d <= days; d++) {
+    const count   = heatmap[d] || 0;
+    const heat    = count === 0 ? 0 : count <= 2 ? 1 : count <= 4 ? 2 : count <= 7 ? 3 : 4;
+    const date    = new Date(heatYear, heatMonth - 1, d);
+    const isToday = date.toDateString() === today.toDateString();
+    const isPast  = date < new Date(today.toDateString());
+    const dow     = date.getDay();
+    const horar   = horarios.find(x => x.dia_semana === dow);
+    const closed  = horar && !horar.aberto;
+    const dateKey = `${heatYear}-${String(heatMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isSel   = selectedDate === dateKey;
+    let cls = `heatmap-day heat-${heat}`;
+    if (isToday) cls += ' today';
+    if (isPast && !isToday) cls += ' past';
+    if (closed) cls += ' closed';
+    if (isSel)  cls += ' selected';
+    const clickable = !isPast && !closed;
+    html += `<div class="${cls}" ${clickable ? `onclick="selectDate(${heatYear},${heatMonth},${d})"` : ''} title="${count} agendamento(s)">${d}</div>`;
+  }
+  document.getElementById('heatGrid').innerHTML = html;
+}
+
+window.selectDate = async (y, m, d) => {
+  selectedDate = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  selectedTime = null;
+  document.getElementById('mHoraManual').value = '';
+  await renderHeatmap();
+
+  // Get first profissional & duration
+  const validSvc = svcRows.filter(Boolean).filter(s => s.servico_id);
+  const profId   = validSvc[0]?.profissional_id || null;
+  const durMin   = validSvc.reduce((a, s) => a + (s.duracao_min || 60), 0) || 60;
+
+  const slots = await getSlotsDisponiveis(selectedDate, profId, durMin);
+  const slotsWrap = document.getElementById('slotsWrap');
+  slotsWrap.style.display = '';
+  document.getElementById('slotDate').textContent =
+    new Date(y, m - 1, d).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+
+  const container = document.getElementById('slotsContainer');
+  if (!slots.length) {
+    container.innerHTML = '<p style="color:var(--text2);font-size:.84rem"><i class="fas fa-exclamation-circle"></i> Nenhum horário disponível neste dia.</p>';
+    return;
+  }
+  container.innerHTML = slots.map(s =>
+    `<button class="slot-btn${selectedTime === s.hora ? ' selected' : ''}" onclick="selectSlot('${s.hora}','${s.iso}')">${s.hora}</button>`
+  ).join('');
+  updateResumo();
+};
+
+window.selectSlot = (hora, iso) => {
+  selectedTime = hora;
+  document.querySelectorAll('.slot-btn').forEach(b =>
+    b.classList.toggle('selected', b.textContent.trim() === hora));
+  document.getElementById('mHoraManual').value = hora;
+  updateResumo();
+};
+
+document.getElementById('heatPrev')?.addEventListener('click', () => {
+  heatMonth--; if (heatMonth < 1) { heatMonth = 12; heatYear--; } renderHeatmap();
+});
+document.getElementById('heatNext')?.addEventListener('click', () => {
+  heatMonth++; if (heatMonth > 12) { heatMonth = 1; heatYear++; } renderHeatmap();
+});
+
+// Para outro
+document.getElementById('mParaOutro')?.addEventListener('change', e =>
+  document.getElementById('mOutroWrap').style.display = e.target.checked ? '' : 'none');
+
+// ── Serviço rows ──────────────────────────────────────────────
+function addSvcRow() {
+  const idx = svcRows.length;
+  svcRows.push({ servico_id: null, profissional_id: null, preco: 0, duracao_min: 60 });
+  const div = document.createElement('div');
+  div.id = `svcRow-${idx}`;
+  div.className = 'svc-row';
+  div.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end">
+      <div class="form-group" style="margin:0">
+        <label style="font-size:.76rem">Serviço *</label>
+        <select onchange="onSvcChange(${idx},this)">
+          <option value="">Selecione…</option>
+          ${servicos.filter(s => s.categoria === 'servico').map(s =>
+            `<option value="${s.id}" data-preco="${s.preco}" data-dur="${s.duracao_min || 60}">
+              ${s.icone || ''} ${s.nome} — ${formatCurrency(s.preco)} (${s.duracao_min || 60}min)
+            </option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:.76rem">Profissional</label>
+        <select onchange="onSvcProf(${idx},this)">
+          <option value="">Qualquer profissional</option>
+          ${equipe.map(e => `<option value="${e.id}" style="color:${e.cor_agenda}">${e.nome}</option>`).join('')}
+        </select>
+      </div>
+      <button class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);margin-top:20px"
+        onclick="removeSvcRow(${idx})" title="Remover">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>`;
+  document.getElementById('mServicosList').appendChild(div);
+}
+
+window.onSvcChange = (idx, sel) => {
+  const opt = sel.selectedOptions[0];
+  svcRows[idx].servico_id  = sel.value || null;
+  svcRows[idx].preco       = parseFloat(opt?.dataset?.preco || 0);
+  svcRows[idx].duracao_min = parseInt(opt?.dataset?.dur || 60);
+  updateResumo();
+};
+window.onSvcProf = (idx, sel) => {
+  svcRows[idx].profissional_id = sel.value || null;
+};
+window.removeSvcRow = (idx) => {
+  document.getElementById(`svcRow-${idx}`)?.remove();
+  svcRows[idx] = null;
+  updateResumo();
+};
+document.getElementById('mAddServico')?.addEventListener('click', addSvcRow);
+
+// ── Produto rows ──────────────────────────────────────────────
+function addProdRow() {
+  const idx = prodRows.length;
+  prodRows.push({ servico_id: null, quantidade: 1, preco_unitario: 0 });
+  const div = document.createElement('div');
+  div.id = `prodRow-${idx}`;
+  div.className = 'prod-row';
+  div.innerHTML = `
+    <div class="form-group" style="margin:0">
+      <label style="font-size:.76rem">Produto</label>
+      <select onchange="onProdChange(${idx},this)">
+        <option value="">Selecione…</option>
+        ${servicos.filter(s => s.categoria === 'produto').map(s =>
+          `<option value="${s.id}" data-preco="${s.preco}">${s.icone || ''} ${s.nome} — ${formatCurrency(s.preco)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group" style="margin:0">
+      <label style="font-size:.76rem">Quantidade</label>
+      <input type="number" min="1" value="1"
+        style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text)"
+        onchange="onQtdeChange(${idx},this)"/>
+    </div>
+    <button class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);margin-top:20px"
+      onclick="removeProdRow(${idx})">
+      <i class="fas fa-times"></i>
+    </button>`;
+  document.getElementById('mProdutosList').appendChild(div);
+}
+
+window.onProdChange = (idx, sel) => {
+  const opt = sel.selectedOptions[0];
+  prodRows[idx].servico_id     = sel.value || null;
+  prodRows[idx].preco_unitario = parseFloat(opt?.dataset?.preco || 0);
+  updateResumo();
+};
+window.onQtdeChange = (idx, inp) => {
+  prodRows[idx].quantidade = parseInt(inp.value) || 1;
+  updateResumo();
+};
+window.removeProdRow = (idx) => {
+  document.getElementById(`prodRow-${idx}`)?.remove();
+  prodRows[idx] = null;
+  updateResumo();
+};
+document.getElementById('mAddProduto')?.addEventListener('click', addProdRow);
+
+// ── Resumo ────────────────────────────────────────────────────
+function updateResumo() {
+  const validSvc  = svcRows.filter(Boolean).filter(s => s.servico_id);
+  const validProd = prodRows.filter(Boolean).filter(p => p.servico_id);
+  if (!validSvc.length && !validProd.length) {
+    document.getElementById('mResumo').style.display = 'none'; return;
+  }
+  const totalSvc  = validSvc.reduce((a, s) => a + s.preco, 0);
+  const totalProd = validProd.reduce((a, p) => a + (p.preco_unitario * p.quantidade), 0);
+  const total     = totalSvc + totalProd;
+
+  let lines = validSvc.map(s => {
+    const svcNome  = servicos.find(x => x.id === s.servico_id)?.nome || 'Serviço';
+    const profNome = equipe.find(x => x.id === s.profissional_id)?.nome || 'Qualquer profissional';
+    return `<div style="display:flex;justify-content:space-between">
+      <span>✂️ ${svcNome} <span style="color:var(--text3)">(${profNome})</span></span>
+      <span>${formatCurrency(s.preco)}</span></div>`;
+  }).join('');
+
+  lines += validProd.map(p => {
+    const prodNome = servicos.find(x => x.id === p.servico_id)?.nome || 'Produto';
+    return `<div style="display:flex;justify-content:space-between">
+      <span>🛍️ ${prodNome} ×${p.quantidade}</span>
+      <span>${formatCurrency(p.preco_unitario * p.quantidade)}</span></div>`;
+  }).join('');
+
+  lines += `<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);
+    margin-top:8px;padding-top:8px;font-weight:700">
+    <span>Total</span><span style="color:var(--secondary)">${formatCurrency(total)}</span></div>`;
+
+  if (selectedDate && (selectedTime || document.getElementById('mHoraManual').value)) {
+    const hora = selectedTime || document.getElementById('mHoraManual').value;
+    lines += `<div style="margin-top:6px;color:var(--primary-light);font-size:.8rem">
+      <i class="fas fa-clock"></i> ${selectedDate} às ${hora}</div>`;
+  }
+
+  document.getElementById('mResumoContent').innerHTML = lines;
+  document.getElementById('mResumo').style.display = '';
+}
+
+// ── Close / Open modal ────────────────────────────────────────
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+document.getElementById('btnNovo')?.addEventListener('click', () => openModal());
+document.getElementById('closeModal')?.addEventListener('click', closeModal);
+document.getElementById('cancelModal')?.addEventListener('click', closeModal);
+
+// ── Salvar Agendamento ────────────────────────────────────────
+document.getElementById('salvar')?.addEventListener('click', async () => {
+  const clienteId = document.getElementById('mCliente').value;
+  if (!clienteId) { showToast('Selecione um cliente.', 'warning'); return; }
+
+  const horaManual = document.getElementById('mHoraManual').value;
+  const hora = selectedTime || horaManual;
+  if (!selectedDate || !hora) { showToast('Selecione uma data e horário no calendário.', 'warning'); return; }
+
+  const svcItems = svcRows.filter(Boolean).filter(s => s.servico_id);
+  if (!svcItems.length) { showToast('Adicione pelo menos um serviço.', 'warning'); return; }
+
+  const btn = document.getElementById('salvar');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Salvando…';
   try {
-    const payload = {
+    const baseTime = new Date(`${selectedDate}T${hora}:00`);
+    let offset = 0;
+    const servicosPayload = svcItems.map(s => {
+      const inicio = new Date(baseTime.getTime() + offset * 60000);
+      const fim    = new Date(inicio.getTime() + (s.duracao_min || 60) * 60000);
+      offset += s.duracao_min || 60;
+      return { ...s, hora_inicio: inicio.toISOString(), hora_fim: fim.toISOString() };
+    });
+
+    const paraOutro  = document.getElementById('mParaOutro').checked;
+    const prodItems  = prodRows.filter(Boolean).filter(p => p.servico_id);
+    const duracaoTotal = svcItems.reduce((a, s) => a + (s.duracao_min || 60), 0);
+
+    await createAgendamento({
       cliente_id:      clienteId,
-      profissional_id: document.getElementById('agProfissional').value || null,
-      servico_id:      document.getElementById('agServico').value || null,
-      data_hora:       new Date(dataHora).toISOString(),
-      duracao_min:     parseInt(document.getElementById('agDuracao').value)||60,
-      valor:           parseFloat(document.getElementById('agValor').value)||0,
-      desconto:        parseFloat(document.getElementById('agDesconto').value)||0,
-      forma_pagamento: document.getElementById('agPagamento').value,
-      status:          document.getElementById('agStatus').value,
-      observacoes:     document.getElementById('agObs').value||null,
-      notas_internas:  document.getElementById('agNotas').value||null,
-    };
-    if (editingId) { await updateAgendamento(editingId, payload); showToast('Agendamento atualizado!','success'); }
-    else { payload.criado_por = user.id; await createAgendamento(payload); showToast('Agendamento criado!','success'); }
+      criado_por:      user.id,
+      data_hora:       baseTime.toISOString(),
+      duracao_min:     duracaoTotal,
+      forma_pagamento: document.getElementById('mPagamento').value,
+      observacoes:     document.getElementById('mObs').value || null,
+      status:          'pendente',
+      para_outro:      paraOutro,
+      nome_outro:      paraOutro ? document.getElementById('mNomeOutro').value || null : null,
+      servicos:        servicosPayload,
+      produtos:        prodItems
+    });
+
+    showToast('Agendamento criado com sucesso!', 'success');
     closeModal();
     await loadAll();
-  } catch(err) {
-    showToast(err.message||'Erro ao salvar.','error');
+  } catch (err) {
+    showToast(err.message || 'Erro ao criar agendamento.', 'error');
   } finally {
-    btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Salvar';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> Salvar Agendamento';
   }
 });
 
-window.editarAg = (id) => {
-  const ag = allAgs.find(a => a.id === id);
-  if (ag) openModal(ag);
-  document.getElementById('modalDetalhes').classList.remove('open');
-};
-
-window.mudarStatus = async (id, status) => {
-  const labels = { concluido:'Concluído', cancelado:'Cancelado', confirmado:'Confirmado' };
-  if (!confirm(`Marcar como ${labels[status]||status}?`)) return;
-  try {
-    await updateAgendamento(id, { status });
-    showToast(`Agendamento marcado como ${labels[status]}!`,'success');
-    await loadAll();
-    document.getElementById('modalDetalhes').classList.remove('open');
-  } catch(err) { showToast(err.message,'error'); }
-};
-
-// ─── Ver Detalhes ─────────────────────────────────────────────
-window.verDetalhes = (id) => {
-  viewingAg = allAgs.find(a => a.id === id);
-  if (!viewingAg) return;
-  const st = STATUS_LABELS[viewingAg.status] || {};
-  const cor = viewingAg.equipe?.cor_agenda||'#6366f1';
-  document.getElementById('detalhesContent').innerHTML = `
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-    <div>
-      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Cliente</label>
-      <p style="font-weight:700">${viewingAg.clientes?.nome||'—'}</p>
-      <p style="font-size:.8rem;color:var(--text2)">${viewingAg.clientes?.telefone||''}</p>
-    </div>
-    <div>
-      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Profissional</label>
-      <p style="font-weight:700;display:flex;align-items:center;gap:6px">
-        <span style="width:10px;height:10px;border-radius:50%;background:${cor}"></span>
-        ${viewingAg.equipe?.nome||'—'}
-      </p>
-      <p style="font-size:.8rem;color:var(--text2)">${viewingAg.equipe?.cargo||''}</p>
-    </div>
-    <div>
-      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Serviço</label>
-      <p style="font-weight:700">${viewingAg.servicos?.icone||''} ${viewingAg.servicos?.nome||'—'}</p>
-    </div>
-    <div>
-      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Data e Hora</label>
-      <p style="font-weight:700">${formatDateTime(viewingAg.data_hora)}</p>
-      <p style="font-size:.8rem;color:var(--text2)">Duração: ${viewingAg.duracao_min}min</p>
-    </div>
-    <div>
-      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Valor</label>
-      <p style="font-weight:700;font-size:1.1rem;color:var(--secondary)">${formatCurrency(viewingAg.valor)}</p>
-      ${viewingAg.desconto>0?`<p style="font-size:.8rem;color:var(--danger)">Desconto: -${formatCurrency(viewingAg.desconto)}</p>`:''}
-    </div>
-    <div>
-      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Status</label>
-      <span class="badge" style="background:${st.color}22;color:${st.color};font-size:.82rem">${st.icon||''} ${st.label||viewingAg.status}</span>
-    </div>
-    ${viewingAg.observacoes?`<div class="col-span-2" style="grid-column:span 2">
-      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Observações</label>
-      <p>${viewingAg.observacoes}</p></div>`:''}
-    ${viewingAg.notas_internas?`<div style="grid-column:span 2">
-      <label style="font-size:.74rem;color:var(--text2);font-weight:600;text-transform:uppercase">Notas Internas</label>
-      <p style="color:var(--warning)">${viewingAg.notas_internas}</p></div>`:''}
-  </div>`;
+// ── Ver Detalhes ──────────────────────────────────────────────
+window.verDetalhes = async (id) => {
   document.getElementById('modalDetalhes').classList.add('open');
+  document.getElementById('detalhesContent').innerHTML =
+    '<div class="loading"><i class="fas fa-circle-notch spin"></i> Carregando…</div>';
+
+  try {
+    const ag  = await getAgendamento(id);
+    const st  = STATUS_LABELS[ag.status] || {};
+    const servNomes = ag.agendamento_servicos?.map(s =>
+      `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+        <span>${s.servicos?.icone || '✂️'}</span>
+        <span>${s.servicos?.nome || '—'}</span>
+        ${s.equipe ? `<span style="color:var(--text3)">→ ${s.equipe.nome}</span>` : ''}
+        <span style="color:var(--text3)">(${s.duracao_min}min)</span>
+        <strong>${formatCurrency(s.preco)}</strong>
+      </div>`).join('') || '—';
+
+    const prodNomes = ag.agendamento_produtos?.length
+      ? ag.agendamento_produtos.map(p =>
+        `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span>${p.servicos?.icone || '🛍️'}</span>
+          <span>${p.servicos?.nome || '—'} ×${p.quantidade}</span>
+          <strong>${formatCurrency((p.preco_unitario || 0) * p.quantidade)}</strong>
+        </div>`).join('')
+      : null;
+
+    document.getElementById('detalhesContent').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:.87rem">
+        <div>
+          <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Cliente</label>
+          <div style="font-weight:700;margin-top:2px">${ag.clientes?.nome || '—'}</div>
+          <div style="color:var(--text2)">${ag.clientes?.telefone || ''}</div>
+          ${ag.para_outro ? `<div style="color:var(--warning);margin-top:4px;font-size:.8rem">
+            <i class="fas fa-user-friends"></i> Para: ${ag.nome_outro || 'outra pessoa'}</div>` : ''}
+        </div>
+        <div>
+          <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Data / Hora</label>
+          <div style="font-weight:700;margin-top:2px">${formatDateTime(ag.data_hora)}</div>
+          <div style="color:var(--text2)">${ag.duracao_min} min no total</div>
+        </div>
+        <div style="grid-column:span 2">
+          <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Serviços</label>
+          <div style="margin-top:4px">${servNomes}</div>
+        </div>
+        ${prodNomes ? `<div style="grid-column:span 2">
+          <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Produtos</label>
+          <div style="margin-top:4px">${prodNomes}</div>
+        </div>` : ''}
+        <div>
+          <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Pagamento</label>
+          <div style="margin-top:2px">${PAGAMENTO_LABELS[ag.forma_pagamento] || ag.forma_pagamento}</div>
+        </div>
+        <div>
+          <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Status</label>
+          <div style="margin-top:4px">
+            <span class="badge" style="background:${st.color}22;color:${st.color}">${st.icon || ''} ${st.label || ag.status}</span>
+          </div>
+        </div>
+        <div style="grid-column:span 2;border-top:1px solid var(--border);padding-top:12px">
+          <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Total</label>
+          <div style="font-size:1.35rem;font-weight:800;color:var(--secondary);margin-top:2px">${formatCurrency(ag.valor_total || 0)}</div>
+        </div>
+        ${ag.observacoes ? `<div style="grid-column:span 2">
+          <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Observações</label>
+          <div style="color:var(--text2);margin-top:2px">${ag.observacoes}</div>
+        </div>` : ''}
+      </div>`;
+
+    const ftr = document.getElementById('detalhesFtr');
+    ftr.innerHTML = '';
+
+    // Close button always present
+    const btnClose2 = document.createElement('button');
+    btnClose2.className = 'btn btn-secondary';
+    btnClose2.textContent = 'Fechar';
+    btnClose2.addEventListener('click', () => document.getElementById('modalDetalhes').classList.remove('open'));
+    ftr.appendChild(btnClose2);
+
+    // Admin: status editor
+    if (adminMode) {
+      const sel = document.createElement('select');
+      sel.id = 'newStatus';
+      sel.className = 'btn btn-ghost btn-sm';
+      sel.style.border = '1px solid var(--border)';
+      sel.innerHTML = `<option value="">Alterar status…</option>
+        <option value="pendente">🕐 Pendente</option>
+        <option value="confirmado">✅ Confirmado</option>
+        <option value="concluido">✔️ Concluído</option>
+        <option value="cancelado">❌ Cancelado</option>
+        <option value="faltou">⚠️ Faltou</option>`;
+      sel.value = ag.status;
+
+      const btnSave = document.createElement('button');
+      btnSave.className = 'btn btn-primary';
+      btnSave.innerHTML = '<i class="fas fa-save"></i> Salvar Status';
+      btnSave.addEventListener('click', async () => {
+        const ns = sel.value;
+        if (!ns) { showToast('Selecione um status.', 'warning'); return; }
+        btnSave.disabled = true;
+        try {
+          await updateAgendamento(id, { status: ns });
+          showToast('Status atualizado!', 'success');
+          document.getElementById('modalDetalhes').classList.remove('open');
+          await loadAll();
+        } catch (err) { showToast(err.message, 'error'); }
+        finally { btnSave.disabled = false; }
+      });
+
+      ftr.appendChild(sel);
+      ftr.appendChild(btnSave);
+    }
+  } catch (err) {
+    document.getElementById('detalhesContent').innerHTML =
+      `<p style="color:var(--danger)"><i class="fas fa-exclamation-circle"></i> Erro: ${err.message}</p>`;
+  }
 };
 
 document.getElementById('closeModalDetalhes')?.addEventListener('click', () =>
   document.getElementById('modalDetalhes').classList.remove('open'));
-document.getElementById('editarAgBtn')?.addEventListener('click', () => {
-  if (viewingAg) window.editarAg(viewingAg.id);
-});
-document.getElementById('concluirAgBtn')?.addEventListener('click', () => {
-  if (viewingAg) window.mudarStatus(viewingAg.id,'concluido');
-});
-document.getElementById('cancelarAgBtn')?.addEventListener('click', () => {
-  if (viewingAg) window.mudarStatus(viewingAg.id,'cancelado');
-});
 
-// ─── Calendário ───────────────────────────────────────────────
-async function renderCalendar(year, month) {
-  const ags = await getAgendamentosDoMes(year, month);
-  document.getElementById('calTitle').textContent =
-    new Date(year, month-1, 1).toLocaleString('pt-BR',{month:'long',year:'numeric'});
-
-  const firstDay = new Date(year, month-1, 1).getDay();
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const today = new Date(); today.setHours(0,0,0,0);
-
-  const grid = document.getElementById('calGrid');
-  // Remove old day cells (keep headers)
-  while (grid.children.length > 7) grid.removeChild(grid.lastChild);
-
-  // Empty cells before first day
-  for (let i = 0; i < firstDay; i++) {
-    const d = document.createElement('div');
-    d.className = 'calendar-day other-month';
-    grid.appendChild(d);
-  }
-
-  for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(year, month-1, day);
-    const isoDate = date.toISOString().slice(0,10);
-    const dayAgs  = ags.filter(a => a.data_hora.startsWith(isoDate));
-    const isToday = date.getTime() === today.getTime();
-
-    const el = document.createElement('div');
-    el.className = `calendar-day ${isToday?'today':''}`;
-    el.innerHTML = `<div class="day-number" style="color:${isToday?'var(--primary)':'var(--text)'}">${day}</div>` +
-      dayAgs.slice(0,3).map(ag => {
-        const cor = ag.equipe?.cor_agenda||'#6366f1';
-        return `<div class="calendar-event" style="background:${cor}" title="${ag.clientes?.nome||'?'} — ${formatTime(ag.data_hora)}">${formatTime(ag.data_hora)} ${ag.clientes?.nome?.split(' ')[0]||'?'}</div>`;
-      }).join('') +
-      (dayAgs.length > 3 ? `<div style="font-size:.65rem;color:var(--text3)">+${dayAgs.length-3} mais</div>` : '');
-
-    el.addEventListener('click', () => {
-      const dayEl = document.getElementById('agendamentosDodia');
-      if (!dayAgs.length) { dayEl.innerHTML = `<div class="empty-state"><i class="fas fa-calendar-day"></i><h3>${day}/${month}/${year}</h3><p>Nenhum agendamento neste dia.</p></div>`; return; }
-      dayEl.innerHTML = `<div class="card"><div class="card-header"><span class="card-title">📅 ${day}/${String(month).padStart(2,'0')}/${year} — ${dayAgs.length} agendamento${dayAgs.length!==1?'s':''}</span></div>` +
-        dayAgs.map(ag => {
-          const st = STATUS_LABELS[ag.status]||{};
-          return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center">
-            <span style="font-size:.82rem;font-weight:700;color:var(--text2);white-space:nowrap">${formatTime(ag.data_hora)}</span>
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:600">${ag.clientes?.nome||'—'}</div>
-              <div style="font-size:.76rem;color:var(--text2)">${ag.servicos?.nome||'—'} · ${ag.equipe?.nome||'—'}</div>
-            </div>
-            <span class="badge" style="background:${st.color}22;color:${st.color}">${st.icon} ${st.label}</span>
-            <button class="btn btn-ghost btn-sm btn-icon" onclick="verDetalhes('${ag.id}')"><i class="fas fa-eye"></i></button>
-          </div>`;
-        }).join('') + '</div>';
-    });
-    grid.appendChild(el);
-  }
-}
-
-document.getElementById('prevMonth')?.addEventListener('click', () => {
-  calMonth--; if(calMonth<1){calMonth=12;calYear--;} renderCalendar(calYear,calMonth);
-});
-document.getElementById('nextMonth')?.addEventListener('click', () => {
-  calMonth++; if(calMonth>12){calMonth=1;calYear++;} renderCalendar(calYear,calMonth);
-});
-document.getElementById('todayBtn')?.addEventListener('click', () => {
-  calYear=new Date().getFullYear(); calMonth=new Date().getMonth()+1; renderCalendar(calYear,calMonth);
-});
-
-// Check URL param
-const urlId = new URLSearchParams(location.search).get('id');
+// ── URL params ────────────────────────────────────────────────
+const urlId      = new URLSearchParams(location.search).get('id');
+const urlCliente = new URLSearchParams(location.search).get('cliente');
 
 await loadAll();
-if (urlId) setTimeout(() => window.verDetalhes(urlId), 100);
+if (urlId)      setTimeout(() => verDetalhes(urlId), 300);
+if (urlCliente) setTimeout(() => openModal(), 300);
 </script>
 </body>
 </html>

@@ -3,183 +3,512 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CRM Agendamentos — Login</title>
+  <title>CRM Agendamentos — Sistema Profissional de Gestão</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    /* ── Landing Page ── */
+    .landing-page { min-height:100vh; background:var(--bg); }
+
+    /* Hero */
+    .hero { position:relative; overflow:hidden; padding:80px 24px 60px;
+      background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%); }
+    .hero::before { content:''; position:absolute; inset:0;
+      background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(99,102,241,.25),transparent); }
+    .hero-inner { max-width:900px; margin:0 auto; text-align:center; position:relative; z-index:1; }
+    .hero-badge { display:inline-flex; align-items:center; gap:8px; background:rgba(99,102,241,.15);
+      border:1px solid rgba(99,102,241,.4); border-radius:20px; padding:6px 16px;
+      font-size:.78rem; font-weight:600; color:#a5b4fc; letter-spacing:.05em;
+      text-transform:uppercase; margin-bottom:24px; }
+    .hero h1 { font-size:clamp(2rem,5vw,3.2rem); font-weight:800; line-height:1.15;
+      background:linear-gradient(135deg,#fff 0%,#a5b4fc 100%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      background-clip:text; margin-bottom:20px; }
+    .hero p { font-size:1.05rem; color:#94a3b8; max-width:620px; margin:0 auto 36px; line-height:1.7; }
+    .hero-btns { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+    .btn-hero-primary { background:var(--primary); color:#fff; padding:14px 32px;
+      border-radius:10px; font-weight:700; font-size:.95rem; border:none; cursor:pointer;
+      display:inline-flex; align-items:center; gap:8px; transition:.2s; text-decoration:none; }
+    .btn-hero-primary:hover { background:#4f46e5; transform:translateY(-2px); box-shadow:0 8px 24px rgba(99,102,241,.4); }
+    .btn-hero-outline { background:transparent; color:#e2e8f0; padding:14px 32px;
+      border-radius:10px; font-weight:600; font-size:.95rem;
+      border:1.5px solid rgba(255,255,255,.2); cursor:pointer;
+      display:inline-flex; align-items:center; gap:8px; transition:.2s; text-decoration:none; }
+    .btn-hero-outline:hover { border-color:rgba(255,255,255,.5); background:rgba(255,255,255,.05); }
+
+    /* Stats bar */
+    .stats-bar { display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
+      background:var(--border); border-top:1px solid var(--border); }
+    .stats-bar-item { background:var(--bg2); padding:24px; text-align:center; }
+    .stats-bar-item h3 { font-size:1.8rem; font-weight:800; color:var(--primary-light); margin:0 0 4px; }
+    .stats-bar-item p  { font-size:.8rem; color:var(--text2); margin:0; }
+
+    /* Features */
+    .section { padding:72px 24px; }
+    .section-inner { max-width:1100px; margin:0 auto; }
+    .section-header { text-align:center; margin-bottom:52px; }
+    .section-header .label { display:inline-block; background:rgba(99,102,241,.12);
+      color:var(--primary-light); font-size:.72rem; font-weight:700;
+      letter-spacing:.08em; text-transform:uppercase; padding:4px 14px;
+      border-radius:20px; margin-bottom:12px; }
+    .section-header h2 { font-size:clamp(1.5rem,3vw,2.2rem); font-weight:800; margin-bottom:12px; }
+    .section-header p { font-size:.95rem; color:var(--text2); max-width:580px; margin:0 auto; }
+
+    .features-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+    .feature-card { background:var(--bg2); border:1px solid var(--border); border-radius:14px;
+      padding:28px; transition:.25s; }
+    .feature-card:hover { border-color:var(--primary); transform:translateY(-4px);
+      box-shadow:0 12px 32px rgba(99,102,241,.15); }
+    .feature-icon { width:48px; height:48px; border-radius:12px; display:flex;
+      align-items:center; justify-content:center; font-size:1.4rem;
+      margin-bottom:16px; }
+    .feature-card h3 { font-size:.95rem; font-weight:700; margin-bottom:8px; }
+    .feature-card p  { font-size:.83rem; color:var(--text2); line-height:1.65; }
+
+    /* Services showcase */
+    .services-section { background:var(--bg2); }
+    .services-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; }
+    .service-showcase { background:var(--bg3); border:1px solid var(--border);
+      border-radius:12px; padding:20px; text-align:center; }
+    .service-showcase .emoji { font-size:2rem; margin-bottom:8px; display:block; }
+    .service-showcase h4 { font-size:.88rem; font-weight:700; margin-bottom:4px; }
+    .service-showcase p  { font-size:.76rem; color:var(--text2); }
+    .service-showcase .price { font-size:.92rem; font-weight:800; color:var(--secondary); margin-top:8px; }
+
+    /* Team preview */
+    .team-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:20px; }
+    .team-card { background:var(--bg2); border:1px solid var(--border); border-radius:14px;
+      padding:20px 16px; text-align:center; transition:.2s; }
+    .team-card:hover { border-color:var(--primary); transform:translateY(-3px); }
+    .team-avatar { width:72px; height:72px; border-radius:50%; margin:0 auto 12px;
+      overflow:hidden; background:linear-gradient(135deg,var(--primary),var(--secondary));
+      display:flex; align-items:center; justify-content:center; font-size:1.6rem; font-weight:700; }
+    .team-avatar img { width:100%; height:100%; object-fit:cover; }
+    .team-card h4 { font-size:.86rem; font-weight:700; margin-bottom:2px; }
+    .team-card p  { font-size:.74rem; color:var(--text2); }
+    .team-card .spec { font-size:.72rem; color:var(--text3); margin-top:4px; }
+
+    /* CTA */
+    .cta-section { background:linear-gradient(135deg,#1e1b4b,#312e81);
+      border-top:1px solid rgba(99,102,241,.3); }
+    .cta-inner { max-width:700px; margin:0 auto; text-align:center; padding:72px 24px; }
+    .cta-inner h2 { font-size:clamp(1.5rem,3vw,2.2rem); font-weight:800; margin-bottom:12px; }
+    .cta-inner p  { color:#94a3b8; margin-bottom:32px; font-size:.95rem; }
+
+    /* Login section */
+    .login-section { background:var(--bg); border-top:1px solid var(--border); }
+
+    /* Auth box */
+    .auth-page { display:flex; align-items:center; justify-content:center; padding:60px 24px; }
+    .auth-container { width:100%; max-width:440px; }
+    .auth-logo { text-align:center; margin-bottom:32px; }
+    .auth-logo-icon { font-size:2.5rem; margin-bottom:8px; }
+    .auth-logo h1 { font-size:1.6rem; font-weight:800; }
+    .auth-logo p { font-size:.84rem; color:var(--text2); margin-top:4px; }
+    .auth-box { background:var(--bg2); border:1px solid var(--border);
+      border-radius:16px; padding:32px; }
+    .auth-box h2 { font-size:1.15rem; font-weight:700; margin-bottom:4px; }
+    .auth-box>p { font-size:.82rem; color:var(--text2); margin-bottom:24px; }
+    .auth-divider { text-align:center; font-size:.78rem; color:var(--text3);
+      margin:16px 0; position:relative; }
+    .auth-divider::before,.auth-divider::after { content:''; position:absolute;
+      top:50%; width:42%; height:1px; background:var(--border); }
+    .auth-divider::before { left:0; } .auth-divider::after { right:0; }
+    .auth-link { color:var(--primary-light); cursor:pointer; font-weight:600; }
+    .auth-link:hover { text-decoration:underline; }
+    .error-msg { background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.3);
+      color:#fca5a5; padding:10px 14px; border-radius:8px; font-size:.82rem;
+      margin-bottom:16px; gap:8px; display:none; align-items:center; }
+    .error-msg.show { display:flex; }
+    .field-hint { font-size:.74rem; margin-top:4px; color:var(--text2); }
+    .field-hint.ok  { color:var(--secondary); }
+    .field-hint.err { color:var(--danger); }
+    .toggle-password { position:absolute; right:10px; top:50%; transform:translateY(-50%);
+      background:none; border:none; cursor:pointer; color:var(--text2); padding:4px; }
+
+    /* Responsive */
+    @media(max-width:900px){
+      .features-grid { grid-template-columns:repeat(2,1fr); }
+      .team-grid { grid-template-columns:repeat(3,1fr); }
+      .stats-bar { grid-template-columns:repeat(2,1fr); }
+    }
+    @media(max-width:600px){
+      .features-grid { grid-template-columns:1fr; }
+      .team-grid { grid-template-columns:repeat(2,1fr); }
+      .stats-bar { grid-template-columns:1fr; }
+    }
+
+    /* Password strength */
+    .pwd-strength-wrap { margin-top:6px; }
+    .spin { animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .page-loader { position:fixed; inset:0; background:var(--bg);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      z-index:9999; transition:opacity .4s; }
+    .page-loader.hide { opacity:0; pointer-events:none; }
+    .loader-ring { width:40px; height:40px; border:3px solid var(--border);
+      border-top-color:var(--primary); border-radius:50%;
+      animation:spin .8s linear infinite; margin-bottom:12px; }
+  </style>
 </head>
 <body>
 
-<!-- Page Loader -->
 <div class="page-loader" id="pageLoader">
   <div class="loader-ring"></div>
   <p style="color:var(--text2);font-size:.85rem">Carregando…</p>
 </div>
 
-<!-- Partículas de fundo -->
 <div id="particles" style="position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0"></div>
 
-<div class="auth-page" style="position:relative;z-index:1">
-  <div class="auth-container">
+<div class="landing-page" style="position:relative;z-index:1">
 
-    <!-- Logo -->
-    <div class="auth-logo">
-      <div class="auth-logo-icon">📅</div>
-      <h1>CRM Agendamentos</h1>
-      <p>Gerencie seu negócio com eficiência</p>
-    </div>
-
-    <!-- ── LOGIN BOX ── -->
-    <div class="auth-box" id="loginBox">
-      <h2>Bem-vindo de volta!</h2>
-      <p>Entre com suas credenciais para acessar o sistema</p>
-
-      <div class="error-msg" id="loginError"><i class="fas fa-exclamation-circle"></i><span></span></div>
-
-      <div class="form-group">
-        <label>E-mail</label>
-        <div class="input-group">
-          <i class="fas fa-envelope"></i>
-          <input type="email" id="loginEmail" placeholder="seu@email.com" autocomplete="email"/>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Senha</label>
-        <div class="input-group" style="position:relative">
-          <i class="fas fa-lock"></i>
-          <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"/>
-          <button class="toggle-password" id="toggleLoginPwd" tabindex="-1" type="button">
-            <i class="fas fa-eye" id="eyeLoginIcon"></i>
-          </button>
-        </div>
-      </div>
-
-      <div style="text-align:right;margin-bottom:16px">
-        <span class="auth-link" id="forgotPasswordLink" style="font-size:.8rem">Esqueci minha senha</span>
-      </div>
-
-      <button class="btn btn-primary w-full" id="submitLoginBtn" data-original-text='<i class="fas fa-sign-in-alt"></i> Entrar'>
-        <i class="fas fa-sign-in-alt"></i> Entrar
-      </button>
-
-      <div class="auth-divider">ou</div>
-      <p style="text-align:center;font-size:.84rem;color:var(--text2)">
-        Não tem conta? <span class="auth-link" id="goToRegister">Cadastre-se</span>
-      </p>
-    </div>
-
-    <!-- ── REGISTER BOX ── -->
-    <div class="auth-box" id="registerBox" style="display:none">
-      <h2>Criar conta</h2>
-      <p>Preencha seus dados para começar</p>
-
-      <div class="error-msg" id="registerError"><i class="fas fa-exclamation-circle"></i><span></span></div>
-
-      <div class="form-row form-row-2">
-        <div class="form-group">
-          <label>Nome completo</label>
-          <input type="text" id="regNome" placeholder="João Silva"/>
-        </div>
-        <div class="form-group">
-          <label>Telefone</label>
-          <input type="tel" id="regTelefone" placeholder="(11) 99999-9999"/>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>E-mail</label>
-        <div class="input-group">
-          <i class="fas fa-envelope"></i>
-          <input type="email" id="regEmail" placeholder="seu@email.com"/>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Senha</label>
-        <div class="input-group" style="position:relative">
-          <i class="fas fa-lock"></i>
-          <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres"/>
-          <button class="toggle-password" id="toggleRegPwd" type="button">
-            <i class="fas fa-eye" id="eyeRegIcon"></i>
-          </button>
-        </div>
-        <div id="pwdStrengthWrap" class="pwd-strength-wrap" style="margin-top:6px;display:none">
-          <div style="display:flex;gap:4px;margin-bottom:4px" id="pwdBars">
-            <div style="flex:1;height:4px;border-radius:2px;background:var(--border)" id="bar1"></div>
-            <div style="flex:1;height:4px;border-radius:2px;background:var(--border)" id="bar2"></div>
-            <div style="flex:1;height:4px;border-radius:2px;background:var(--border)" id="bar3"></div>
-            <div style="flex:1;height:4px;border-radius:2px;background:var(--border)" id="bar4"></div>
-          </div>
-          <span id="pwdStrengthLabel" style="font-size:.72rem;color:var(--text2)"></span>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Confirmar senha</label>
-        <div class="input-group" style="position:relative">
-          <i class="fas fa-lock"></i>
-          <input type="password" id="regConfirm" placeholder="Repita a senha"/>
-          <button class="toggle-password" id="toggleRegConfirm" type="button">
-            <i class="fas fa-eye" id="eyeRegConfirmIcon"></i>
-          </button>
-        </div>
-        <div class="field-hint" id="regConfirmHint"></div>
-      </div>
-
-      <button class="btn btn-primary w-full" id="submitRegisterBtn">
-        <i class="fas fa-user-plus"></i> Criar conta
-      </button>
-
-      <div class="auth-divider">ou</div>
-      <p style="text-align:center;font-size:.84rem;color:var(--text2)">
-        Já tem conta? <span class="auth-link" id="goToLogin">Entrar</span>
-      </p>
-    </div>
-
-    <!-- ── FORGOT PASSWORD BOX ── -->
-    <div class="auth-box" id="forgotBox" style="display:none">
-      <h2>Recuperar senha</h2>
-      <p>Informe seu e-mail para receber o link de redefinição</p>
-
-      <div class="error-msg" id="forgotError"><i class="fas fa-exclamation-circle"></i><span></span></div>
-
-      <div id="forgotStep1">
-        <div class="form-group">
-          <label>E-mail cadastrado</label>
-          <div class="input-group">
-            <i class="fas fa-envelope"></i>
-            <input type="email" id="forgotEmail" placeholder="seu@email.com"/>
-          </div>
-        </div>
-        <button class="btn btn-primary w-full" id="sendResetBtn">
-          <i class="fas fa-paper-plane"></i> Enviar link
-        </button>
-      </div>
-
-      <div id="forgotStep2" style="display:none;text-align:center;padding:12px 0">
-        <i class="fas fa-envelope-open-text" style="font-size:2.5rem;color:var(--secondary);margin-bottom:12px;display:block"></i>
-        <h3 style="margin-bottom:8px">E-mail enviado!</h3>
-        <p style="font-size:.84rem;color:var(--text2)">Verifique sua caixa de entrada e clique no link para redefinir sua senha.</p>
-        <button class="btn btn-secondary w-full mt-16" id="backToLoginBtn">
-          <i class="fas fa-arrow-left"></i> Voltar ao login
-        </button>
+  <!-- ══ HERO ══ -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-badge"><i class="fas fa-calendar-check"></i> Sistema de Agendamentos Profissional</div>
+      <h1>Sistema de Agendamentos<br/><span style="font-size:.7em;background:linear-gradient(135deg,#a5b4fc,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">para salões &amp; barbearias</span></h1>
+      <p>CRM completo para salões de beleza, barbearias e clínicas estéticas.
+        Agende, gerencie clientes, controle finanças e muito mais — tudo em um só lugar.</p>
+      <div class="hero-btns">
+        <a class="btn-hero-primary" id="heroEntrar" href="#auth">
+          <i class="fas fa-rocket"></i> Começar Agora
+        </a>
+        <a class="btn-hero-outline" href="#features">
+          <i class="fas fa-play-circle"></i> Saiba Mais
+        </a>
       </div>
     </div>
+  </section>
 
-    <p style="text-align:center;margin-top:20px;font-size:.75rem;color:var(--text3)">
-      CRM Agendamentos v1.0 · Powered by Supabase
-    </p>
+  <!-- ══ STATS BAR ══ -->
+  <div class="stats-bar">
+    <div class="stats-bar-item"><h3>500+</h3><p>Clientes gerenciados</p></div>
+    <div class="stats-bar-item"><h3>5</h3><p>Profissionais ativos</p></div>
+    <div class="stats-bar-item"><h3>99%</h3><p>Taxa de satisfação</p></div>
+    <div class="stats-bar-item"><h3>24/7</h3><p>Sistema disponível</p></div>
   </div>
-</div>
+
+  <!-- ══ FEATURES ══ -->
+  <section class="section" id="features">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="label">Funcionalidades</div>
+        <h2>Tudo que seu negócio precisa</h2>
+        <p>Um sistema completo desenvolvido especialmente para salões de beleza e serviços estéticos.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(99,102,241,.15)">📅</div>
+          <h3>Agendamentos Inteligentes</h3>
+          <p>Agende múltiplos serviços simultâneos, visualize disponibilidade em tempo real e receba alertas de conflito de horário.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(16,185,129,.15)">👥</div>
+          <h3>Gestão de Clientes</h3>
+          <p>Cadastro completo com histórico de visitas, total gasto, tags e observações. Busca por nome, telefone, e-mail ou CPF.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(245,158,11,.15)">💰</div>
+          <h3>Controle Financeiro</h3>
+          <p>Lançamentos automáticos ao concluir atendimentos, relatórios mensais e anuais, exportação em CSV.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(236,72,153,.15)">🛍️</div>
+          <h3>Ponto de Venda</h3>
+          <p>Venda produtos junto com serviços, controle de estoque, seleção de quantidade e cálculo automático de totais.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(139,92,246,.15)">🔐</div>
+          <h3>Acesso por Perfil</h3>
+          <p>Controle de acesso granular: clientes veem seus próprios agendamentos, atendentes gerenciam agenda, admins têm acesso total.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(6,182,212,.15)">📊</div>
+          <h3>Dashboard em Tempo Real</h3>
+          <p>KPIs do dia, receitas, agendamentos pendentes e gráficos de desempenho atualizados automaticamente.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(239,68,68,.15)">🗓️</div>
+          <h3>Calendário com Heatmap</h3>
+          <p>Visualize a densidade de agendamentos por dia e escolha os melhores horários com o mapa de calor.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(99,102,241,.15)">⏰</div>
+          <h3>Horários por Profissional</h3>
+          <p>Cada profissional tem sua própria agenda. Dois profissionais podem atender clientes diferentes ao mesmo tempo.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(16,185,129,.15)">📱</div>
+          <h3>100% Responsivo</h3>
+          <p>Interface otimizada para desktop, tablet e smartphone. Use de qualquer lugar, a qualquer hora.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SERVIÇOS ══ -->
+  <section class="section services-section" id="services">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="label">Serviços & Produtos</div>
+        <h2>O que oferecemos</h2>
+        <p>Serviços especializados realizados por profissionais qualificados e produtos de alta qualidade.</p>
+      </div>
+      <div class="services-grid">
+        <div class="service-showcase">
+          <span class="emoji">✂️</span>
+          <h4>Corte Masculino</h4>
+          <p>Corte completo com acabamento</p>
+          <div class="price">R$ 45,00</div>
+        </div>
+        <div class="service-showcase">
+          <span class="emoji">✂️</span>
+          <h4>Corte Feminino</h4>
+          <p>Corte + escova profissional</p>
+          <div class="price">R$ 90,00</div>
+        </div>
+        <div class="service-showcase">
+          <span class="emoji">🎨</span>
+          <h4>Coloração</h4>
+          <p>Coloração completa com tintura</p>
+          <div class="price">R$ 180,00</div>
+        </div>
+        <div class="service-showcase">
+          <span class="emoji">💅</span>
+          <h4>Manicure</h4>
+          <p>Cutícula + esmaltação</p>
+          <div class="price">R$ 35,00</div>
+        </div>
+        <div class="service-showcase">
+          <span class="emoji">💅</span>
+          <h4>Pedicure</h4>
+          <p>Cutícula + esmaltação nos pés</p>
+          <div class="price">R$ 40,00</div>
+        </div>
+        <div class="service-showcase">
+          <span class="emoji">💇</span>
+          <h4>Escova Progressiva</h4>
+          <p>Alisamento com progressiva</p>
+          <div class="price">R$ 250,00</div>
+        </div>
+        <div class="service-showcase">
+          <span class="emoji">🧖</span>
+          <h4>Limpeza de Pele</h4>
+          <p>Limpeza facial completa</p>
+          <div class="price">R$ 120,00</div>
+        </div>
+        <div class="service-showcase">
+          <span class="emoji">💆</span>
+          <h4>Hidratação</h4>
+          <p>Hidratação capilar intensiva</p>
+          <div class="price">R$ 80,00</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ EQUIPE ══ -->
+  <section class="section" id="team">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="label">Nossa Equipe</div>
+        <h2>Profissionais especializados</h2>
+        <p>Conheça os profissionais que cuidam de você com dedicação e expertise.</p>
+      </div>
+      <div class="team-grid">
+        <div class="team-card">
+          <div class="team-avatar">
+            <img src="img/taisa.svg" alt="Taisa Joelma"
+                 onerror="this.onerror=null;this.style.display='none';this.parentElement.textContent='TJ'"/>
+          </div>
+          <h4>Taisa Joelma</h4>
+          <p>Cabeleireira</p>
+          <div class="spec">Cortes, coloração e hidratação</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">
+            <img src="img/kayham.svg" alt="Kayham Cristoffer"
+                 onerror="this.onerror=null;this.style.display='none';this.parentElement.textContent='KC'"/>
+          </div>
+          <h4>Kayham Cristoffer</h4>
+          <p>Barbeiro</p>
+          <div class="spec">Cortes masculinos e barba</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">
+            <img src="img/camila.svg" alt="Camila Ferrari"
+                 onerror="this.onerror=null;this.style.display='none';this.parentElement.textContent='CF'"/>
+          </div>
+          <h4>Camila Ferrari</h4>
+          <p>Manicure</p>
+          <div class="spec">Manicure, pedicure e nail art</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">
+            <img src="img/marcos.svg" alt="Marcos Tiago"
+                 onerror="this.onerror=null;this.style.display='none';this.parentElement.textContent='MT'"/>
+          </div>
+          <h4>Marcos Tiago</h4>
+          <p>Esteticista</p>
+          <div class="spec">Limpeza de pele e tratamentos</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">
+            <img src="img/felipe.svg" alt="Felipe Emiliano"
+                 onerror="this.onerror=null;this.style.display='none';this.parentElement.textContent='FE'"/>
+          </div>
+          <h4>Felipe Emiliano</h4>
+          <p>Cabeleireiro</p>
+          <div class="spec">Escova progressiva e cortes</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CTA ══ -->
+  <section class="cta-section">
+    <div class="cta-inner">
+      <h2>Pronto para transformar seu negócio?</h2>
+      <p>Faça login ou crie sua conta agora mesmo e comece a gerenciar seus agendamentos de forma profissional.</p>
+      <a class="btn-hero-primary" href="#auth">
+        <i class="fas fa-sign-in-alt"></i> Acessar o Sistema
+      </a>
+    </div>
+  </section>
+
+  <!-- ══ AUTH ══ -->
+  <section class="login-section" id="auth">
+    <div class="auth-page">
+      <div class="auth-container">
+        <div class="auth-logo">
+          <div class="auth-logo-icon">📅</div>
+          <h1>CRM Agendamentos</h1>
+          <p>Gerencie seu negócio com eficiência</p>
+        </div>
+
+        <!-- LOGIN -->
+        <div class="auth-box" id="loginBox">
+          <h2>Bem-vindo de volta!</h2>
+          <p>Entre com suas credenciais para acessar o sistema</p>
+          <div class="error-msg" id="loginError"><i class="fas fa-exclamation-circle"></i><span></span></div>
+          <div class="form-group">
+            <label>E-mail</label>
+            <div class="input-group">
+              <i class="fas fa-envelope"></i>
+              <input type="email" id="loginEmail" placeholder="seu@email.com" autocomplete="email"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Senha</label>
+            <div class="input-group" style="position:relative">
+              <i class="fas fa-lock"></i>
+              <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password"/>
+              <button class="toggle-password" id="toggleLoginPwd" tabindex="-1" type="button">
+                <i class="fas fa-eye" id="eyeLoginIcon"></i>
+              </button>
+            </div>
+          </div>
+          <div style="text-align:right;margin-bottom:16px">
+            <span class="auth-link" id="forgotPasswordLink" style="font-size:.8rem">Esqueci minha senha</span>
+          </div>
+          <button class="btn btn-primary w-full" id="submitLoginBtn">
+            <i class="fas fa-sign-in-alt"></i> Entrar
+          </button>
+          <div class="auth-divider">ou</div>
+          <p style="text-align:center;font-size:.84rem;color:var(--text2)">
+            Não tem conta? <span class="auth-link" id="goToRegister">Cadastre-se</span>
+          </p>
+        </div>
+
+        <!-- REGISTER -->
+        <div class="auth-box" id="registerBox" style="display:none">
+          <h2>Criar conta</h2>
+          <p>Preencha seus dados para começar</p>
+          <div class="error-msg" id="registerError"><i class="fas fa-exclamation-circle"></i><span></span></div>
+          <div class="form-row form-row-2">
+            <div class="form-group"><label>Nome completo</label>
+              <input type="text" id="regNome" placeholder="João Silva"/></div>
+            <div class="form-group"><label>Telefone</label>
+              <input type="tel" id="regTelefone" placeholder="(11) 99999-9999"/></div>
+          </div>
+          <div class="form-group"><label>E-mail</label>
+            <div class="input-group"><i class="fas fa-envelope"></i>
+              <input type="email" id="regEmail" placeholder="seu@email.com"/></div></div>
+          <div class="form-group"><label>Senha</label>
+            <div class="input-group" style="position:relative">
+              <i class="fas fa-lock"></i>
+              <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres"/>
+              <button class="toggle-password" id="toggleRegPwd" type="button"><i class="fas fa-eye" id="eyeRegIcon"></i></button>
+            </div>
+            <div id="pwdStrengthWrap" style="margin-top:6px;display:none">
+              <div style="display:flex;gap:4px;margin-bottom:4px">
+                <div style="flex:1;height:4px;border-radius:2px;background:var(--border)" id="bar1"></div>
+                <div style="flex:1;height:4px;border-radius:2px;background:var(--border)" id="bar2"></div>
+                <div style="flex:1;height:4px;border-radius:2px;background:var(--border)" id="bar3"></div>
+                <div style="flex:1;height:4px;border-radius:2px;background:var(--border)" id="bar4"></div>
+              </div>
+              <span id="pwdStrengthLabel" style="font-size:.72rem;color:var(--text2)"></span>
+            </div>
+          </div>
+          <div class="form-group"><label>Confirmar senha</label>
+            <div class="input-group" style="position:relative">
+              <i class="fas fa-lock"></i>
+              <input type="password" id="regConfirm" placeholder="Repita a senha"/>
+              <button class="toggle-password" id="toggleRegConfirm" type="button"><i class="fas fa-eye" id="eyeRegConfirmIcon"></i></button>
+            </div>
+            <div class="field-hint" id="regConfirmHint"></div>
+          </div>
+          <button class="btn btn-primary w-full" id="submitRegisterBtn">
+            <i class="fas fa-user-plus"></i> Criar conta
+          </button>
+          <div class="auth-divider">ou</div>
+          <p style="text-align:center;font-size:.84rem;color:var(--text2)">
+            Já tem conta? <span class="auth-link" id="goToLogin">Entrar</span>
+          </p>
+        </div>
+
+        <!-- FORGOT -->
+        <div class="auth-box" id="forgotBox" style="display:none">
+          <h2>Recuperar senha</h2>
+          <p>Informe seu e-mail para receber o link de redefinição</p>
+          <div class="error-msg" id="forgotError"><i class="fas fa-exclamation-circle"></i><span></span></div>
+          <div id="forgotStep1">
+            <div class="form-group"><label>E-mail cadastrado</label>
+              <div class="input-group"><i class="fas fa-envelope"></i>
+                <input type="email" id="forgotEmail" placeholder="seu@email.com"/></div></div>
+            <button class="btn btn-primary w-full" id="sendResetBtn">
+              <i class="fas fa-paper-plane"></i> Enviar link
+            </button>
+          </div>
+          <div id="forgotStep2" style="display:none;text-align:center;padding:12px 0">
+            <i class="fas fa-envelope-open-text" style="font-size:2.5rem;color:var(--secondary);margin-bottom:12px;display:block"></i>
+            <h3 style="margin-bottom:8px">E-mail enviado!</h3>
+            <p style="font-size:.84rem;color:var(--text2)">Verifique sua caixa de entrada e clique no link para redefinir sua senha.</p>
+            <button class="btn btn-secondary w-full mt-16" id="backToLoginBtn">
+              <i class="fas fa-arrow-left"></i> Voltar ao login
+            </button>
+          </div>
+        </div>
+
+        <p style="text-align:center;margin-top:20px;font-size:.75rem;color:var(--text3)">
+          CRM Agendamentos v2.0 · Powered by Supabase ·
+          <i class="fas fa-map-marker-alt"></i> Av das Nações, São André, 454 ·
+          <i class="fas fa-phone"></i> (11) 99454-6931
+        </p>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /landing-page -->
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
 import { signIn, signUp, resetPassword, onAuthStateChange } from './supabase/database.js';
 import { showToast } from './supabase/session-manager.js';
+import { applyPhoneMask } from './supabase/database.js';
 
-// Redireciona se já logado
 onAuthStateChange((user) => {
   if (user) window.location.href = 'dashboard.html';
 });
@@ -188,30 +517,40 @@ window.addEventListener('load', () => {
   setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 600);
 });
 
-// Partículas
-(function() {
+// Particles
+(function(){
   const c = document.getElementById('particles');
   if (!c) return;
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 24; i++) {
     const p = document.createElement('div');
-    const s = Math.random() * 4 + 2;
-    p.style.cssText = `position:absolute;width:${s}px;height:${s}px;background:rgba(99,102,241,${Math.random()*.4+.1});border-radius:50%;left:${Math.random()*100}%;top:${Math.random()*100}%;animation:float${i%3} ${Math.random()*12+8}s ease-in-out infinite;animation-delay:${Math.random()*8}s`;
+    const s = Math.random()*5+2;
+    p.style.cssText = `position:absolute;width:${s}px;height:${s}px;background:rgba(99,102,241,${Math.random()*.3+.05});border-radius:50%;left:${Math.random()*100}%;top:${Math.random()*100}%;animation:float${i%3} ${Math.random()*14+8}s ease-in-out infinite;animation-delay:${Math.random()*8}s`;
     c.appendChild(p);
   }
-  const style = document.createElement('style');
-  style.textContent = `
+  const st = document.createElement('style');
+  st.textContent = `
     @keyframes float0{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(-30px) translateX(15px)}}
     @keyframes float1{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(20px) translateX(-20px)}}
-    @keyframes float2{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(-15px) translateX(-10px)}}
-  `;
-  document.head.appendChild(style);
+    @keyframes float2{0%,100%{transform:translateY(0) translateX(0)}50%{transform:translateY(-15px) translateX(-10px)}}`;
+  document.head.appendChild(st);
 })();
+
+// Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const id = a.getAttribute('href').slice(1);
+    const el = document.getElementById(id);
+    if (el) { e.preventDefault(); el.scrollIntoView({behavior:'smooth'}); }
+  });
+});
+
+// Apply phone mask
+applyPhoneMask(document.getElementById('regTelefone'));
 
 // UI helpers
 function showBox(id) {
-  ['loginBox','registerBox','forgotBox'].forEach(b => {
-    document.getElementById(b).style.display = b === id ? 'block' : 'none';
-  });
+  ['loginBox','registerBox','forgotBox'].forEach(b =>
+    document.getElementById(b).style.display = b===id?'block':'none');
 }
 function showError(id, msg) {
   const el = document.getElementById(id);
@@ -220,18 +559,13 @@ function showError(id, msg) {
   el.querySelector('span').textContent = msg;
 }
 function hideError(id) { document.getElementById(id)?.classList.remove('show'); }
-function setLoading(id, loading) {
+function setLoading(id, loading, origText) {
   const btn = document.getElementById(id);
   if (!btn) return;
   btn.disabled = loading;
   if (loading) btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Aguarde…';
-  else btn.innerHTML = btn.dataset.originalText || btn.textContent;
+  else if (origText) btn.innerHTML = origText;
 }
-// Save original texts
-['submitLoginBtn','submitRegisterBtn','sendResetBtn'].forEach(id => {
-  const b = document.getElementById(id);
-  if (b) b.dataset.originalText = b.innerHTML;
-});
 
 // Navigation
 document.getElementById('goToRegister')?.addEventListener('click', () => showBox('registerBox'));
@@ -247,13 +581,13 @@ document.getElementById('backToLoginBtn')?.addEventListener('click', () => {
 function togglePwd(inputId, iconId) {
   const input = document.getElementById(inputId);
   const icon  = document.getElementById(iconId);
-  if (!input || !icon) return;
-  input.type = input.type === 'password' ? 'text' : 'password';
-  icon.className = input.type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+  if (!input||!icon) return;
+  input.type = input.type==='password'?'text':'password';
+  icon.className = input.type==='password'?'fas fa-eye':'fas fa-eye-slash';
 }
-document.getElementById('toggleLoginPwd')?.addEventListener('click', () => togglePwd('loginPassword','eyeLoginIcon'));
-document.getElementById('toggleRegPwd')?.addEventListener('click',   () => togglePwd('regPassword','eyeRegIcon'));
-document.getElementById('toggleRegConfirm')?.addEventListener('click',() => togglePwd('regConfirm','eyeRegConfirmIcon'));
+document.getElementById('toggleLoginPwd')?.addEventListener('click',    ()=>togglePwd('loginPassword','eyeLoginIcon'));
+document.getElementById('toggleRegPwd')?.addEventListener('click',      ()=>togglePwd('regPassword','eyeRegIcon'));
+document.getElementById('toggleRegConfirm')?.addEventListener('click',  ()=>togglePwd('regConfirm','eyeRegConfirmIcon'));
 
 // Password strength
 document.getElementById('regPassword')?.addEventListener('input', (e) => {
@@ -262,58 +596,55 @@ document.getElementById('regPassword')?.addEventListener('input', (e) => {
   if (!wrap) return;
   wrap.style.display = val ? 'block' : 'none';
   let score = 0;
-  if (val.length >= 6)  score++;
-  if (val.length >= 10) score++;
-  if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
-  if (/[0-9]/.test(val)) score++;
-  if (/[^A-Za-z0-9]/.test(val)) score++;
-  score = Math.min(4, score);
-  const colors = ['#ef4444','#f59e0b','#f59e0b','#10b981','#10b981'];
-  const labels = ['Muito fraca','Fraca','Regular','Boa','Forte'];
-  for (let i = 1; i <= 4; i++) {
-    const bar = document.getElementById(`bar${i}`);
-    if (bar) bar.style.background = i <= score ? colors[score] : 'var(--border)';
+  if (val.length>=6) score++; if (val.length>=10) score++;
+  if (/[A-Z]/.test(val)&&/[a-z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++; if (/[^A-Za-z0-9]/.test(val)) score++;
+  score = Math.min(4,score);
+  const colors=['#ef4444','#f59e0b','#f59e0b','#10b981','#10b981'];
+  const labels=['Muito fraca','Fraca','Regular','Boa','Forte'];
+  for (let i=1;i<=4;i++) {
+    const b = document.getElementById(`bar${i}`);
+    if (b) b.style.background = i<=score?colors[score]:'var(--border)';
   }
   const lbl = document.getElementById('pwdStrengthLabel');
-  if (lbl) { lbl.textContent = labels[score]; lbl.style.color = colors[score]; }
+  if (lbl){lbl.textContent=labels[score];lbl.style.color=colors[score];}
 });
 
-// Confirm password
-document.getElementById('regConfirm')?.addEventListener('input', () => {
+document.getElementById('regConfirm')?.addEventListener('input',()=>{
   const pwd  = document.getElementById('regPassword')?.value;
   const conf = document.getElementById('regConfirm')?.value;
   const hint = document.getElementById('regConfirmHint');
-  if (!hint || !conf) return;
-  hint.textContent = pwd === conf ? '✓ Senhas conferem' : '✗ Senhas não conferem';
-  hint.className   = `field-hint ${pwd === conf ? 'ok' : 'err'}`;
+  if (!hint||!conf) return;
+  hint.textContent = pwd===conf?'✓ Senhas conferem':'✗ Senhas não conferem';
+  hint.className   = `field-hint ${pwd===conf?'ok':'err'}`;
 });
 
 // LOGIN
+const loginOrigText = document.getElementById('submitLoginBtn')?.innerHTML;
 document.getElementById('submitLoginBtn')?.addEventListener('click', async () => {
   hideError('loginError');
   const email    = document.getElementById('loginEmail')?.value?.trim();
   const password = document.getElementById('loginPassword')?.value;
-  if (!email || !password) { showError('loginError', 'Preencha e-mail e senha.'); return; }
-  setLoading('submitLoginBtn', true);
+  if (!email||!password){showError('loginError','Preencha e-mail e senha.');return;}
+  setLoading('submitLoginBtn',true);
   try {
-    await signIn(email, password);
-    showToast('Login realizado! Redirecionando…', 'success');
-    setTimeout(() => window.location.href = 'dashboard.html', 800);
-  } catch (err) {
-    setLoading('submitLoginBtn', false);
-    const msgs = {
-      'Invalid login credentials': 'E-mail ou senha incorretos.',
-      'Email not confirmed':       'Confirme seu e-mail antes de entrar.',
-      'Too many requests':         'Muitas tentativas. Aguarde alguns minutos.'
-    };
-    showError('loginError', msgs[err.message] || err.message);
+    await signIn(email,password);
+    showToast('Login realizado!','success');
+    setTimeout(()=>window.location.href='dashboard.html',800);
+  } catch(err) {
+    setLoading('submitLoginBtn',false,loginOrigText);
+    const msgs={'Invalid login credentials':'E-mail ou senha incorretos.',
+      'Email not confirmed':'Confirme seu e-mail antes de entrar.',
+      'Too many requests':'Muitas tentativas. Aguarde alguns minutos.'};
+    showError('loginError', msgs[err.message]||err.message);
   }
 });
-document.getElementById('loginPassword')?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') document.getElementById('submitLoginBtn')?.click();
+document.getElementById('loginPassword')?.addEventListener('keydown',e=>{
+  if(e.key==='Enter') document.getElementById('submitLoginBtn')?.click();
 });
 
 // REGISTER
+const regOrigText = document.getElementById('submitRegisterBtn')?.innerHTML;
 document.getElementById('submitRegisterBtn')?.addEventListener('click', async () => {
   hideError('registerError');
   const nome     = document.getElementById('regNome')?.value?.trim();
@@ -321,39 +652,38 @@ document.getElementById('submitRegisterBtn')?.addEventListener('click', async ()
   const email    = document.getElementById('regEmail')?.value?.trim();
   const password = document.getElementById('regPassword')?.value;
   const confirm  = document.getElementById('regConfirm')?.value;
-  if (!nome || nome.length < 2) { showError('registerError','Nome deve ter pelo menos 2 caracteres.'); return; }
-  if (!email) { showError('registerError','Informe um e-mail válido.'); return; }
-  if (!password || password.length < 6) { showError('registerError','Senha deve ter pelo menos 6 caracteres.'); return; }
-  if (password !== confirm) { showError('registerError','As senhas não conferem.'); return; }
-  setLoading('submitRegisterBtn', true);
+  if (!nome||nome.length<2){showError('registerError','Nome deve ter pelo menos 2 caracteres.');return;}
+  if (!email){showError('registerError','Informe um e-mail válido.');return;}
+  if (!password||password.length<6){showError('registerError','Senha deve ter pelo menos 6 caracteres.');return;}
+  if (password!==confirm){showError('registerError','As senhas não conferem.');return;}
+  setLoading('submitRegisterBtn',true);
   try {
-    await signUp(email, password, nome, telefone);
-    showToast('Conta criada! Verifique seu e-mail para confirmar.', 'success', 7000);
+    await signUp(email,password,nome,telefone);
+    showToast('Conta criada! Verifique seu e-mail para confirmar.','success',7000);
     showBox('loginBox');
-  } catch (err) {
-    setLoading('submitRegisterBtn', false);
-    const msgs = {
-      'User already registered':      'Este e-mail já está cadastrado.',
-      'Password should be at least 6':'Senha muito curta (mínimo 6 caracteres).'
-    };
-    const msg = Object.entries(msgs).find(([k]) => err.message?.includes(k));
-    showError('registerError', msg ? msg[1] : err.message);
+  } catch(err) {
+    setLoading('submitRegisterBtn',false,regOrigText);
+    const msgs={'User already registered':'Este e-mail já está cadastrado.',
+      'Password should be at least 6':'Senha muito curta (mínimo 6 caracteres).'};
+    const msg = Object.entries(msgs).find(([k])=>err.message?.includes(k));
+    showError('registerError',msg?msg[1]:err.message);
   }
 });
 
-// RESET PASSWORD
+// RESET
+const resetOrigText = document.getElementById('sendResetBtn')?.innerHTML;
 document.getElementById('sendResetBtn')?.addEventListener('click', async () => {
   hideError('forgotError');
   const email = document.getElementById('forgotEmail')?.value?.trim();
-  if (!email) { showError('forgotError','Informe um e-mail.'); return; }
-  setLoading('sendResetBtn', true);
+  if (!email){showError('forgotError','Informe um e-mail.');return;}
+  setLoading('sendResetBtn',true);
   try {
     await resetPassword(email);
-    document.getElementById('forgotStep1').style.display = 'none';
-    document.getElementById('forgotStep2').style.display = 'block';
-  } catch (err) {
-    setLoading('sendResetBtn', false);
-    showError('forgotError', err.message || 'Erro ao enviar e-mail.');
+    document.getElementById('forgotStep1').style.display='none';
+    document.getElementById('forgotStep2').style.display='block';
+  } catch(err) {
+    setLoading('sendResetBtn',false,resetOrigText);
+    showError('forgotError',err.message||'Erro ao enviar e-mail.');
   }
 });
 </script>

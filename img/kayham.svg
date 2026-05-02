@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#059669"/>
+      <stop offset="100%" style="stop-color:#0f766e"/>
+    </linearGradient>
+    <radialGradient id="face" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" style="stop-color:#d4a574"/>
+      <stop offset="100%" style="stop-color:#b8895a"/>
+    </radialGradient>
+  </defs>
+  <circle cx="100" cy="100" r="100" fill="url(#bg)"/>
+  <!-- hair (short, dark) -->
+  <ellipse cx="100" cy="65" rx="38" ry="28" fill="#1c1917"/>
+  <!-- neck -->
+  <rect x="88" y="120" width="24" height="28" rx="8" fill="url(#face)"/>
+  <!-- face -->
+  <circle cx="100" cy="84" r="36" fill="url(#face)"/>
+  <!-- hair top -->
+  <path d="M64 84 Q66 52 100 50 Q134 52 136 84 Q134 60 100 58 Q66 60 64 84Z" fill="#1c1917"/>
+  <!-- beard/stubble -->
+  <path d="M74 105 Q100 118 126 105 Q124 115 100 120 Q76 115 74 105Z" fill="#292524" opacity="0.6"/>
+  <!-- mustache -->
+  <path d="M88 100 Q100 106 112 100" stroke="#292524" stroke-width="2.5" fill="none"/>
+  <!-- eyes -->
+  <ellipse cx="87" cy="80" rx="5" ry="5.5" fill="#1c1917"/>
+  <ellipse cx="113" cy="80" rx="5" ry="5.5" fill="#1c1917"/>
+  <circle cx="88.5" cy="78.5" r="1.5" fill="#fff" opacity="0.8"/>
+  <circle cx="114.5" cy="78.5" r="1.5" fill="#fff" opacity="0.8"/>
+  <!-- eyebrows (thick) -->
+  <path d="M79 73 Q87 70 95 73" stroke="#1c1917" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M105 73 Q113 70 121 73" stroke="#1c1917" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- nose -->
+  <path d="M96 87 Q100 93 104 87" stroke="#8b6347" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- smile -->
+  <path d="M89 96 Q100 104 111 96" stroke="#8b5e3c" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- body / shirt -->
+  <path d="M52 200 Q58 144 80 133 Q90 128 100 128 Q110 128 120 133 Q142 144 148 200Z" fill="#064e3b"/>
+  <!-- shirt detail -->
+  <path d="M90 133 L100 150 L110 133" stroke="#34d399" stroke-width="2" fill="none"/>
+</svg>

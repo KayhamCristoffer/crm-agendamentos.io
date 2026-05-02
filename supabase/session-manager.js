@@ -119,11 +119,24 @@ export function renderUserInSidebar(profile) {
     if (profile.avatar_url) {
       elAvatar.style.backgroundImage = `url(${profile.avatar_url})`;
       elAvatar.style.backgroundSize  = 'cover';
+      elAvatar.style.fontSize        = '0';
       elAvatar.textContent = '';
+    } else if (profile.avatar_emote) {
+      elAvatar.style.backgroundImage = '';
+      elAvatar.style.fontSize        = '1.2rem';
+      elAvatar.textContent = profile.avatar_emote;
     } else {
+      elAvatar.style.backgroundImage = '';
+      elAvatar.style.fontSize        = '';
       elAvatar.textContent = (profile.nome || 'U')[0].toUpperCase();
     }
   }
+}
+
+// ── Verifica se é atendente ou admin ─────────────────────────
+export function isAtendente(user = null, profile = null) {
+  return profile?.role === 'atendente' || profile?.role === 'admin' ||
+         (user?.id === (typeof ADMIN_UID !== 'undefined' ? ADMIN_UID : ''));
 }
 
 // ── Toast notifications ──────────────────────────────────────

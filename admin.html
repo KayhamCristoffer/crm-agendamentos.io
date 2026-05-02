@@ -7,128 +7,192 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .tab-nav{display:flex;gap:4px;border-bottom:2px solid var(--border);margin-bottom:24px;flex-wrap:wrap;}
+    .tab-nav-btn{padding:10px 18px;border:none;background:none;color:var(--text2);font-size:.85rem;
+      font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0;transition:.15s;}
+    .tab-nav-btn.active{color:var(--primary-light);border-bottom-color:var(--primary);}
+    .tab-nav-btn:hover{background:var(--bg3);color:var(--text);}
+    .tab-panel{display:none;} .tab-panel.active{display:block;}
+    .user-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+    .user-row:last-child{border-bottom:none;}
+    .user-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));
+      display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0;}
+    .hours-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+    .hour-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;}
+    .hour-card.closed{opacity:.6;}
+    .hour-card-day{font-size:.9rem;font-weight:700;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+    .maps-preview{width:100%;height:200px;border-radius:10px;border:1px solid var(--border);margin-top:8px;overflow:hidden;}
+    .stat-mini{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;text-align:center;}
+    .stat-mini h3{font-size:1.5rem;font-weight:800;color:var(--primary-light);margin:0 0 2px;}
+    .stat-mini p{font-size:.74rem;color:var(--text2);margin:0;}
+    .report-row{display:flex;justify-content:space-between;align-items:center;
+      padding:10px 0;border-bottom:1px solid var(--border);font-size:.84rem;}
+    .report-row:last-child{border-bottom:none;}
+  </style>
 </head>
 <body>
 <div class="page-loader" id="pageLoader"><div class="loader-ring"></div></div>
 <div id="sidebarMount"></div>
+
 <div class="app-layout">
   <div class="main-content">
     <div class="topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h1>⚙️ Administração</h1><p>Gerenciamento do sistema</p></div>
+        <div class="topbar-title"><h1>Administração</h1><p>Configurações e gestão do sistema</p></div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost btn-sm" id="btnRefresh"><i class="fas fa-sync-alt"></i> Atualizar</button>
       </div>
     </div>
+
     <div class="page-content">
 
-      <!-- Tabs -->
-      <div class="tabs">
-        <button class="tab-btn active" data-tab="usuarios">👥 Usuários</button>
-        <button class="tab-btn" data-tab="agendamentos">🗑️ Agendamentos</button>
-        <button class="tab-btn" data-tab="relatorios">📊 Relatórios</button>
-        <button class="tab-btn" data-tab="sistema">⚙️ Sistema</button>
+      <!-- Tab Navigation -->
+      <div class="tab-nav">
+        <button class="tab-nav-btn active" data-tab="usuarios"><i class="fas fa-users"></i> Usuários</button>
+        <button class="tab-nav-btn" data-tab="sistema"><i class="fas fa-cog"></i> Sistema</button>
+        <button class="tab-nav-btn" data-tab="horarios"><i class="fas fa-clock"></i> Horários</button>
+        <button class="tab-nav-btn" data-tab="agendamentos"><i class="fas fa-calendar"></i> Agendamentos</button>
+        <button class="tab-nav-btn" data-tab="relatorios"><i class="fas fa-chart-bar"></i> Relatórios</button>
       </div>
 
-      <!-- ── TAB USUÁRIOS ── -->
-      <div class="tab-content active" id="tab-usuarios">
-        <div class="card-header mb-16" style="margin-bottom:16px">
-          <span class="card-title" style="font-size:1rem">Usuários do Sistema</span>
-          <button class="btn btn-primary btn-sm" id="btnConvidarUser"><i class="fas fa-user-plus"></i> Convidar Usuário</button>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead><tr>
-              <th>Usuário</th><th>E-mail</th><th>Telefone</th>
-              <th>Role</th><th>Status</th><th>Cadastrado em</th><th>Ações</th>
-            </tr></thead>
-            <tbody id="tbodyUsuarios">
-              <tr><td colspan="7"><div class="loading"><i class="fas fa-circle-notch spin"></i></div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- ── TAB AGENDAMENTOS ── -->
-      <div class="tab-content" id="tab-agendamentos">
-        <div style="margin-bottom:16px">
-          <h3 style="font-size:.95rem;margin-bottom:8px">Limpeza de Agendamentos</h3>
-          <p style="font-size:.83rem;color:var(--text2);margin-bottom:16px">
-            Remova agendamentos antigos ou cancelados para manter o sistema organizado.
-          </p>
-          <div class="filter-bar mb-16">
-            <input type="date" id="limpezaAte" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)"/>
-            <select id="limpezaStatus" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)">
-              <option value="cancelado">Cancelados</option>
-              <option value="faltou">Faltou</option>
-              <option value="concluido">Concluídos</option>
-            </select>
-            <button class="btn btn-warning btn-sm" id="btnLimpar"><i class="fas fa-broom"></i> Listar para remoção</button>
+      <!-- ══ USUÁRIOS ══ -->
+      <div class="tab-panel active" id="tab-usuarios">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"><i class="fas fa-users" style="color:var(--primary-light)"></i> Gestão de Usuários</span>
+            <span id="userCount" style="font-size:.78rem;color:var(--text2)"></span>
           </div>
-          <div id="limpezaResult"></div>
-        </div>
-
-        <hr style="border:none;border-top:1px solid var(--border);margin:24px 0"/>
-
-        <div>
-          <h3 style="font-size:.95rem;margin-bottom:8px">Exportar Dados</h3>
-          <p style="font-size:.83rem;color:var(--text2);margin-bottom:16px">Exporte os dados do sistema em formato CSV.</p>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn btn-secondary btn-sm" id="exportClientes"><i class="fas fa-download"></i> Exportar Clientes (CSV)</button>
-            <button class="btn btn-secondary btn-sm" id="exportAgendamentos"><i class="fas fa-download"></i> Exportar Agendamentos (CSV)</button>
-            <button class="btn btn-secondary btn-sm" id="exportFinanceiro"><i class="fas fa-download"></i> Exportar Financeiro (CSV)</button>
+          <div id="userList">
+            <div class="loading"><i class="fas fa-circle-notch spin"></i> Carregando…</div>
           </div>
         </div>
       </div>
 
-      <!-- ── TAB RELATÓRIOS ── -->
-      <div class="tab-content" id="tab-relatorios">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px" id="relatoriosGrid">
-          <div class="loading"><i class="fas fa-circle-notch spin"></i></div>
-        </div>
-      </div>
-
-      <!-- ── TAB SISTEMA ── -->
-      <div class="tab-content" id="tab-sistema">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-          <div class="card">
-            <div class="card-header"><span class="card-title">🔧 Configurações Gerais</span></div>
+      <!-- ══ SISTEMA ══ -->
+      <div class="tab-panel" id="tab-sistema">
+        <div class="card mb-24">
+          <div class="card-header">
+            <span class="card-title"><i class="fas fa-store" style="color:var(--primary-light)"></i> Informações do Estabelecimento</span>
+          </div>
+          <div class="form-row form-row-2">
             <div class="form-group">
               <label>Nome do Negócio</label>
-              <input type="text" id="configNome" placeholder="Meu Salão" value="CRM Agendamentos"/>
+              <input type="text" id="cfgNome" placeholder="CRM Agendamentos"/>
             </div>
             <div class="form-group">
-              <label>Telefone de Contato</label>
-              <input type="tel" id="configTel" placeholder="(11) 99999-9999"/>
-            </div>
-            <div class="form-group">
-              <label>Endereço</label>
-              <input type="text" id="configEnd" placeholder="Rua…"/>
-            </div>
-            <div class="form-group">
-              <label>Horário de Funcionamento</label>
-              <input type="text" id="configHorario" placeholder="Seg-Sex: 9h às 18h"/>
-            </div>
-            <button class="btn btn-primary btn-sm" id="btnSalvarConfig"><i class="fas fa-save"></i> Salvar Configurações</button>
-          </div>
-
-          <div class="card">
-            <div class="card-header"><span class="card-title">📋 Informações do Sistema</span></div>
-            <div id="sysInfo" style="display:flex;flex-direction:column;gap:10px">
-              <div class="loading"><i class="fas fa-circle-notch spin"></i></div>
+              <label>Telefone</label>
+              <input type="tel" id="cfgTelefone" placeholder="(11) 99454-6931" maxlength="15"/>
             </div>
           </div>
-
-          <div class="card" style="grid-column:span 2">
-            <div class="card-header"><span class="card-title">🔗 Informações do Banco de Dados</span></div>
-            <p style="font-size:.84rem;color:var(--text2);margin-bottom:12px">
-              Para configurar o sistema com seu próprio banco de dados Supabase, edite o arquivo
-              <code style="background:var(--bg3);padding:2px 6px;border-radius:4px">supabase/supabase-config.js</code>
-              com suas credenciais.
-            </p>
-            <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:monospace;font-size:.8rem;color:var(--text2)">
-              <div>SUPABASE_URL: <span id="dbUrl" style="color:var(--primary-light)">—</span></div>
-              <div style="margin-top:6px">Execute o SQL em <strong>supabase/setup.sql</strong> no SQL Editor do Supabase para criar as tabelas.</div>
+          <div class="form-group">
+            <label>Endereço</label>
+            <input type="text" id="cfgEndereco" placeholder="Av das Nações, São André, 454"/>
+          </div>
+          <div class="form-group">
+            <label>Link Google Maps
+              <a href="https://maps.google.com" target="_blank" class="btn btn-ghost btn-sm" style="margin-left:8px;font-size:.72rem">
+                <i class="fas fa-map-marker-alt"></i> Abrir Google Maps
+              </a>
+            </label>
+            <input type="url" id="cfgMaps" placeholder="https://maps.google.com/?q=..."/>
+            <div class="field-hint">Cole aqui o link do Google Maps para o seu endereço. <a href="https://maps.google.com" target="_blank" style="color:var(--primary-light)">Obter link →</a></div>
+          </div>
+          <div id="mapsPreviewWrap" style="display:none">
+            <label style="font-size:.78rem;color:var(--text2)">Prévia do Maps:</label>
+            <div class="maps-preview">
+              <iframe id="mapsIframe" style="width:100%;height:100%;border:none"
+                allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
             </div>
+          </div>
+          <div style="text-align:right;margin-top:12px">
+            <button class="btn btn-primary" id="salvarSistema"><i class="fas fa-save"></i> Salvar Configurações</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"><i class="fas fa-info-circle" style="color:var(--info)"></i> Informações do Sistema</span>
+          </div>
+          <div id="sysInfo" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:4px 0">
+            <div class="stat-mini"><h3 id="siUsers">—</h3><p>Usuários</p></div>
+            <div class="stat-mini"><h3 id="siClientes">—</h3><p>Clientes</p></div>
+            <div class="stat-mini"><h3 id="siAgs">—</h3><p>Agendamentos</p></div>
+            <div class="stat-mini"><h3 id="siServicos">—</h3><p>Serviços</p></div>
+            <div class="stat-mini"><h3>v2.0</h3><p>Versão</p></div>
+            <div class="stat-mini"><h3>Supabase</h3><p>Backend</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ HORÁRIOS ══ -->
+      <div class="tab-panel" id="tab-horarios">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"><i class="fas fa-clock" style="color:var(--primary-light)"></i> Horários de Funcionamento</span>
+            <button class="btn btn-primary btn-sm" id="salvarHorarios"><i class="fas fa-save"></i> Salvar Horários</button>
+          </div>
+          <div class="hours-grid" id="hoursGrid">
+            <div class="loading"><i class="fas fa-circle-notch spin"></i> Carregando…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ AGENDAMENTOS ══ -->
+      <div class="tab-panel" id="tab-agendamentos">
+        <div class="card mb-24">
+          <div class="card-header">
+            <span class="card-title"><i class="fas fa-trash" style="color:var(--danger)"></i> Limpeza de Agendamentos</span>
+          </div>
+          <p style="font-size:.84rem;color:var(--text2);margin-bottom:16px">
+            Remove agendamentos cancelados ou antigos para manter o banco de dados limpo.
+          </p>
+          <div class="form-row form-row-2" style="max-width:500px">
+            <div class="form-group">
+              <label>Remover anteriores a</label>
+              <input type="date" id="cleanDate"/>
+            </div>
+            <div class="form-group">
+              <label>Status</label>
+              <select id="cleanStatus">
+                <option value="cancelado">Cancelados</option>
+                <option value="faltou">Faltou</option>
+                <option value="todos">Todos os antigos</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-danger btn-sm" id="btnClean">
+            <i class="fas fa-trash"></i> Executar Limpeza
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"><i class="fas fa-download"></i> Exportar Dados</span>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <button class="btn btn-secondary btn-sm" id="exportClientes"><i class="fas fa-users"></i> Exportar Clientes (CSV)</button>
+            <button class="btn btn-secondary btn-sm" id="exportAgs"><i class="fas fa-calendar"></i> Exportar Agendamentos (CSV)</button>
+            <button class="btn btn-secondary btn-sm" id="exportFinanceiro"><i class="fas fa-dollar-sign"></i> Exportar Financeiro (CSV)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ RELATÓRIOS ══ -->
+      <div class="tab-panel" id="tab-relatorios">
+        <div class="card mb-24">
+          <div class="card-header">
+            <span class="card-title"><i class="fas fa-chart-pie" style="color:var(--primary-light)"></i> Relatório Geral</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select id="repMes" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)"></select>
+              <select id="repAno" class="btn btn-ghost btn-sm" style="border:1px solid var(--border)"></select>
+              <button class="btn btn-primary btn-sm" id="gerarRelatorio"><i class="fas fa-sync-alt"></i> Gerar</button>
+            </div>
+          </div>
+          <div id="reportContent">
+            <div class="loading"><i class="fas fa-circle-notch spin"></i> Gerando relatório…</div>
           </div>
         </div>
       </div>
@@ -137,24 +201,24 @@
   </div>
 </div>
 
-<!-- MODAL EDITAR ROLE -->
+<!-- Modal Alterar Role -->
 <div class="modal-overlay" id="modalRole">
-  <div class="modal">
+  <div class="modal" style="max-width:380px">
     <div class="modal-header">
-      <h3>Alterar Permissão</h3>
+      <h3><i class="fas fa-user-shield"></i> Alterar Nível de Acesso</h3>
       <button class="modal-close" id="closeModalRole"><i class="fas fa-times"></i></button>
     </div>
-    <p id="editRoleNome" style="margin-bottom:16px;color:var(--text2)"></p>
+    <p id="modalRoleUser" style="font-size:.84rem;color:var(--text2);margin-bottom:12px"></p>
     <div class="form-group">
       <label>Nível de Acesso</label>
-      <select id="newRole">
-        <option value="user">👤 Usuário (acesso básico)</option>
-        <option value="atendente">🧑‍💼 Atendente (agendamentos e clientes)</option>
-        <option value="admin">👑 Administrador (acesso total)</option>
+      <select id="roleSelect">
+        <option value="user">👤 Usuário comum</option>
+        <option value="atendente">🧑‍💼 Atendente</option>
+        <option value="admin">👑 Administrador</option>
       </select>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" id="cancelModalRole">Cancelar</button>
+      <button class="btn btn-secondary" id="cancelRole">Cancelar</button>
       <button class="btn btn-primary" id="salvarRole"><i class="fas fa-save"></i> Salvar</button>
     </div>
   </div>
@@ -163,262 +227,378 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
 import { requireAuth, renderUserInSidebar, showToast, isAdmin } from './supabase/session-manager.js';
-import { getAllUsers, setUserRole, getAllClientes, getAllAgendamentos,
-         getLancamentos, formatCurrency, formatDate, formatDateTime, STATUS_LABELS } from './supabase/database.js';
-import { SUPABASE_URL } from './supabase/supabase-config.js';
+import {
+  getAllUsers, setUserRole, getConfigSistema, setConfigSistema,
+  getHorarios, updateHorario, getAllClientes, getAllAgendamentos,
+  getAllServicos, getLancamentos, formatCurrency, formatDate,
+  getResumoFinanceiro, applyPhoneMask
+} from './supabase/database.js';
+import { sb } from './supabase/client.js';
 import { getSidebarHTML, initSidebarToggle, showAdminItems } from './js/sidebar.js';
 
 document.getElementById('sidebarMount').innerHTML = getSidebarHTML('admin');
 initSidebarToggle();
-const auth = await requireAuth(true); // Admin required
-if (!auth) throw new Error('Not authenticated');
+
+const auth = await requireAuth(true); // admin required
+if (!auth) throw new Error('Not authorized');
 const { user, profile } = auth;
 renderUserInSidebar(profile);
 showAdminItems();
-setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
+setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 500);
+
 document.getElementById('logoutBtn')?.addEventListener('click', () =>
   import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href='index.html'));
 
-// Tabs
-document.querySelectorAll('.tab-btn').forEach(btn => {
+// ── Tabs ─────────────────────────────────────────────────────
+document.querySelectorAll('.tab-nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.tab-nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`tab-${btn.dataset.tab}`)?.classList.add('active');
-    if (btn.dataset.tab === 'relatorios') loadRelatorios();
-    if (btn.dataset.tab === 'sistema')    loadSisInfo();
+    if (btn.dataset.tab === 'relatorios') buildRelatorio();
+    if (btn.dataset.tab === 'horarios') loadHorarios();
+    if (btn.dataset.tab === 'sistema') loadSistema();
   });
 });
 
-// ── Usuários ────────────────────────────────────────────────
-let editingUserId = null;
-let allUsers = [];
+// ── Refresh ──────────────────────────────────────────────────
+document.getElementById('btnRefresh')?.addEventListener('click', () => {
+  loadUsers();
+  showToast('Atualizado!','info',1500);
+});
 
-async function loadUsuarios() {
-  allUsers = await getAllUsers();
-  const tbody = document.getElementById('tbodyUsuarios');
-  if (!allUsers.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><i class="fas fa-users"></i><h3>Nenhum usuário</h3></div></td></tr>`;
-    return;
+// Auto-refresh every 30s
+let autoTimer = setInterval(loadUsers, 30000);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) clearInterval(autoTimer);
+  else { loadUsers(); autoTimer = setInterval(loadUsers, 30000); }
+});
+
+// ── USERS ────────────────────────────────────────────────────
+let allUsers = [], editingUserId = null;
+
+async function loadUsers() {
+  try {
+    allUsers = await getAllUsers();
+    renderUsers();
+    document.getElementById('userCount').textContent = `${allUsers.length} usuário(s)`;
+    document.getElementById('siUsers').textContent = allUsers.length;
+  } catch (err) {
+    showToast('Erro ao carregar usuários.','error');
   }
-  const roleLabels = { admin:'👑 Admin', atendente:'🧑‍💼 Atendente', user:'👤 Usuário' };
-  tbody.innerHTML = allUsers.map(u => `
-    <tr>
-      <td>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0">${(u.nome||'?')[0].toUpperCase()}</div>
-          <strong>${u.nome||'—'}</strong>
-        </div>
-      </td>
-      <td>${u.email}</td>
-      <td>${u.telefone||'—'}</td>
-      <td>
-        <span class="badge ${u.role==='admin'?'badge-warning':u.role==='atendente'?'badge-info':'badge-gray'}">
-          ${roleLabels[u.role]||u.role}
-        </span>
-      </td>
-      <td><span class="badge ${u.ativo?'badge-success':'badge-gray'}">${u.ativo?'Ativo':'Inativo'}</span></td>
-      <td>${formatDate(u.created_at)}</td>
-      <td class="td-actions">
-        ${u.id !== user.id ? `<button class="btn btn-ghost btn-sm btn-icon" onclick="editRole('${u.id}','${u.nome}','${u.role}')" title="Alterar permissão"><i class="fas fa-user-shield"></i></button>` : '<span style="font-size:.74rem;color:var(--text3)">Você</span>'}
-      </td>
-    </tr>`).join('');
 }
 
-window.editRole = (id, nome, role) => {
-  editingUserId = id;
-  document.getElementById('editRoleNome').textContent = `Usuário: ${nome}`;
-  document.getElementById('newRole').value = role;
+const roleLabels = { admin:'👑 Admin', atendente:'🧑‍💼 Atendente', user:'👤 Usuário' };
+const roleColors  = { admin:'badge-warning', atendente:'badge-primary', user:'badge-info' };
+
+function renderUsers() {
+  const el = document.getElementById('userList');
+  if (!allUsers.length) {
+    el.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i><h3>Nenhum usuário</h3></div>';
+    return;
+  }
+  el.innerHTML = allUsers.map(u => `
+    <div class="user-row">
+      <div class="user-avatar">${(u.nome||u.email||'?')[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.88rem;font-weight:700">${u.nome||'—'}</div>
+        <div style="font-size:.76rem;color:var(--text2)">${u.email}</div>
+        ${u.telefone?`<div style="font-size:.74rem;color:var(--text3)"><i class="fas fa-phone"></i> ${u.telefone}</div>`:''}
+      </div>
+      <span class="badge ${roleColors[u.role]||'badge-info'}" style="font-size:.7rem">${roleLabels[u.role]||u.role}</span>
+      <span class="badge ${u.ativo?'badge-success':'badge-gray'}" style="font-size:.7rem">${u.ativo?'Ativo':'Inativo'}</span>
+      ${u.id !== user.id ? `
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="openRoleModal('${u.id}','${u.nome||u.email}','${u.role}')" title="Alterar Role">
+        <i class="fas fa-user-shield"></i>
+      </button>` : '<span style="font-size:.7rem;color:var(--text3);padding:4px 6px">Você</span>'}
+    </div>`).join('');
+}
+
+// Role modal
+window.openRoleModal = (uid, nome, currentRole) => {
+  editingUserId = uid;
+  document.getElementById('modalRoleUser').textContent = `Usuário: ${nome}`;
+  document.getElementById('roleSelect').value = currentRole;
   document.getElementById('modalRole').classList.add('open');
 };
 document.getElementById('closeModalRole')?.addEventListener('click', () => document.getElementById('modalRole').classList.remove('open'));
-document.getElementById('cancelModalRole')?.addEventListener('click', () => document.getElementById('modalRole').classList.remove('open'));
+document.getElementById('cancelRole')?.addEventListener('click', () => document.getElementById('modalRole').classList.remove('open'));
 document.getElementById('salvarRole')?.addEventListener('click', async () => {
-  const role = document.getElementById('newRole').value;
-  const btn  = document.getElementById('salvarRole'); btn.disabled=true;
+  if (!editingUserId) return;
+  const role = document.getElementById('roleSelect').value;
+  const btn = document.getElementById('salvarRole'); btn.disabled = true;
   try {
     await setUserRole(editingUserId, role);
-    showToast('Permissão atualizada!','success');
+    showToast('Nível de acesso atualizado!','success');
     document.getElementById('modalRole').classList.remove('open');
-    await loadUsuarios();
-  } catch(err) { showToast(err.message,'error'); }
-  finally { btn.disabled=false; }
+    await loadUsers();
+  } catch (err) { showToast(err.message,'error'); }
+  finally { btn.disabled = false; }
 });
 
-// ── Limpeza de Agendamentos ─────────────────────────────────
-// Set default date to 30 days ago
-const d30 = new Date(); d30.setDate(d30.getDate()-30);
-document.getElementById('limpezaAte').value = d30.toISOString().slice(0,10);
+// ── SISTEMA ──────────────────────────────────────────────────
+async function loadSistema() {
+  try {
+    const cfg = await getConfigSistema();
+    document.getElementById('cfgNome').value     = cfg.nome_negocio || 'CRM Agendamentos';
+    document.getElementById('cfgTelefone').value = cfg.telefone    || '(11) 99454-6931';
+    document.getElementById('cfgEndereco').value = cfg.endereco    || 'Av das Nações, São André, 454';
+    document.getElementById('cfgMaps').value     = cfg.maps_url   || 'https://maps.google.com/?q=Av+das+Nações,+São+André,+454';
+    updateMapsPreview(document.getElementById('cfgMaps').value);
 
-document.getElementById('btnLimpar')?.addEventListener('click', async () => {
-  const ate    = document.getElementById('limpezaAte').value;
-  const status = document.getElementById('limpezaStatus').value;
-  if (!ate) { showToast('Informe a data limite.','warning'); return; }
-  const todos = await getAllAgendamentos({ status });
-  const para  = todos.filter(a => a.data_hora.slice(0,10) <= ate);
-  const res   = document.getElementById('limpezaResult');
-  if (!para.length) {
-    res.innerHTML = `<div class="card" style="padding:14px"><p style="color:var(--text2)">✅ Nenhum agendamento encontrado para os critérios selecionados.</p></div>`;
-    return;
+    // System stats
+    const [{ count: cC }, { count: cA }, { count: cS }] = await Promise.all([
+      sb.from('clientes').select('*',{count:'exact',head:true}).eq('ativo',true),
+      sb.from('agendamentos').select('*',{count:'exact',head:true}),
+      sb.from('servicos').select('*',{count:'exact',head:true}).eq('ativo',true),
+    ]);
+    document.getElementById('siClientes').textContent = cC ?? '—';
+    document.getElementById('siAgs').textContent      = cA ?? '—';
+    document.getElementById('siServicos').textContent = cS ?? '—';
+  } catch (err) { console.error(err); }
+}
+
+function updateMapsPreview(url) {
+  const wrap   = document.getElementById('mapsPreviewWrap');
+  const iframe = document.getElementById('mapsIframe');
+  if (!url) { if (wrap) wrap.style.display = 'none'; return; }
+  // Convert regular maps URL to embed URL if needed
+  let embedUrl = url;
+  if (url.includes('maps.google.com') && !url.includes('/embed') && !url.includes('output=embed')) {
+    // Try to extract q= parameter first
+    let q = '';
+    try { q = new URL(url).searchParams.get('q') || ''; } catch(_) {}
+    if (!q) q = url.split('?q=')[1]?.split('&')[0] || 'Av das Nações, São André, 454';
+    embedUrl = `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`;
   }
-  res.innerHTML = `<div class="card">
-    <div style="margin-bottom:12px"><strong>${para.length}</strong> agendamentos encontrados (${status}, até ${formatDate(ate)})</div>
-    <div style="max-height:240px;overflow-y:auto">
-    ${para.map(a=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:.82rem">
-      <strong>${a.clientes?.nome||'—'}</strong> — ${formatDateTime(a.data_hora)}
-      <span class="badge badge-gray" style="font-size:.68rem;margin-left:6px">${STATUS_LABELS[a.status]?.label||a.status}</span>
-    </div>`).join('')}
-    </div>
-    <div style="margin-top:12px">
-      <button class="btn btn-danger btn-sm" onclick="confirmarLimpeza(${JSON.stringify(para.map(a=>a.id))})">
-        <i class="fas fa-trash"></i> Confirmar Remoção de ${para.length} registros
-      </button>
-    </div>
-  </div>`;
+  if (iframe) iframe.src = embedUrl;
+  if (wrap)   wrap.style.display = '';
+}
+
+document.getElementById('cfgMaps')?.addEventListener('blur', () => {
+  updateMapsPreview(document.getElementById('cfgMaps').value);
 });
 
-window.confirmarLimpeza = async (ids) => {
-  if (!confirm(`Remover ${ids.length} agendamentos permanentemente? Esta ação não pode ser desfeita!`)) return;
-  const { deleteAgendamento } = await import('./supabase/database.js');
-  let ok = 0;
-  for (const id of ids) {
-    try { await deleteAgendamento(id); ok++; } catch(e) {}
+// Apply phone mask to config phone
+applyPhoneMask(document.getElementById('cfgTelefone'));
+
+document.getElementById('salvarSistema')?.addEventListener('click', async () => {
+  const btn = document.getElementById('salvarSistema'); btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Salvando…';
+  try {
+    await Promise.all([
+      setConfigSistema('nome_negocio', document.getElementById('cfgNome').value),
+      setConfigSistema('telefone',     document.getElementById('cfgTelefone').value),
+      setConfigSistema('endereco',     document.getElementById('cfgEndereco').value),
+      setConfigSistema('maps_url',     document.getElementById('cfgMaps').value),
+    ]);
+    showToast('Configurações salvas!','success');
+  } catch (err) { showToast(err.message,'error'); }
+  finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> Salvar Configurações'; }
+});
+
+// ── HORÁRIOS ─────────────────────────────────────────────────
+const DIAS = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+
+async function loadHorarios() {
+  const el = document.getElementById('hoursGrid');
+  try {
+    const horarios = await getHorarios();
+    // Ensure all 7 days exist
+    const map = {};
+    horarios.forEach(h => { map[h.dia_semana] = h; });
+    for (let d = 0; d <= 6; d++) {
+      if (!map[d]) map[d] = { dia_semana: d, aberto: d > 0 && d < 6, hora_abertura: '09:00', hora_fechamento: '18:00' };
+    }
+
+    el.innerHTML = Array.from({length:7}, (_,d) => {
+      const h = map[d];
+      return `<div class="hour-card${h.aberto?'':' closed'}" id="hcard-${d}">
+        <div class="hour-card-day">
+          <span>${DIAS[d]}</span>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.8rem">
+            <input type="checkbox" id="hAberto-${d}" ${h.aberto?'checked':''} style="width:auto"
+              onchange="toggleHoraDia(${d},this.checked)"/>
+            Aberto
+          </label>
+        </div>
+        <div id="hTimes-${d}" style="${h.aberto?'':'opacity:.4;pointer-events:none'}">
+          <div style="display:flex;gap:10px;align-items:center">
+            <div class="form-group" style="flex:1;margin-bottom:0">
+              <label style="font-size:.72rem">Abertura</label>
+              <input type="time" id="hAbr-${d}" value="${h.hora_abertura||'09:00'}"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:.84rem"/>
+            </div>
+            <div class="form-group" style="flex:1;margin-bottom:0">
+              <label style="font-size:.72rem">Fechamento</label>
+              <input type="time" id="hFch-${d}" value="${h.hora_fechamento||'18:00'}"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:.84rem"/>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (err) {
+    el.innerHTML = '<p style="color:var(--danger)">Erro ao carregar horários.</p>';
   }
-  showToast(`${ok} agendamentos removidos.`, ok>0?'success':'warning');
-  document.getElementById('limpezaResult').innerHTML = '';
+}
+
+window.toggleHoraDia = (d, aberto) => {
+  const card  = document.getElementById(`hcard-${d}`);
+  const times = document.getElementById(`hTimes-${d}`);
+  card?.classList.toggle('closed', !aberto);
+  if (times) times.style.cssText = aberto ? '' : 'opacity:.4;pointer-events:none';
 };
 
-// ── Exportação CSV ─────────────────────────────────────────
-function downloadCSV(filename, rows) {
-  const csv = rows.map(r => r.map(cell => `"${String(cell||'').replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
-  const url  = URL.createObjectURL(blob);
-  const a    = Object.assign(document.createElement('a'), {href:url, download:filename});
-  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+document.getElementById('salvarHorarios')?.addEventListener('click', async () => {
+  const btn = document.getElementById('salvarHorarios'); btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Salvando…';
+  try {
+    for (let d = 0; d <= 6; d++) {
+      const aberto  = document.getElementById(`hAberto-${d}`)?.checked ?? false;
+      const abertura  = document.getElementById(`hAbr-${d}`)?.value || '09:00';
+      const fechamento = document.getElementById(`hFch-${d}`)?.value || '18:00';
+      await updateHorario(d, { aberto, hora_abertura: abertura, hora_fechamento: fechamento });
+    }
+    showToast('Horários salvos!','success');
+  } catch (err) { showToast(err.message,'error'); }
+  finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> Salvar Horários'; }
+});
+
+// ── LIMPEZA / EXPORT ─────────────────────────────────────────
+document.getElementById('btnClean')?.addEventListener('click', async () => {
+  const date   = document.getElementById('cleanDate').value;
+  const status = document.getElementById('cleanStatus').value;
+  if (!date) { showToast('Selecione uma data limite.','warning'); return; }
+  if (!confirm(`Remover agendamentos ${status==='todos'?'antigos':status} antes de ${date}?`)) return;
+  try {
+    let q = sb.from('agendamentos').delete().lt('data_hora', new Date(date).toISOString());
+    if (status !== 'todos') q = q.eq('status', status);
+    const { error, count } = await q;
+    if (error) throw error;
+    showToast(`Limpeza concluída!`,'success');
+  } catch (err) { showToast(err.message,'error'); }
+});
+
+function csvDownload(filename, rows) {
+  const csv = rows.map(r => r.map(v => `"${(v??'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = filename; a.click();
 }
 
 document.getElementById('exportClientes')?.addEventListener('click', async () => {
-  const list = await getAllClientes(true);
-  const rows = [['Nome','E-mail','Telefone','CPF','Cidade','Total Visitas','Total Gasto','Última Visita','Cadastrado em']];
-  list.forEach(c => rows.push([c.nome,c.email,c.telefone,c.cpf,c.cidade,c.total_visitas,c.total_gasto,formatDate(c.ultima_visita),formatDate(c.created_at)]));
-  downloadCSV('clientes.csv', rows);
-  showToast('Exportado com sucesso!','success');
+  try {
+    const data = await getAllClientes(true);
+    csvDownload('clientes.csv', [
+      ['Nome','Email','Telefone','CPF','Cidade','Total Visitas','Total Gasto','Ativo'],
+      ...data.map(c => [c.nome,c.email,c.telefone,c.cpf,c.cidade,c.total_visitas,c.total_gasto,c.ativo])
+    ]);
+  } catch (err) { showToast(err.message,'error'); }
 });
 
-document.getElementById('exportAgendamentos')?.addEventListener('click', async () => {
-  const list = await getAllAgendamentos({ limit: 10000 });
-  const rows = [['Cliente','Profissional','Serviço','Data/Hora','Status','Valor','Pagamento']];
-  list.forEach(a => rows.push([
-    a.clientes?.nome, a.equipe?.nome, a.servicos?.nome,
-    formatDateTime(a.data_hora), a.status,
-    a.valor, a.forma_pagamento
-  ]));
-  downloadCSV('agendamentos.csv', rows);
-  showToast('Exportado!','success');
+document.getElementById('exportAgs')?.addEventListener('click', async () => {
+  try {
+    const data = await getAllAgendamentos({ limit: 2000 });
+    csvDownload('agendamentos.csv', [
+      ['ID','Cliente','Data','Status','Total','Pagamento'],
+      ...data.map(a => [a.id,a.clientes?.nome,a.data_hora,a.status,a.valor_total,a.forma_pagamento])
+    ]);
+  } catch (err) { showToast(err.message,'error'); }
 });
 
 document.getElementById('exportFinanceiro')?.addEventListener('click', async () => {
-  const list = await getLancamentos({ limit: 10000 });
-  const rows = [['Tipo','Data','Descrição','Categoria','Valor']];
-  list.forEach(l => rows.push([l.tipo, l.data, l.descricao, l.categoria, l.valor]));
-  downloadCSV('financeiro.csv', rows);
-  showToast('Exportado!','success');
+  try {
+    const data = await getLancamentos({ limit: 2000 });
+    csvDownload('financeiro.csv', [
+      ['ID','Tipo','Descricao','Valor','Categoria','Data'],
+      ...data.map(f => [f.id,f.tipo,f.descricao,f.valor,f.categoria,f.data])
+    ]);
+  } catch (err) { showToast(err.message,'error'); }
 });
 
-// ── Relatórios ─────────────────────────────────────────────
-async function loadRelatorios() {
-  const grid = document.getElementById('relatoriosGrid');
-  grid.innerHTML = '<div class="loading"><i class="fas fa-circle-notch spin"></i></div>';
-  const [clientes, ags, lancamentos] = await Promise.all([
-    getAllClientes(),
-    getAllAgendamentos({ limit: 1000 }),
-    getLancamentos({ limit: 500 })
-  ]);
-
-  const totalRec = lancamentos.filter(l=>l.tipo==='receita').reduce((s,l)=>s+(l.valor||0),0);
-  const totalDesp= lancamentos.filter(l=>l.tipo==='despesa').reduce((s,l)=>s+(l.valor||0),0);
-  const agConcl  = ags.filter(a=>a.status==='concluido').length;
-  const agCancel = ags.filter(a=>a.status==='cancelado').length;
-  const taxaCancl= ags.length ? ((agCancel/ags.length)*100).toFixed(1) : 0;
-
-  // Ticket médio
-  const valoresConcl = ags.filter(a=>a.status==='concluido'&&a.valor>0).map(a=>a.valor);
-  const ticketMedio  = valoresConcl.length ? valoresConcl.reduce((s,v)=>s+v,0)/valoresConcl.length : 0;
-
-  // Serviço mais popular
-  const byServico = {};
-  ags.forEach(a => { if (a.servicos?.nome) byServico[a.servicos.nome] = (byServico[a.servicos.nome]||0)+1; });
-  const topServico = Object.entries(byServico).sort((a,b)=>b[1]-a[1])[0];
-
-  // Profissional mais produtivo
-  const byProf = {};
-  ags.filter(a=>a.status==='concluido').forEach(a => {
-    if (a.equipe?.nome) byProf[a.equipe.nome] = (byProf[a.equipe.nome]||0)+1;
-  });
-  const topProf = Object.entries(byProf).sort((a,b)=>b[1]-a[1])[0];
-
-  const cards = [
-    { icon:'👥', label:'Total de Clientes',        value: clientes.length,                color:'var(--primary)' },
-    { icon:'📅', label:'Total de Agendamentos',     value: ags.length,                     color:'var(--info)' },
-    { icon:'✅', label:'Agendamentos Concluídos',   value: agConcl,                        color:'var(--secondary)' },
-    { icon:'❌', label:'Taxa de Cancelamento',      value: taxaCancl+'%',                  color:'var(--danger)' },
-    { icon:'💰', label:'Receita Total',             value: formatCurrency(totalRec),       color:'var(--secondary)' },
-    { icon:'📉', label:'Despesas Totais',           value: formatCurrency(totalDesp),      color:'var(--danger)' },
-    { icon:'📈', label:'Lucro Total',               value: formatCurrency(totalRec-totalDesp), color: totalRec-totalDesp>=0?'var(--secondary)':'var(--danger)' },
-    { icon:'🎯', label:'Ticket Médio',              value: formatCurrency(ticketMedio),    color:'var(--primary)' },
-    { icon:'⭐', label:'Serviço Mais Popular',      value: topServico?`${topServico[0]} (${topServico[1]})` : '—', color:'var(--warning)' },
-    { icon:'🏆', label:'Profissional Mais Produtivo', value: topProf?`${topProf[0]} (${topProf[1]})` : '—', color:'var(--warning)' },
-  ];
-
-  grid.innerHTML = cards.map(c => `
-    <div class="card" style="border-left:3px solid ${c.color}">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="font-size:1.6rem">${c.icon}</div>
-        <div>
-          <div style="font-size:.76rem;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:.04em">${c.label}</div>
-          <div style="font-size:1.1rem;font-weight:800;color:${c.color}">${c.value}</div>
-        </div>
-      </div>
-    </div>`).join('');
+// ── RELATÓRIOS ───────────────────────────────────────────────
+function buildRelatorioSelects() {
+  const mesEl = document.getElementById('repMes');
+  const anoEl = document.getElementById('repAno');
+  if (mesEl.options.length) return;
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  meses.forEach((m,i) => mesEl.insertAdjacentHTML('beforeend', `<option value="${i+1}">${m}</option>`));
+  const now = new Date();
+  mesEl.value = now.getMonth()+1;
+  for (let y = now.getFullYear(); y >= now.getFullYear()-3; y--)
+    anoEl.insertAdjacentHTML('beforeend', `<option value="${y}">${y}</option>`);
 }
 
-// ── Sistema ────────────────────────────────────────────────
-async function loadSisInfo() {
-  const [{ count: cu }, { count: cc }, { count: ca }, { count: cs }] = await Promise.all([
-    import('./supabase/client.js').then(m => m.sb.from('users').select('*',{count:'exact',head:true})),
-    import('./supabase/client.js').then(m => m.sb.from('clientes').select('*',{count:'exact',head:true})),
-    import('./supabase/client.js').then(m => m.sb.from('agendamentos').select('*',{count:'exact',head:true})),
-    import('./supabase/client.js').then(m => m.sb.from('servicos').select('*',{count:'exact',head:true})),
-  ]);
-  document.getElementById('sysInfo').innerHTML = [
-    { label:'Usuários do sistema', value: cu ?? 0 },
-    { label:'Clientes cadastrados', value: cc ?? 0 },
-    { label:'Agendamentos (total)', value: ca ?? 0 },
-    { label:'Serviços cadastrados', value: cs ?? 0 },
-    { label:'Versão do sistema', value: 'v1.0.0' },
-    { label:'Banco de dados', value: 'Supabase (PostgreSQL)' },
-  ].map(i => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:.84rem">
-      <span style="color:var(--text2)">${i.label}</span>
-      <strong>${i.value}</strong>
-    </div>`).join('');
+async function buildRelatorio() {
+  buildRelatorioSelects();
+  const mes = parseInt(document.getElementById('repMes').value);
+  const ano = parseInt(document.getElementById('repAno').value);
+  const el  = document.getElementById('reportContent');
+  el.innerHTML = '<div class="loading"><i class="fas fa-circle-notch spin"></i> Gerando…</div>';
+  try {
+    const inicio = new Date(ano, mes-1, 1);
+    const fim    = new Date(ano, mes, 0, 23, 59, 59);
+    const [ags, resumo, clientes] = await Promise.all([
+      getAllAgendamentos({ dataInicio: inicio.toISOString(), dataFim: fim.toISOString() }),
+      getResumoFinanceiro(ano, mes),
+      getAllClientes()
+    ]);
 
-  document.getElementById('dbUrl').textContent = SUPABASE_URL;
+    const total      = ags.length;
+    const concluidos = ags.filter(a=>a.status==='concluido').length;
+    const cancelados = ags.filter(a=>a.status==='cancelado').length;
+    const txCancel   = total ? ((cancelados/total)*100).toFixed(1)+'%' : '0%';
+    const ticketMed  = concluidos ? resumo.receitas/concluidos : 0;
+
+    // Most popular service
+    const svcCount = {};
+    ags.forEach(a => a.agendamento_servicos?.forEach(s => {
+      const n = s.servicos?.nome;
+      if (n) svcCount[n] = (svcCount[n]||0)+1;
+    }));
+    const topServico = Object.entries(svcCount).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+
+    // Top professional
+    const profCount = {};
+    ags.forEach(a => a.agendamento_servicos?.forEach(s => {
+      const n = s.equipe?.nome;
+      if (n) profCount[n] = (profCount[n]||0)+1;
+    }));
+    const topProf = Object.entries(profCount).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+
+    const rows = [
+      ['Total de clientes ativos', clientes.length],
+      ['Agendamentos no período', total],
+      ['Agendamentos concluídos', concluidos],
+      ['Agendamentos cancelados', cancelados],
+      ['Taxa de cancelamento', txCancel],
+      ['Receita do período', formatCurrency(resumo.receitas)],
+      ['Despesas do período', formatCurrency(resumo.despesas)],
+      ['Lucro do período', formatCurrency(resumo.lucro)],
+      ['Ticket médio', formatCurrency(ticketMed)],
+      ['Serviço mais popular', topServico],
+      ['Profissional destaque', topProf],
+    ];
+
+    el.innerHTML = `<div>
+      ${rows.map(([label,value]) => `
+        <div class="report-row">
+          <span style="color:var(--text2)">${label}</span>
+          <strong>${value}</strong>
+        </div>`).join('')}
+    </div>`;
+  } catch (err) {
+    el.innerHTML = `<p style="color:var(--danger)">Erro: ${err.message}</p>`;
+  }
 }
 
-document.getElementById('btnSalvarConfig')?.addEventListener('click', () => {
-  const nome  = document.getElementById('configNome').value;
-  if (nome) localStorage.setItem('crm_nome', nome);
-  showToast('Configurações salvas localmente!','success');
-});
+document.getElementById('gerarRelatorio')?.addEventListener('click', buildRelatorio);
 
-// Load saved config
-const savedNome = localStorage.getItem('crm_nome');
-if (savedNome) document.getElementById('configNome').value = savedNome;
-
-// Carregar dados iniciais
-await loadUsuarios();
+// ── Init ─────────────────────────────────────────────────────
+await loadUsers();
+await loadSistema();
 </script>
 </body>
 </html>
