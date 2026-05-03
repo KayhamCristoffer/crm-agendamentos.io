@@ -8,19 +8,47 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css"/>
   <style>
-    .team-photo-wrap { width:72px;height:72px;border-radius:50%;overflow:hidden;flex-shrink:0;
+    .team-photo-wrap {
+      width:80px;height:80px;border-radius:50%;overflow:hidden;flex-shrink:0;
       background:var(--primary);display:flex;align-items:center;justify-content:center;
-      font-size:1.5rem;font-weight:800;color:#fff; }
+      font-size:1.6rem;font-weight:800;color:#fff;position:relative;
+    }
     .team-photo-wrap img { width:100%;height:100%;object-fit:cover; }
-    .like-btn { background:none;border:none;cursor:pointer;display:flex;align-items:center;
-      gap:5px;font-size:.8rem;color:var(--text2);padding:4px 8px;border-radius:6px;transition:.15s; }
+    .photo-overlay {
+      position:absolute;inset:0;background:rgba(0,0,0,.55);border-radius:50%;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      opacity:0;transition:.18s;cursor:pointer;gap:2px;
+    }
+    .team-photo-wrap:hover .photo-overlay { opacity:1; }
+    .photo-overlay i { color:#fff;font-size:.8rem; }
+    .photo-overlay span { color:#fff;font-size:.58rem;font-weight:600; }
+    .like-btn {
+      background:none;border:none;cursor:pointer;display:flex;align-items:center;
+      gap:5px;font-size:.8rem;color:var(--text2);padding:5px 10px;border-radius:8px;
+      transition:.15s;
+    }
     .like-btn:hover { background:rgba(239,68,68,.1);color:var(--danger); }
     .like-btn.liked { color:var(--danger); }
-    .like-btn i { font-size:.9rem; }
-    .salary-badge { background:rgba(16,185,129,.12);color:#34d399;font-size:.72rem;
-      font-weight:700;padding:3px 10px;border-radius:10px;border:1px solid rgba(16,185,129,.2); }
-    .admin-badge { background:rgba(245,158,11,.12);color:#fbbf24;font-size:.72rem;
-      font-weight:600;padding:2px 8px;border-radius:8px;border:1px solid rgba(245,158,11,.2); }
+    .like-btn.liked i { animation: heartPop .3s ease; }
+    @keyframes heartPop {
+      0%{transform:scale(1)} 50%{transform:scale(1.5)} 100%{transform:scale(1)}
+    }
+    .like-btn i { font-size:.95rem; }
+    .salary-badge {
+      background:rgba(16,185,129,.12);color:#34d399;font-size:.72rem;
+      font-weight:700;padding:3px 10px;border-radius:10px;border:1px solid rgba(16,185,129,.2);
+    }
+    .photo-source-tabs { display:flex;gap:6px;margin-bottom:10px; }
+    .photo-tab { padding:5px 12px;border-radius:8px;border:1px solid var(--border);
+      background:var(--bg3);cursor:pointer;font-size:.78rem;font-weight:600;color:var(--text2); }
+    .photo-tab.active { background:var(--primary);color:#fff;border-color:var(--primary); }
+    .photo-preset-grid { display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:6px; }
+    .photo-preset-item {
+      border:2px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;
+      transition:.15s;aspect-ratio:1;
+    }
+    .photo-preset-item:hover,.photo-preset-item.selected { border-color:var(--primary); }
+    .photo-preset-item img { width:100%;height:100%;object-fit:cover;display:block; }
   </style>
 </head>
 <body>
@@ -37,26 +65,62 @@
         <button class="btn btn-ghost btn-sm" id="btnRefresh" title="Atualizar">
           <i class="fas fa-sync-alt"></i> Atualizar
         </button>
-        <button class="btn btn-primary btn-sm" id="btnNovo" data-admin-only="true" style="display:none">
+        <!-- Novo Profissional: visible to all, action gated by adminMode -->
+        <button class="btn btn-primary btn-sm" id="btnNovo">
           <i class="fas fa-user-plus"></i> Novo Profissional
         </button>
       </div>
     </div>
     <div class="page-content">
       <div id="equipeGrid" class="client-list-grid">
-        <div class="loading" style="grid-column:1/-1"><i class="fas fa-circle-notch spin"></i> Carregando equipe…</div>
+        <div class="loading" style="grid-column:1/-1">
+          <i class="fas fa-circle-notch spin"></i> Carregando equipe…
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- MODAL (admin only) -->
+<!-- MODAL PROFISSIONAL (admin only) -->
 <div class="modal-overlay" id="modal">
-  <div class="modal">
+  <div class="modal modal-lg">
     <div class="modal-header">
       <h3 id="modalTitle"><i class="fas fa-user-plus"></i> Novo Profissional</h3>
       <button class="modal-close" id="closeModal"><i class="fas fa-times"></i></button>
     </div>
+
+    <!-- Foto / Avatar -->
+    <div class="form-group">
+      <label><i class="fas fa-camera" style="color:var(--primary-light)"></i> Foto do Profissional</label>
+      <div class="photo-source-tabs">
+        <button class="photo-tab active" data-src="preset">📁 Fotos Salvas</button>
+        <button class="photo-tab" data-src="url">🔗 URL Externa</button>
+      </div>
+      <!-- Preset photos -->
+      <div id="photoPresetWrap">
+        <p style="font-size:.76rem;color:var(--text2);margin-bottom:8px">
+          Selecione uma foto da equipe (arquivos em <code>img/</code>):
+        </p>
+        <div class="photo-preset-grid" id="photoPresetGrid"></div>
+        <p style="font-size:.72rem;color:var(--text3);margin-top:4px">
+          <i class="fas fa-info-circle"></i> Clique na foto para selecionar. Nenhuma = usar iniciais.
+        </p>
+      </div>
+      <!-- URL input -->
+      <div id="photoUrlWrap" style="display:none">
+        <input type="url" id="pAvatarUrl" placeholder="https://exemplo.com/foto.jpg"/>
+        <p style="font-size:.72rem;color:var(--text3);margin-top:4px">
+          Cole a URL de uma imagem externa (HTTPS).
+        </p>
+      </div>
+      <div id="photoPreview" style="margin-top:8px;display:none">
+        <img id="photoPreviewImg" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--border)"/>
+        <button id="clearPhoto" style="margin-left:8px;background:none;border:none;cursor:pointer;color:var(--danger);font-size:.8rem">
+          <i class="fas fa-times"></i> Remover foto
+        </button>
+      </div>
+    </div>
+
     <div class="form-row form-row-2">
       <div class="form-group"><label>Nome *</label><input type="text" id="pNome" placeholder="Taisa Joelma"/></div>
       <div class="form-group"><label>Cargo</label><input type="text" id="pCargo" placeholder="Cabeleireira"/></div>
@@ -67,7 +131,7 @@
       <div class="form-group"><label>Telefone</label>
         <input type="tel" id="pTelefone" placeholder="(11) 99999-9999"/></div>
       <div class="form-group"><label>E-mail</label>
-        <input type="email" id="pEmail" placeholder="ana@email.com"/></div>
+        <input type="email" id="pEmail" placeholder="profissional@email.com"/></div>
     </div>
     <div class="form-row form-row-2">
       <div class="form-group"><label>Salário (R$)</label>
@@ -90,9 +154,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
 import { requireAuth, renderUserInSidebar, showToast, isAdmin } from './supabase/session-manager.js';
-import { getAllEquipe, createProfissional, updateProfissional, deleteProfissional,
-         getAllAgendamentos, formatCurrency, toggleLike, getLikesPorProfissional,
-         applyPhoneMask } from './supabase/database.js';
+import {
+  getAllEquipe, createProfissional, updateProfissional, deleteProfissional,
+  getAllAgendamentos, formatCurrency, toggleLike, getLikesPorProfissional,
+  applyPhoneMask
+} from './supabase/database.js';
 import { getSidebarHTML, initSidebarToggle, showAdminItems } from './js/sidebar.js';
 
 document.getElementById('sidebarMount').innerHTML = getSidebarHTML('equipe');
@@ -106,33 +172,98 @@ if (adminMode) showAdminItems();
 setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
 
 document.getElementById('logoutBtn')?.addEventListener('click', () =>
-  import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href='index.html'));
+  import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href = 'index.html'));
 
-// Phone mask
 applyPhoneMask(document.getElementById('pTelefone'));
 
 let all = [], editingId = null, likesMap = {};
+let selectedPhotoUrl = null;
 
-// Auto-refresh every 30 seconds
+// ── Fotos preset (JPG + SVG disponíveis no servidor) ──────────
+const PRESET_PHOTOS = [
+  { label: 'Taisa Joelma',       jpg: 'img/taisa.jpg',   svg: 'img/taisa.svg'   },
+  { label: 'Kayham Cristoffer',  jpg: 'img/kayham.jpg',  svg: 'img/kayham.svg'  },
+  { label: 'Camila Ferrari',     jpg: 'img/camila.jpg',  svg: 'img/camila.svg'  },
+  { label: 'Marcos Tiago',       jpg: 'img/marcos.jpg',  svg: 'img/marcos.svg'  },
+  { label: 'Felipe Emiliano',    jpg: 'img/felipe.jpg',  svg: 'img/felipe.svg'  },
+];
+
+// Build preset grid
+function buildPresetGrid(currentUrl = '') {
+  const grid = document.getElementById('photoPresetGrid');
+  grid.innerHTML = PRESET_PHOTOS.map((p, i) => `
+    <div class="photo-preset-item${currentUrl === p.jpg || currentUrl === p.svg ? ' selected' : ''}"
+         onclick="selectPreset(${i})" title="${p.label}">
+      <img src="${p.jpg}" alt="${p.label}"
+           onerror="this.src='${p.svg}';this.onerror=null"/>
+    </div>`).join('');
+}
+
+window.selectPreset = (idx) => {
+  const p = PRESET_PHOTOS[idx];
+  // Try JPG first, fallback to SVG
+  selectedPhotoUrl = p.jpg;
+  document.querySelectorAll('.photo-preset-item').forEach((el, i) =>
+    el.classList.toggle('selected', i === idx));
+  showPhotoPreview(p.jpg, p.svg);
+};
+
+function showPhotoPreview(src, fallback = '') {
+  const wrap = document.getElementById('photoPreview');
+  const img  = document.getElementById('photoPreviewImg');
+  if (!src) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  img.src = src;
+  img.onerror = () => { img.src = fallback; img.onerror = null; };
+}
+
+document.getElementById('clearPhoto')?.addEventListener('click', () => {
+  selectedPhotoUrl = null;
+  document.getElementById('pAvatarUrl').value = '';
+  document.getElementById('photoPreview').style.display = 'none';
+  document.querySelectorAll('.photo-preset-item').forEach(el => el.classList.remove('selected'));
+});
+
+// Tab switching
+document.querySelectorAll('.photo-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.photo-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const src = tab.dataset.src;
+    document.getElementById('photoPresetWrap').style.display = src === 'preset' ? '' : 'none';
+    document.getElementById('photoUrlWrap').style.display   = src === 'url'    ? '' : 'none';
+  });
+});
+
+document.getElementById('pAvatarUrl')?.addEventListener('input', function() {
+  const url = this.value.trim();
+  if (url) {
+    selectedPhotoUrl = url;
+    showPhotoPreview(url);
+  } else {
+    selectedPhotoUrl = null;
+    document.getElementById('photoPreview').style.display = 'none';
+  }
+});
+
+// ── TEAM_PHOTOS lookup (for rendering cards) ──────────────────
+const TEAM_PHOTOS = {
+  'Taisa Joelma':      { jpg: 'img/taisa.jpg',   svg: 'img/taisa.svg'   },
+  'Kayham Cristoffer': { jpg: 'img/kayham.jpg',  svg: 'img/kayham.svg'  },
+  'Camila Ferrari':    { jpg: 'img/camila.jpg',  svg: 'img/camila.svg'  },
+  'Marcos Tiago':      { jpg: 'img/marcos.jpg',  svg: 'img/marcos.svg'  },
+  'Felipe Emiliano':   { jpg: 'img/felipe.jpg',  svg: 'img/felipe.svg'  },
+};
+
+// ── Auto-refresh every 30 seconds ─────────────────────────────
 let autoRefreshTimer = setInterval(loadAll, 30000);
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { clearInterval(autoRefreshTimer); }
+  if (document.hidden) clearInterval(autoRefreshTimer);
   else { loadAll(); autoRefreshTimer = setInterval(loadAll, 30000); }
 });
-
 document.getElementById('btnRefresh')?.addEventListener('click', () => {
-  showToast('Atualizando…','info',1500);
-  loadAll();
+  showToast('Atualizando…', 'info', 1500); loadAll();
 });
-
-// Team photos lookup — SVG avatars (reliable), JPG as optional override
-const TEAM_PHOTOS = {
-  'Taisa Joelma':      { svg: 'img/taisa.svg',  jpg: 'img/taisa.jpg'  },
-  'Kayham Cristoffer': { svg: 'img/kayham.svg', jpg: 'img/kayham.jpg' },
-  'Camila Ferrari':    { svg: 'img/camila.svg', jpg: 'img/camila.jpg' },
-  'Marcos Tiago':      { svg: 'img/marcos.svg', jpg: 'img/marcos.jpg' },
-  'Felipe Emiliano':   { svg: 'img/felipe.svg', jpg: 'img/felipe.jpg' },
-};
 
 async function loadAll() {
   try {
@@ -140,22 +271,28 @@ async function loadAll() {
       getAllEquipe(true),
       getLikesPorProfissional()
     ]);
-    // Stats de agendamentos
     const ags = await getAllAgendamentos({ limit: 1000 });
     const stats = {};
     ags.forEach(a => {
-      const profs = a.agendamento_servicos?.map(s=>s.equipe?.id).filter(Boolean) || [];
+      const profs = a.agendamento_servicos?.map(s => s.equipe?.id).filter(Boolean) || [];
       profs.forEach(pid => {
-        if (!stats[pid]) stats[pid] = { total:0, receita:0 };
+        if (!stats[pid]) stats[pid] = { total: 0, receita: 0 };
         stats[pid].total++;
-        if (a.status==='concluido') stats[pid].receita += (a.valor_total||0);
+        if (a.status === 'concluido') stats[pid].receita += (a.valor_total || 0);
       });
     });
     render(stats);
-  } catch(err) {
+  } catch (err) {
     console.error('loadAll equipe:', err);
-    showToast('Erro ao carregar equipe.','error');
+    showToast('Erro ao carregar equipe.', 'error');
   }
+}
+
+function getPhotoSrc(p) {
+  if (p.avatar_url) return { src: p.avatar_url, fallback: '' };
+  const entry = TEAM_PHOTOS[p.nome];
+  if (entry) return { src: entry.jpg, fallback: entry.svg };
+  return { src: '', fallback: '' };
 }
 
 function render(stats = {}) {
@@ -163,42 +300,47 @@ function render(stats = {}) {
   if (!all.length) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
       <i class="fas fa-user-tie"></i><h3>Nenhum profissional cadastrado</h3>
-      <p>${adminMode?'Adicione profissionais clicando em "Novo Profissional".':'Nenhum profissional disponível.'}</p>
+      <p>${adminMode ? 'Adicione clicando em "Novo Profissional".' : 'Nenhum profissional disponível.'}</p>
     </div>`;
     return;
   }
   grid.innerHTML = all.map(p => {
-    const s = stats[p.id] || { total:0, receita:0 };
-    const photoEntry = TEAM_PHOTOS[p.nome];
-    // Use SVG as primary source (always available), jpg only if avatar_url is set
-    const photoSrc = p.avatar_url || (photoEntry ? photoEntry.svg : '');
-    const initial  = (p.nome||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    const myLike   = (likesMap[p.id]||[]).includes(user.id);
-    const totalLikes = (likesMap[p.id]||[]).length;
+    const s          = stats[p.id] || { total: 0, receita: 0 };
+    const photo      = getPhotoSrc(p);
+    const initial    = (p.nome || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    const myLike     = (likesMap[p.id] || []).includes(user.id);
+    const totalLikes = (likesMap[p.id] || []).length;
     return `
     <div class="client-card" id="card-${p.id}">
       <div style="display:flex;gap:14px;align-items:flex-start">
-        <div class="team-photo-wrap" style="border:2px solid ${p.cor_agenda||'#6366f1'}">
-          ${photoSrc
-            ? `<img src="${photoSrc}" alt="${p.nome}" onerror="this.onerror=null;this.parentElement.innerHTML='<span style=\"font-size:1.3rem;font-weight:800\">${initial}</span>'">`
+        <div class="team-photo-wrap" style="border:3px solid ${p.cor_agenda || '#6366f1'}">
+          ${photo.src
+            ? `<img src="${photo.src}" alt="${p.nome}"
+                onerror="this.src='${photo.fallback}';this.onerror=function(){this.parentElement.querySelector('img')?.remove();this.parentElement.innerHTML='<span style=&quot;font-size:1.3rem;font-weight:800&quot;>${initial}</span>';}">`
             : `<span style="font-size:1.3rem;font-weight:800">${initial}</span>`}
+          ${adminMode ? `
+          <div class="photo-overlay" onclick="editarFoto('${p.id}')" title="Trocar foto">
+            <i class="fas fa-camera"></i>
+            <span>Trocar</span>
+          </div>` : ''}
         </div>
         <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px">
             <h4 style="font-size:.95rem;font-weight:700">${p.nome}</h4>
-            ${!p.ativo?'<span class="badge badge-gray" style="font-size:.68rem">Inativo</span>':''}
+            ${!p.ativo ? '<span class="badge badge-gray" style="font-size:.68rem">Inativo</span>' : ''}
           </div>
-          <p style="font-size:.78rem;color:var(--text2)">${p.cargo||'—'}
-            ${p.especialidade?` · <span style="color:var(--text3)">${p.especialidade}</span>`:''}
+          <p style="font-size:.78rem;color:var(--text2)">${p.cargo || '—'}
+            ${p.especialidade ? ` · <span style="color:var(--text3)">${p.especialidade}</span>` : ''}
           </p>
           ${adminMode && p.salario
-            ? `<div class="salary-badge" style="margin-top:5px;display:inline-block">
-                <i class="fas fa-dollar-sign"></i> Salário: ${formatCurrency(p.salario)}
+            ? `<div class="salary-badge" style="margin-top:5px;display:inline-flex;align-items:center;gap:4px">
+                <i class="fas fa-dollar-sign" style="font-size:.65rem"></i>
+                Salário: ${formatCurrency(p.salario)}
                </div>`
             : ''}
         </div>
         ${adminMode ? `
-        <div style="display:flex;gap:4px">
+        <div style="display:flex;gap:4px;flex-shrink:0">
           <button class="btn btn-ghost btn-sm btn-icon" onclick="editar('${p.id}')" title="Editar">
             <i class="fas fa-edit"></i>
           </button>
@@ -207,17 +349,17 @@ function render(stats = {}) {
           </button>
         </div>` : ''}
       </div>
-      ${p.telefone||p.email?`
+      ${p.telefone || p.email ? `
       <div style="margin-top:10px;font-size:.76rem;color:var(--text2);display:flex;gap:12px;flex-wrap:wrap">
-        ${p.telefone?`<span><i class="fas fa-phone"></i> ${p.telefone}</span>`:''}
-        ${p.email?`<span><i class="fas fa-envelope"></i> ${p.email}</span>`:''}
-      </div>`:''}
+        ${p.telefone ? `<span><i class="fas fa-phone"></i> ${p.telefone}</span>` : ''}
+        ${p.email    ? `<span><i class="fas fa-envelope"></i> ${p.email}</span>` : ''}
+      </div>` : ''}
       <div style="display:flex;align-items:center;border-top:1px solid var(--border);margin-top:12px;padding-top:12px;gap:16px">
         <div class="client-card-stats" style="flex:1;border:none;padding:0;margin:0">
-          <div class="client-stat-item"><strong>${s.total}</strong><small>Agendamentos</small></div>
+          <div class="client-stat-item"><strong>${s.total}</strong><small>Atendimentos</small></div>
           <div class="client-stat-item"><strong>${formatCurrency(s.receita)}</strong><small>Receita</small></div>
         </div>
-        <button class="like-btn ${myLike?'liked':''}" onclick="curtir('${p.id}')" id="like-${p.id}">
+        <button class="like-btn ${myLike ? 'liked' : ''}" onclick="curtir('${p.id}')" id="like-${p.id}" title="${myLike ? 'Remover curtida' : 'Curtir'}">
           <i class="fas fa-heart"></i>
           <span id="likeCount-${p.id}">${totalLikes}</span>
         </button>
@@ -226,11 +368,10 @@ function render(stats = {}) {
   }).join('');
 }
 
-// LIKE / UNLIKE
+// ── LIKE / UNLIKE ─────────────────────────────────────────────
 window.curtir = async (profId) => {
   try {
     const liked = await toggleLike(profId, user.id);
-    // Update locally
     if (!likesMap[profId]) likesMap[profId] = [];
     if (liked) likesMap[profId].push(user.id);
     else likesMap[profId] = likesMap[profId].filter(id => id !== user.id);
@@ -238,70 +379,103 @@ window.curtir = async (profId) => {
     const cnt = document.getElementById(`likeCount-${profId}`);
     if (btn) btn.classList.toggle('liked', liked);
     if (cnt) cnt.textContent = likesMap[profId].length;
-  } catch(err) { showToast('Erro ao curtir.','error'); }
+  } catch (err) { showToast('Erro ao curtir.', 'error'); }
 };
 
-// MODAL
-function openModal(p = null) {
-  if (!adminMode) { showToast('Apenas administradores podem editar.','warning'); return; }
+// ── Editar apenas foto ────────────────────────────────────────
+window.editarFoto = (id) => {
+  const p = all.find(x => x.id === id);
+  if (p) openModal(p, true);
+};
+
+// ── MODAL ─────────────────────────────────────────────────────
+function openModal(p = null, fotoOnly = false) {
+  if (!adminMode) { showToast('Apenas administradores podem editar.', 'warning'); return; }
   editingId = p?.id || null;
+  selectedPhotoUrl = p?.avatar_url || null;
+
   document.getElementById('modalTitle').innerHTML = p
     ? '<i class="fas fa-edit"></i> Editar Profissional'
     : '<i class="fas fa-user-plus"></i> Novo Profissional';
-  document.getElementById('pNome').value         = p?.nome||'';
-  document.getElementById('pCargo').value        = p?.cargo||'';
-  document.getElementById('pEspecialidade').value= p?.especialidade||'';
-  document.getElementById('pTelefone').value     = p?.telefone||'';
-  document.getElementById('pEmail').value        = p?.email||'';
-  document.getElementById('pSalario').value      = p?.salario||'';
-  document.getElementById('pCor').value          = p?.cor_agenda||'#6366f1';
-  document.getElementById('pAtivo').checked      = p?.ativo??true;
+
+  buildPresetGrid(selectedPhotoUrl || '');
+  if (selectedPhotoUrl) showPhotoPreview(selectedPhotoUrl);
+  else document.getElementById('photoPreview').style.display = 'none';
+
+  document.getElementById('pNome').value          = p?.nome || '';
+  document.getElementById('pCargo').value         = p?.cargo || '';
+  document.getElementById('pEspecialidade').value = p?.especialidade || '';
+  document.getElementById('pTelefone').value      = p?.telefone || '';
+  document.getElementById('pEmail').value         = p?.email || '';
+  document.getElementById('pSalario').value       = p?.salario || '';
+  document.getElementById('pCor').value           = p?.cor_agenda || '#6366f1';
+  document.getElementById('pAtivo').checked       = p?.ativo ?? true;
+  document.getElementById('pAvatarUrl').value     = p?.avatar_url || '';
+
+  // Reset tabs to preset
+  document.querySelectorAll('.photo-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.photo-tab[data-src="preset"]').classList.add('active');
+  document.getElementById('photoPresetWrap').style.display = '';
+  document.getElementById('photoUrlWrap').style.display    = 'none';
+
   document.getElementById('modal').classList.add('open');
+  if (fotoOnly) document.getElementById('pNome')?.focus();
 }
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
 
-document.getElementById('btnNovo')?.addEventListener('click', () => openModal());
+document.getElementById('btnNovo')?.addEventListener('click', () => {
+  if (!adminMode) {
+    showToast('Apenas administradores podem adicionar profissionais. Solicite ao admin.', 'warning');
+    return;
+  }
+  openModal();
+});
 document.getElementById('closeModal')?.addEventListener('click', closeModal);
 document.getElementById('cancelModal')?.addEventListener('click', closeModal);
 
-window.editar = (id) => { const p = all.find(x=>x.id===id); if(p) openModal(p); };
+window.editar  = (id) => { const p = all.find(x => x.id === id); if (p) openModal(p); };
 window.excluir = async (id) => {
-  if (!adminMode) { showToast('Sem permissão.','warning'); return; }
-  const p = all.find(x=>x.id===id);
-  if (!confirm(`Remover "${p?.nome}"?`)) return;
+  if (!adminMode) { showToast('Sem permissão.', 'warning'); return; }
+  const p = all.find(x => x.id === id);
+  if (!confirm(`Remover "${p?.nome}" da equipe?`)) return;
   try {
     await deleteProfissional(id);
-    showToast('Profissional removido.','success');
+    showToast('Profissional removido.', 'success');
     await loadAll();
-  } catch(err) { showToast(err.message,'error'); }
+  } catch (err) { showToast(err.message, 'error'); }
 };
 
 document.getElementById('salvar')?.addEventListener('click', async () => {
-  if (!adminMode) { showToast('Sem permissão.','warning'); return; }
+  if (!adminMode) { showToast('Sem permissão.', 'warning'); return; }
   const nome = document.getElementById('pNome').value.trim();
-  if (!nome) { showToast('Informe o nome.','warning'); return; }
+  if (!nome) { showToast('Informe o nome do profissional.', 'warning'); return; }
   const btn = document.getElementById('salvar'); btn.disabled = true;
   try {
+    // Resolve avatar_url: preset chosen or URL typed
+    const urlTyped = document.getElementById('pAvatarUrl').value.trim();
+    const avatarUrl = selectedPhotoUrl || urlTyped || null;
+
     const payload = {
       nome,
-      cargo:         document.getElementById('pCargo').value||null,
-      especialidade: document.getElementById('pEspecialidade').value||null,
-      telefone:      document.getElementById('pTelefone').value||null,
-      email:         document.getElementById('pEmail').value||null,
-      salario:       parseFloat(document.getElementById('pSalario').value)||0,
+      cargo:         document.getElementById('pCargo').value || null,
+      especialidade: document.getElementById('pEspecialidade').value || null,
+      telefone:      document.getElementById('pTelefone').value || null,
+      email:         document.getElementById('pEmail').value || null,
+      salario:       parseFloat(document.getElementById('pSalario').value) || 0,
       cor_agenda:    document.getElementById('pCor').value,
-      ativo:         document.getElementById('pAtivo').checked
+      ativo:         document.getElementById('pAtivo').checked,
+      avatar_url:    avatarUrl
     };
     if (editingId) {
       await updateProfissional(editingId, payload);
-      showToast('Profissional atualizado!','success');
+      showToast('Profissional atualizado!', 'success');
     } else {
       await createProfissional(payload);
-      showToast('Profissional adicionado!','success');
+      showToast('Profissional adicionado!', 'success');
     }
     closeModal();
     await loadAll();
-  } catch(err) { showToast(err.message,'error'); }
+  } catch (err) { showToast(err.message, 'error'); }
   finally { btn.disabled = false; }
 });
 

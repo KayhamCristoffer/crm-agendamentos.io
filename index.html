@@ -663,9 +663,25 @@ document.getElementById('submitRegisterBtn')?.addEventListener('click', async ()
     showBox('loginBox');
   } catch(err) {
     setLoading('submitRegisterBtn',false,regOrigText);
-    const msgs={'User already registered':'Este e-mail já está cadastrado.',
-      'Password should be at least 6':'Senha muito curta (mínimo 6 caracteres).'};
-    const msg = Object.entries(msgs).find(([k])=>err.message?.includes(k));
+    const isAlreadyReg = err.code === 'user_already_exists'
+      || err.message?.includes('User already registered')
+      || err.message?.includes('already registered')
+      || err.message?.includes('already been registered');
+    if (isAlreadyReg) {
+      // Show error AND auto-fill login box so user can sign in directly
+      showError('registerError',
+        'Este e-mail já está cadastrado. <a href="#" id="goLoginFromReg" style="color:var(--primary-light);font-weight:700">Entrar com este e-mail →</a>');
+      document.getElementById('goLoginFromReg')?.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        document.getElementById('loginEmail').value = email;
+        showBox('loginBox');
+        document.getElementById('loginPassword')?.focus();
+      });
+      return;
+    }
+    const msgs={'Password should be at least 6':'Senha muito curta (mínimo 6 caracteres).',
+      'weak_password':'Senha fraca. Use pelo menos 6 caracteres.'};
+    const msg = Object.entries(msgs).find(([k])=>err.message?.includes(k)||err.code?.includes(k));
     showError('registerError',msg?msg[1]:err.message);
   }
 });

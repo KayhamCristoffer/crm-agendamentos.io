@@ -8,35 +8,64 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css"/>
   <style>
-    /* Heatmap */
-    .heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:8px 0;}
-    .heatmap-labels{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;}
-    .heatmap-labels span{text-align:center;font-size:.66rem;color:var(--text3);font-weight:600;text-transform:uppercase;}
-    .heatmap-day{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;
-      font-size:.72rem;font-weight:600;cursor:pointer;transition:.15s;border:2px solid transparent;}
-    .heatmap-day:hover{border-color:var(--primary);}
-    .heatmap-day.empty{background:transparent;cursor:default;border:none;}
-    .heatmap-day.heat-0{background:var(--bg3);color:var(--text3);}
-    .heatmap-day.heat-1{background:rgba(99,102,241,.18);color:#a5b4fc;}
-    .heatmap-day.heat-2{background:rgba(99,102,241,.38);color:#c7d2fe;}
-    .heatmap-day.heat-3{background:rgba(99,102,241,.62);color:#e0e7ff;}
-    .heatmap-day.heat-4{background:rgba(99,102,241,.88);color:#fff;}
-    .heatmap-day.today{box-shadow:0 0 0 2px var(--secondary);}
-    .heatmap-day.past{opacity:.45;}
-    .heatmap-day.closed{background:repeating-linear-gradient(45deg,var(--bg3) 0,var(--bg3) 2px,transparent 2px,transparent 6px);
-      color:var(--text3);cursor:default;}
-    .heatmap-day.selected{border-color:var(--secondary);box-shadow:0 0 0 2px var(--secondary);}
-    /* Slots */
-    .slots-grid{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;}
-    .slot-btn{padding:6px 13px;border-radius:8px;border:1px solid var(--border);
-      background:var(--bg3);color:var(--text);font-size:.79rem;font-weight:600;cursor:pointer;transition:.15s;}
-    .slot-btn:hover{border-color:var(--primary);background:rgba(99,102,241,.12);}
-    .slot-btn.selected{background:var(--primary);color:#fff;border-color:var(--primary);}
-    .slot-btn.busy{opacity:.35;cursor:not-allowed;text-decoration:line-through;}
-    /* Service / Product rows in modal */
-    .svc-row{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:9px;}
-    .prod-row{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px;margin-bottom:8px;
-      display:grid;grid-template-columns:1fr 90px auto;gap:8px;align-items:end;}
+    /* ── Heatmap ── */
+    .heatmap-grid { display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:8px 0; }
+    .heatmap-labels { display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px; }
+    .heatmap-labels span { text-align:center;font-size:.65rem;color:var(--text3);font-weight:700;text-transform:uppercase; }
+    .heatmap-day {
+      aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;
+      font-size:.72rem;font-weight:600;cursor:pointer;transition:.15s;border:2px solid transparent;
+    }
+    .heatmap-day:hover:not(.empty):not(.closed):not(.past) { border-color:var(--primary); }
+    .heatmap-day.empty  { background:transparent;cursor:default;border:none; }
+    .heatmap-day.heat-0 { background:var(--bg3);color:var(--text3); }
+    .heatmap-day.heat-1 { background:rgba(99,102,241,.18);color:#a5b4fc; }
+    .heatmap-day.heat-2 { background:rgba(99,102,241,.38);color:#c7d2fe; }
+    .heatmap-day.heat-3 { background:rgba(99,102,241,.62);color:#e0e7ff; }
+    .heatmap-day.heat-4 { background:rgba(99,102,241,.88);color:#fff; }
+    .heatmap-day.today  { box-shadow:0 0 0 2px var(--secondary); }
+    .heatmap-day.past   { opacity:.4;cursor:not-allowed; }
+    .heatmap-day.closed {
+      background:repeating-linear-gradient(45deg,var(--bg3) 0,var(--bg3) 2px,transparent 2px,transparent 6px);
+      color:var(--text3);cursor:not-allowed;
+    }
+    .heatmap-day.selected { border-color:var(--secondary) !important;box-shadow:0 0 0 2px var(--secondary); }
+
+    /* ── Slots ── */
+    .cal-slots-layout { display:grid;grid-template-columns:1fr 280px;gap:16px;align-items:start; }
+    @media(max-width:700px){ .cal-slots-layout { grid-template-columns:1fr; } }
+    .slots-panel {
+      background:var(--bg3);border:1px solid var(--border);border-radius:12px;
+      padding:14px;min-height:200px;
+    }
+    .slots-panel h4 { font-size:.82rem;font-weight:700;margin-bottom:10px;color:var(--text); }
+    .slot-item {
+      display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;
+      margin-bottom:5px;cursor:pointer;transition:.15s;border:1px solid transparent;
+      font-size:.82rem;
+    }
+    .slot-item.livre  { background:var(--bg);border-color:var(--border); }
+    .slot-item.livre:hover  { border-color:var(--primary);background:rgba(99,102,241,.08); }
+    .slot-item.livre.selected { background:var(--primary);color:#fff;border-color:var(--primary); }
+    .slot-item.ocupado {
+      background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.2);
+      cursor:not-allowed;opacity:.75;
+    }
+    .slot-dot { width:9px;height:9px;border-radius:50%;flex-shrink:0; }
+    .slot-hora { font-weight:700;min-width:44px; }
+    .slot-info { font-size:.74rem;color:var(--text2);flex:1; }
+    .slot-item.livre.selected .slot-info { color:rgba(255,255,255,.8); }
+
+    /* ── Service rows ── */
+    .svc-row {
+      background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+      padding:13px;margin-bottom:9px;
+    }
+    .prod-row {
+      background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+      padding:11px;margin-bottom:8px;
+      display:grid;grid-template-columns:1fr 90px auto;gap:8px;align-items:end;
+    }
   </style>
 </head>
 <body>
@@ -50,7 +79,7 @@
         <div class="topbar-title"><h1>Agendamentos</h1><p>Gerencie os atendimentos</p></div>
       </div>
       <div class="topbar-actions">
-        <button class="btn btn-ghost btn-sm" id="btnRefresh" title="Atualizar">
+        <button class="btn btn-ghost btn-sm" id="btnRefresh">
           <i class="fas fa-sync-alt"></i> <span id="refreshCountdown">30s</span>
         </button>
         <button class="btn btn-primary btn-sm" id="btnNovo">
@@ -60,7 +89,6 @@
     </div>
 
     <div class="page-content">
-      <!-- Tabs -->
       <div class="tabs">
         <button class="tab-btn active" data-tab="lista">📋 Lista</button>
         <button class="tab-btn" data-tab="calendario">📅 Calendário</button>
@@ -128,82 +156,117 @@
       <button class="modal-close" id="closeModal"><i class="fas fa-times"></i></button>
     </div>
 
-    <!-- Cliente -->
-    <div class="form-row form-row-2">
-      <div class="form-group">
-        <label>Cliente *</label>
-        <select id="mCliente"><option value="">Selecione o cliente…</option></select>
-      </div>
-      <div class="form-group">
-        <label>Forma de Pagamento</label>
-        <select id="mPagamento">
-          <option value="dinheiro">Dinheiro</option>
-          <option value="pix">PIX</option>
-          <option value="cartao_debito">Cartão Débito</option>
-          <option value="cartao_credito">Cartão Crédito</option>
-          <option value="outros">Outros</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Para outro -->
+    <!-- Para quem? -->
     <div class="form-group">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px">
-        <input type="checkbox" id="mParaOutro" style="width:auto"/>
-        Agendar para outra pessoa
+      <label style="font-weight:700;font-size:.84rem;margin-bottom:8px;display:block">
+        <i class="fas fa-user" style="color:var(--primary-light)"></i> Para quem é o agendamento?
       </label>
-      <div id="mOutroWrap" style="display:none">
-        <input type="text" id="mNomeOutro" placeholder="Nome da pessoa que será atendida"/>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" id="btnParaMim" onclick="setParaQuem('eu')" style="flex:1;min-width:120px">
+          <i class="fas fa-user-check"></i> Para mim (cliente)
+        </button>
+        <button class="btn btn-ghost btn-sm" id="btnParaCliente" onclick="setParaQuem('cliente')" style="flex:1;min-width:120px">
+          <i class="fas fa-users"></i> Selecionar cliente
+        </button>
+        <button class="btn btn-ghost btn-sm" id="btnParaOutro" onclick="setParaQuem('outro')" style="flex:1;min-width:120px">
+          <i class="fas fa-user-friends"></i> Outra pessoa
+        </button>
       </div>
     </div>
 
-    <!-- Serviços (com duração) -->
+    <!-- Cliente select (shown when 'cliente' mode) -->
+    <div class="form-group" id="clienteWrap" style="display:none">
+      <label>Cliente *</label>
+      <select id="mCliente">
+        <option value="">Selecione o cliente…</option>
+      </select>
+    </div>
+
+    <!-- Para outro: nome livre -->
+    <div class="form-group" id="outroWrap" style="display:none">
+      <label>Nome da pessoa que será atendida *</label>
+      <input type="text" id="mNomeOutro" placeholder="Nome completo"/>
+    </div>
+
+    <!-- Info: cliente logado (shown when 'eu' mode) -->
+    <div id="euWrap" style="display:none;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);
+         border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:.84rem">
+      <i class="fas fa-user-circle" style="color:var(--primary-light)"></i>
+      <span id="euLabel" style="margin-left:6px;font-weight:600"></span>
+    </div>
+
+    <!-- Forma de pagamento -->
     <div class="form-group">
-      <label><i class="fas fa-cut" style="color:var(--primary-light)"></i> Serviços <small style="color:var(--text3)">(com duração)</small></label>
+      <label>Forma de Pagamento</label>
+      <select id="mPagamento">
+        <option value="dinheiro">Dinheiro</option>
+        <option value="pix">PIX</option>
+        <option value="cartao_debito">Cartão Débito</option>
+        <option value="cartao_credito">Cartão Crédito</option>
+        <option value="outros">Outros</option>
+      </select>
+    </div>
+
+    <!-- Serviços -->
+    <div class="form-group">
+      <label><i class="fas fa-cut" style="color:var(--primary-light)"></i> Serviços
+        <small style="color:var(--text3)">(com duração)</small></label>
       <div id="mServicosList"></div>
       <button class="btn btn-ghost btn-sm mt-8" id="mAddServico" type="button">
         <i class="fas fa-plus"></i> Adicionar serviço
       </button>
     </div>
 
-    <!-- Produtos (sem duração) -->
+    <!-- Produtos -->
     <div class="form-group">
-      <label><i class="fas fa-shopping-bag" style="color:var(--secondary)"></i> Produtos <small style="color:var(--text3)">(sem duração — opcional)</small></label>
+      <label><i class="fas fa-shopping-bag" style="color:var(--secondary)"></i> Produtos
+        <small style="color:var(--text3)">(sem duração — opcional)</small></label>
       <div id="mProdutosList"></div>
       <button class="btn btn-ghost btn-sm" id="mAddProduto" type="button">
         <i class="fas fa-plus"></i> Adicionar produto
       </button>
     </div>
 
-    <!-- Heatmap de seleção de data -->
+    <!-- Calendário + Slots lado a lado -->
     <div class="form-group">
-      <label><i class="fas fa-calendar-alt" style="color:var(--warning)"></i> Selecione a Data</label>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <button class="btn btn-ghost btn-sm" id="heatPrev"><i class="fas fa-chevron-left"></i></button>
-        <span id="heatTitle" style="flex:1;text-align:center;font-size:.88rem;font-weight:700"></span>
-        <button class="btn btn-ghost btn-sm" id="heatNext"><i class="fas fa-chevron-right"></i></button>
-      </div>
-      <div class="heatmap-labels">
-        <span>Dom</span><span>Seg</span><span>Ter</span>
-        <span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
-      </div>
-      <div class="heatmap-grid" id="heatGrid"></div>
-      <div style="display:flex;gap:14px;margin-top:6px;font-size:.71rem;color:var(--text2);flex-wrap:wrap">
-        <span><span style="display:inline-block;width:11px;height:11px;background:var(--bg3);border-radius:2px;margin-right:4px;vertical-align:middle"></span>Disponível</span>
-        <span><span style="display:inline-block;width:11px;height:11px;background:rgba(99,102,241,.6);border-radius:2px;margin-right:4px;vertical-align:middle"></span>Lotado</span>
-        <span><span style="display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:4px;vertical-align:middle;background:repeating-linear-gradient(45deg,var(--bg3) 0,var(--bg3) 2px,transparent 2px,transparent 5px);border:1px solid var(--border)"></span>Fechado</span>
-      </div>
-    </div>
+      <label><i class="fas fa-calendar-alt" style="color:var(--warning)"></i> Selecione a Data e Horário</label>
+      <div class="cal-slots-layout">
+        <!-- Calendário -->
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <button class="btn btn-ghost btn-sm" id="heatPrev"><i class="fas fa-chevron-left"></i></button>
+            <span id="heatTitle" style="flex:1;text-align:center;font-size:.85rem;font-weight:700"></span>
+            <button class="btn btn-ghost btn-sm" id="heatNext"><i class="fas fa-chevron-right"></i></button>
+          </div>
+          <div class="heatmap-labels">
+            <span>Dom</span><span>Seg</span><span>Ter</span>
+            <span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+          </div>
+          <div class="heatmap-grid" id="heatGrid"></div>
+          <div style="display:flex;gap:10px;margin-top:8px;font-size:.69rem;color:var(--text2);flex-wrap:wrap">
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--bg3);border-radius:2px;margin-right:3px;vertical-align:middle"></span>Livre</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:rgba(99,102,241,.6);border-radius:2px;margin-right:3px;vertical-align:middle"></span>Lotado</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:3px;vertical-align:middle;background:repeating-linear-gradient(45deg,var(--bg3) 0,var(--bg3) 2px,transparent 2px,transparent 5px);border:1px solid var(--border)"></span>Fechado</span>
+          </div>
+        </div>
 
-    <!-- Slots de horário -->
-    <div class="form-group" id="slotsWrap" style="display:none">
-      <label><i class="fas fa-clock" style="color:var(--secondary)"></i> Horários disponíveis — <span id="slotDate"></span></label>
-      <div class="slots-grid" id="slotsContainer"></div>
-      <div style="margin-top:10px;font-size:.78rem;color:var(--text2);display:flex;align-items:center;gap:8px">
-        Ou informe manualmente:
-        <input type="time" id="mHoraManual"
-          style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;
-                 padding:5px 8px;color:var(--text);font-size:.8rem"/>
+        <!-- Painel de Slots -->
+        <div class="slots-panel" id="slotsPanel">
+          <h4><i class="fas fa-clock" style="color:var(--secondary)"></i>
+            Horários — <span id="slotDate">selecione uma data</span>
+          </h4>
+          <div id="slotsContainer">
+            <p style="color:var(--text3);font-size:.8rem;text-align:center;margin-top:20px">
+              <i class="fas fa-arrow-left"></i> Clique em um dia
+            </p>
+          </div>
+          <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+            <label style="font-size:.74rem;color:var(--text2)">Ou informe manualmente:</label>
+            <input type="time" id="mHoraManual"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;
+                     padding:7px 10px;color:var(--text);font-size:.85rem;margin-top:4px"/>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -262,7 +325,7 @@ setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 4
 document.getElementById('logoutBtn')?.addEventListener('click', () =>
   import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href = 'index.html'));
 
-// ── Tabs ─────────────────────────────────────────────────────
+// ── Tabs ──────────────────────────────────────────────────────
 document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
@@ -273,7 +336,7 @@ document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
   });
 });
 
-// ── Auto-refresh every 30s ────────────────────────────────────
+// ── Auto-refresh 30s ──────────────────────────────────────────
 let countdown = 30;
 const countdownEl = document.getElementById('refreshCountdown');
 function tickCountdown() {
@@ -292,21 +355,26 @@ document.addEventListener('visibilitychange', () => {
   else { countdown = 30; loadAll(); countdownTimer = setInterval(tickCountdown, 1000); }
 });
 
-// ── State ────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────
 let allAgs = [], filteredAgs = [], equipe = [], clientes = [], servicos = [], horarios = [];
-let currentPage = 1, perPage = 20;
+let currentPage = 1; const perPage = 20;
 let calYear = new Date().getFullYear(), calMonth = new Date().getMonth() + 1;
 let heatYear = new Date().getFullYear(), heatMonth = new Date().getMonth() + 1;
 let selectedDate = null, selectedTime = null;
+// "paraQuem" modes: 'eu' = current user's client, 'cliente' = select from list, 'outro' = free text
+let paraQuemMode = 'eu';
+let myClienteId  = null; // client record matching current user email
 
-// ── Load all data ─────────────────────────────────────────────
+// ── Load all ──────────────────────────────────────────────────
 async function loadAll() {
   try {
     [equipe, clientes, servicos, horarios] = await Promise.all([
       getAllEquipe(), getAllClientes(), getAllServicos(), getHorarios()
     ]);
 
-    // Populate prof filter
+    // Try to find current user's client record
+    myClienteId = clientes.find(c => c.email === user.email || c.email === profile?.email)?.id || null;
+
     const selProf = document.getElementById('filterProf');
     const curVal  = selProf.value;
     selProf.innerHTML = '<option value="">Todos profissionais</option>' +
@@ -314,8 +382,16 @@ async function loadAll() {
     if (curVal) selProf.value = curVal;
 
     allAgs = await getAllAgendamentos({});
-    // Non-admin: only show agendamentos they created
+    // Non-admins only see their own appointments
     if (!adminMode) allAgs = allAgs.filter(a => a.criado_por === user.id);
+
+    // Update pending badge in sidebar
+    const pendentes = allAgs.filter(a => a.status === 'pendente').length;
+    const badge = document.getElementById('badgePendentes');
+    if (badge) {
+      badge.style.display = pendentes > 0 ? '' : 'none';
+      badge.textContent = pendentes > 99 ? '99+' : pendentes;
+    }
 
     applyFilters();
   } catch (err) {
@@ -330,7 +406,6 @@ function applyFilters() {
   const status = document.getElementById('filterStatus').value;
   const profId = document.getElementById('filterProf').value;
   const data   = document.getElementById('filterData').value;
-
   filteredAgs = allAgs.filter(a => {
     if (search && !a.clientes?.nome?.toLowerCase().includes(search)) return false;
     if (status && a.status !== status) return false;
@@ -346,7 +421,6 @@ function render() {
   const start = (currentPage - 1) * perPage;
   const page  = filteredAgs.slice(start, start + perPage);
   const tbody = document.getElementById('tbodyAgs');
-
   if (!filteredAgs.length) {
     tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">
       <i class="fas fa-calendar-times"></i><h3>Nenhum agendamento encontrado</h3>
@@ -357,7 +431,6 @@ function render() {
       const servNomes = ag.agendamento_servicos?.map(s => s.servicos?.nome || '').filter(Boolean).join(', ') || '—';
       const profNome  = ag.agendamento_servicos?.map(s => s.equipe?.nome || '').filter(Boolean).join(', ') || '—';
       const cor       = ag.agendamento_servicos?.[0]?.equipe?.cor_agenda || '#6366f1';
-      const canEdit   = adminMode || ag.status === 'pendente';
       return `<tr>
         <td>
           <strong>${ag.clientes?.nome || '—'}</strong>
@@ -377,9 +450,6 @@ function render() {
           <button class="btn btn-ghost btn-sm btn-icon" onclick="verDetalhes('${ag.id}')" title="Ver detalhes">
             <i class="fas fa-eye"></i>
           </button>
-          ${canEdit && adminMode ? `<button class="btn btn-ghost btn-sm btn-icon" onclick="verDetalhes('${ag.id}')" title="Alterar status">
-            <i class="fas fa-exchange-alt"></i>
-          </button>` : ''}
         </td>
       </tr>`;
     }).join('');
@@ -390,23 +460,23 @@ function render() {
 function renderPagination() {
   const total = Math.ceil(filteredAgs.length / perPage);
   if (total <= 1) { document.getElementById('paginacao').innerHTML = ''; return; }
-  let html = `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="goPage(${currentPage - 1})"><i class="fas fa-chevron-left"></i></button>`;
+  let html = `<button class="page-btn" ${currentPage===1?'disabled':''} onclick="goPage(${currentPage-1})"><i class="fas fa-chevron-left"></i></button>`;
   for (let p = 1; p <= total; p++) {
-    if (p === 1 || p === total || Math.abs(p - currentPage) <= 1)
-      html += `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="goPage(${p})">${p}</button>`;
-    else if (Math.abs(p - currentPage) === 2)
+    if (p===1||p===total||Math.abs(p-currentPage)<=1)
+      html += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+    else if (Math.abs(p-currentPage)===2)
       html += `<span style="padding:0 4px;color:var(--text3)">…</span>`;
   }
-  html += `<button class="page-btn" ${currentPage === total ? 'disabled' : ''} onclick="goPage(${currentPage + 1})"><i class="fas fa-chevron-right"></i></button>`;
+  html += `<button class="page-btn" ${currentPage===total?'disabled':''} onclick="goPage(${currentPage+1})"><i class="fas fa-chevron-right"></i></button>`;
   document.getElementById('paginacao').innerHTML = html;
 }
 window.goPage = p => { currentPage = p; render(); };
 
-['filterStatus', 'filterProf', 'filterData'].forEach(id =>
+['filterStatus','filterProf','filterData'].forEach(id =>
   document.getElementById(id)?.addEventListener('change', applyFilters));
 document.getElementById('searchInput')?.addEventListener('input', applyFilters);
 document.getElementById('clearFilters')?.addEventListener('click', () => {
-  ['searchInput', 'filterStatus', 'filterProf', 'filterData'].forEach(id => {
+  ['searchInput','filterStatus','filterProf','filterData'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   applyFilters();
@@ -415,27 +485,24 @@ document.getElementById('clearFilters')?.addEventListener('click', () => {
 // ── Calendário ────────────────────────────────────────────────
 async function renderCalendar() {
   document.getElementById('calTitle').textContent =
-    new Date(calYear, calMonth - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-  const heatmap   = await getHeatmapDoMes(calYear, calMonth);
-  const firstDay  = new Date(calYear, calMonth - 1, 1).getDay();
-  const daysInMon = new Date(calYear, calMonth, 0).getDate();
-  const today     = new Date();
-
+    new Date(calYear, calMonth-1, 1).toLocaleDateString('pt-BR', {month:'long',year:'numeric'});
+  const heatmap  = await getHeatmapDoMes(calYear, calMonth);
+  const firstDay = new Date(calYear, calMonth-1, 1).getDay();
+  const daysInM  = new Date(calYear, calMonth, 0).getDate();
+  const today    = new Date();
   let html = '';
   for (let i = 0; i < firstDay; i++) html += '<div class="heatmap-day empty"></div>';
-  for (let d = 1; d <= daysInMon; d++) {
+  for (let d = 1; d <= daysInM; d++) {
     const count   = heatmap[d] || 0;
-    const heat    = count === 0 ? 0 : count <= 2 ? 1 : count <= 4 ? 2 : count <= 7 ? 3 : 4;
-    const date    = new Date(calYear, calMonth - 1, d);
-    const isToday = date.toDateString() === today.toDateString();
-    const isPast  = date < new Date(today.toDateString());
+    const heat    = count===0?0:count<=2?1:count<=4?2:count<=7?3:4;
+    const date    = new Date(calYear, calMonth-1, d);
+    const isToday = date.toDateString()===today.toDateString();
+    const isPast  = date<new Date(today.toDateString());
     const dow     = date.getDay();
-    const horar   = horarios.find(x => x.dia_semana === dow);
+    const horar   = horarios.find(x => x.dia_semana===dow);
     const closed  = horar && !horar.aberto;
     let cls = `heatmap-day heat-${heat}`;
-    if (isToday) cls += ' today';
-    if (isPast)  cls += ' past';
-    if (closed)  cls += ' closed';
+    if (isToday) cls += ' today'; if (isPast) cls += ' past'; if (closed) cls += ' closed';
     html += `<div class="${cls}" onclick="showCalDay(${calYear},${calMonth},${d})" title="${count} agendamento(s)">${d}</div>`;
   }
   document.getElementById('calGrid').innerHTML = html;
@@ -445,41 +512,74 @@ async function renderCalendar() {
 window.showCalDay = async (y, m, d) => {
   const ags = allAgs.filter(a => {
     const dt = new Date(a.data_hora);
-    return dt.getFullYear() === y && dt.getMonth() + 1 === m && dt.getDate() === d;
+    return dt.getFullYear()===y && dt.getMonth()+1===m && dt.getDate()===d;
   });
-  const dateStr = new Date(y, m - 1, d).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+  const dateStr = new Date(y,m-1,d).toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
   const el = document.getElementById('calDayDetail');
-  if (!ags.length) {
-    el.innerHTML = `<div class="card" style="padding:14px"><p style="color:var(--text2)">📭 Nenhum agendamento em ${dateStr}.</p></div>`;
-    return;
+
+  // Build side-by-side: appointments list + hourly timeline
+  let timelineHtml = '';
+  const hours = {};
+  ags.forEach(ag => {
+    const h = new Date(ag.data_hora).getHours();
+    if (!hours[h]) hours[h] = [];
+    hours[h].push(ag);
+  });
+
+  for (let h = 7; h <= 20; h++) {
+    const hAgs = hours[h] || [];
+    timelineHtml += `<div style="display:flex;gap:8px;min-height:36px;padding:3px 0;
+        border-bottom:1px solid var(--border);align-items:flex-start">
+      <span style="width:40px;font-size:.74rem;color:var(--text3);padding-top:4px;flex-shrink:0">${String(h).padStart(2,'0')}:00</span>
+      <div style="flex:1">
+        ${hAgs.map(ag => {
+          const st = STATUS_LABELS[ag.status]||{};
+          const servN = ag.agendamento_servicos?.map(s=>s.servicos?.nome||'').filter(Boolean).join(', ')||'—';
+          return `<div onclick="verDetalhes('${ag.id}')" style="background:${st.color}22;border-left:3px solid ${st.color};
+              border-radius:5px;padding:4px 8px;margin-bottom:3px;cursor:pointer;font-size:.77rem">
+            <strong>${ag.clientes?.nome||'—'}</strong> · ${servN}
+            <span class="badge" style="background:${st.color}22;color:${st.color};font-size:.65rem;margin-left:4px">${st.icon||''} ${st.label||ag.status}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
   }
+
   el.innerHTML = `<div class="card">
-    <div class="card-header"><span class="card-title">📅 ${dateStr} — ${ags.length} agendamento(s)</span></div>
-    ${ags.map(ag => {
-      const st = STATUS_LABELS[ag.status] || {};
-      const servNomes = ag.agendamento_servicos?.map(s => s.servicos?.nome || '').filter(Boolean).join(', ') || '—';
-      return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);
-                  align-items:center;cursor:pointer" onclick="verDetalhes('${ag.id}')">
-        <div style="font-size:.82rem;color:var(--text2);white-space:nowrap;min-width:50px">${formatTime(ag.data_hora)}</div>
-        <div style="flex:1">
-          <div style="font-weight:600;font-size:.87rem">${ag.clientes?.nome || '—'}</div>
-          <div style="font-size:.75rem;color:var(--text2)">${servNomes}</div>
-        </div>
-        <span class="badge" style="background:${st.color}22;color:${st.color};font-size:.68rem">${st.icon || ''} ${st.label || ag.status}</span>
-      </div>`;
-    }).join('')}
+    <div class="card-header">
+      <span class="card-title">📅 ${dateStr} — ${ags.length} agendamento(s)</span>
+    </div>
+    <div style="max-height:400px;overflow-y:auto;padding:8px 0">
+      ${timelineHtml || '<p style="color:var(--text3);font-size:.84rem;padding:12px 0">Nenhum agendamento neste dia.</p>'}
+    </div>
   </div>`;
 };
 
 document.getElementById('prevMonth')?.addEventListener('click', () => {
-  calMonth--; if (calMonth < 1) { calMonth = 12; calYear--; } renderCalendar();
+  calMonth--; if (calMonth<1){calMonth=12;calYear--;} renderCalendar();
 });
 document.getElementById('nextMonth')?.addEventListener('click', () => {
-  calMonth++; if (calMonth > 12) { calMonth = 1; calYear++; } renderCalendar();
+  calMonth++; if (calMonth>12){calMonth=1;calYear++;} renderCalendar();
 });
 document.getElementById('todayBtn')?.addEventListener('click', () => {
-  calYear = new Date().getFullYear(); calMonth = new Date().getMonth() + 1; renderCalendar();
+  calYear=new Date().getFullYear(); calMonth=new Date().getMonth()+1; renderCalendar();
 });
+
+// ── Modal: para quem ──────────────────────────────────────────
+window.setParaQuem = (mode) => {
+  paraQuemMode = mode;
+  ['btnParaMim','btnParaCliente','btnParaOutro'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.className = 'btn btn-ghost btn-sm'; el.style.flex='1';el.style.minWidth='120px'; }
+  });
+  const activeMap = { eu:'btnParaMim', cliente:'btnParaCliente', outro:'btnParaOutro' };
+  const activeBtn = document.getElementById(activeMap[mode]);
+  if (activeBtn) activeBtn.className = 'btn btn-secondary btn-sm';
+
+  document.getElementById('clienteWrap').style.display = mode==='cliente' ? '' : 'none';
+  document.getElementById('outroWrap').style.display   = mode==='outro'   ? '' : 'none';
+  document.getElementById('euWrap').style.display      = mode==='eu'      ? '' : 'none';
+};
 
 // ── Modal Novo Agendamento ─────────────────────────────────────
 let svcRows = [], prodRows = [];
@@ -487,25 +587,41 @@ let svcRows = [], prodRows = [];
 function openModal() {
   svcRows = []; prodRows = [];
   selectedDate = null; selectedTime = null;
-  heatYear = new Date().getFullYear(); heatMonth = new Date().getMonth() + 1;
+  heatYear = new Date().getFullYear(); heatMonth = new Date().getMonth()+1;
+  paraQuemMode = 'eu';
 
-  // Populate client select
-  document.getElementById('mCliente').innerHTML =
-    '<option value="">Selecione o cliente…</option>' +
-    clientes.map(c => `<option value="${c.id}">${c.nome}${c.telefone ? ' (' + c.telefone + ')' : ''}</option>`).join('');
+  // Populate client select for admin/atendente
+  const selCliente = document.getElementById('mCliente');
+  selCliente.innerHTML = '<option value="">Selecione o cliente…</option>' +
+    clientes.map(c => `<option value="${c.id}">${c.nome}${c.telefone?' ('+c.telefone+')':''}</option>`).join('');
+
+  // Pre-select current user's client if available
+  if (myClienteId) {
+    document.getElementById('euLabel').textContent =
+      clientes.find(c=>c.id===myClienteId)?.nome || profile?.nome || user.email;
+  }
+
+  // Default mode: 'eu' if they have a client record; 'cliente' for admins without one
+  if (!myClienteId) {
+    paraQuemMode = 'cliente';
+  }
+  setParaQuem(paraQuemMode);
 
   document.getElementById('mServicosList').innerHTML = '';
   document.getElementById('mProdutosList').innerHTML = '';
-  document.getElementById('slotsWrap').style.display = 'none';
-  document.getElementById('mResumo').style.display   = 'none';
-  document.getElementById('mParaOutro').checked      = false;
-  document.getElementById('mOutroWrap').style.display = 'none';
-  document.getElementById('mObs').value   = '';
+  document.getElementById('slotsContainer').innerHTML =
+    '<p style="color:var(--text3);font-size:.8rem;text-align:center;margin-top:20px"><i class="fas fa-arrow-left"></i> Clique em um dia</p>';
+  document.getElementById('slotDate').textContent = 'selecione uma data';
+  document.getElementById('mResumo').style.display  = 'none';
+  document.getElementById('mObs').value = '';
   document.getElementById('mHoraManual').value = '';
+  document.getElementById('mNomeOutro').value = '';
 
-  // Pre-select client from URL
   const urlCliente = new URLSearchParams(location.search).get('cliente');
-  if (urlCliente) document.getElementById('mCliente').value = urlCliente;
+  if (urlCliente) {
+    selCliente.value = urlCliente;
+    setParaQuem('cliente');
+  }
 
   renderHeatmap();
   addSvcRow();
@@ -516,32 +632,31 @@ function openModal() {
 // ── Heatmap picker ────────────────────────────────────────────
 async function renderHeatmap() {
   document.getElementById('heatTitle').textContent =
-    new Date(heatYear, heatMonth - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    new Date(heatYear, heatMonth-1, 1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   const heatmap  = await getHeatmapDoMes(heatYear, heatMonth);
-  const firstDay = new Date(heatYear, heatMonth - 1, 1).getDay();
+  const firstDay = new Date(heatYear, heatMonth-1, 1).getDay();
   const days     = new Date(heatYear, heatMonth, 0).getDate();
   const today    = new Date();
-
   let html = '';
   for (let i = 0; i < firstDay; i++) html += '<div class="heatmap-day empty"></div>';
   for (let d = 1; d <= days; d++) {
-    const count   = heatmap[d] || 0;
-    const heat    = count === 0 ? 0 : count <= 2 ? 1 : count <= 4 ? 2 : count <= 7 ? 3 : 4;
-    const date    = new Date(heatYear, heatMonth - 1, d);
-    const isToday = date.toDateString() === today.toDateString();
-    const isPast  = date < new Date(today.toDateString());
+    const count   = heatmap[d]||0;
+    const heat    = count===0?0:count<=2?1:count<=4?2:count<=7?3:4;
+    const date    = new Date(heatYear, heatMonth-1, d);
+    const isToday = date.toDateString()===today.toDateString();
+    const isPast  = date<new Date(today.toDateString());
     const dow     = date.getDay();
-    const horar   = horarios.find(x => x.dia_semana === dow);
-    const closed  = horar && !horar.aberto;
+    const horar   = horarios.find(x=>x.dia_semana===dow);
+    const closed  = horar&&!horar.aberto;
     const dateKey = `${heatYear}-${String(heatMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const isSel   = selectedDate === dateKey;
+    const isSel   = selectedDate===dateKey;
     let cls = `heatmap-day heat-${heat}`;
-    if (isToday) cls += ' today';
-    if (isPast && !isToday) cls += ' past';
-    if (closed) cls += ' closed';
-    if (isSel)  cls += ' selected';
+    if (isToday) cls+=' today';
+    if (isPast&&!isToday) cls+=' past';
+    if (closed) cls+=' closed';
+    if (isSel)  cls+=' selected';
     const clickable = !isPast && !closed;
-    html += `<div class="${cls}" ${clickable ? `onclick="selectDate(${heatYear},${heatMonth},${d})"` : ''} title="${count} agendamento(s)">${d}</div>`;
+    html += `<div class="${cls}" ${clickable?`onclick="selectDate(${heatYear},${heatMonth},${d})"`:''} title="${count} agendamento(s)">${d}</div>`;
   }
   document.getElementById('heatGrid').innerHTML = html;
 }
@@ -552,51 +667,100 @@ window.selectDate = async (y, m, d) => {
   document.getElementById('mHoraManual').value = '';
   await renderHeatmap();
 
-  // Get first profissional & duration
-  const validSvc = svcRows.filter(Boolean).filter(s => s.servico_id);
+  // Get first profissional & total duration
+  const validSvc = svcRows.filter(Boolean).filter(s=>s.servico_id);
   const profId   = validSvc[0]?.profissional_id || null;
-  const durMin   = validSvc.reduce((a, s) => a + (s.duracao_min || 60), 0) || 60;
+  const durMin   = validSvc.reduce((a,s)=>a+(s.duracao_min||60),0)||60;
 
-  const slots = await getSlotsDisponiveis(selectedDate, profId, durMin);
-  const slotsWrap = document.getElementById('slotsWrap');
-  slotsWrap.style.display = '';
   document.getElementById('slotDate').textContent =
-    new Date(y, m - 1, d).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+    new Date(y,m-1,d).toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
 
   const container = document.getElementById('slotsContainer');
+  container.innerHTML = '<div style="text-align:center;padding:20px"><i class="fas fa-circle-notch spin" style="color:var(--primary)"></i></div>';
+
+  // getSlotsDisponiveis retorna TODOS os slots (livres e ocupados)
+  const slots = await getSlotsDisponiveis(selectedDate, profId, durMin);
+
   if (!slots.length) {
-    container.innerHTML = '<p style="color:var(--text2);font-size:.84rem"><i class="fas fa-exclamation-circle"></i> Nenhum horário disponível neste dia.</p>';
+    container.innerHTML = '<p style="color:var(--text2);font-size:.84rem;text-align:center"><i class="fas fa-store-slash"></i><br>Estabelecimento fechado neste dia.</p>';
     return;
   }
-  container.innerHTML = slots.map(s =>
-    `<button class="slot-btn${selectedTime === s.hora ? ' selected' : ''}" onclick="selectSlot('${s.hora}','${s.iso}')">${s.hora}</button>`
-  ).join('');
+
+  // Build profissional name map
+  const profMap = {};
+  equipe.forEach(e => { profMap[e.id] = e.nome; });
+
+  // For non-admin: hide detail of WHO is occupying (privacy), just show "Ocupado"
+  // For admin: show professional name + hint to pick another slot
+  container.innerHTML = slots.map(s => {
+    if (s.livre) {
+      return `<div class="slot-item livre${selectedTime===s.hora?' selected':''}" onclick="selectSlot('${s.hora}','${s.iso}')">
+        <span class="slot-dot" style="background:#10b981"></span>
+        <span class="slot-hora">${s.hora}</span>
+        <span class="slot-info">Disponível · ${durMin}min</span>
+        <i class="fas fa-check" style="color:#10b981;font-size:.7rem"></i>
+      </div>`;
+    } else {
+      const profNomes = adminMode
+        ? (s.profissionais_ocupados||[]).map(id=>profMap[id]||'Profissional').join(', ')
+        : '';
+      const tooltip = adminMode ? `Ocupado — ${profNomes || 'Profissional indisponível'}` : 'Horário indisponível';
+      const infoText = profNomes
+        ? `<span class="slot-info" style="color:#ef4444">Ocupado · <strong>${profNomes}</strong></span>`
+        : `<span class="slot-info">Indisponível</span>`;
+      // Admin: suggest picking another slot/professional
+      const adminHint = adminMode && profNomes
+        ? `<span style="font-size:.68rem;color:var(--warning);margin-left:4px" title="Escolha outro horário ou profissional">⚠️</span>`
+        : '';
+      return `<div class="slot-item ocupado" title="${tooltip}">
+        <span class="slot-dot" style="background:#ef4444"></span>
+        <span class="slot-hora">${s.hora}</span>
+        ${infoText}${adminHint}
+        <i class="fas fa-times" style="color:#ef4444;font-size:.7rem"></i>
+      </div>`;
+    }
+  }).join('');
+
+  // Summary: how many slots available
+  const livresCount = slots.filter(s=>s.livre).length;
+  if (livresCount === 0) {
+    container.innerHTML += `<div style="margin-top:10px;padding:8px;background:rgba(239,68,68,.1);border-radius:8px;font-size:.78rem;color:#ef4444;text-align:center">
+      <i class="fas fa-calendar-times"></i> Nenhum horário disponível neste dia${profId?' para este profissional':''}.
+      ${profId ? '<br><small>Tente outro profissional ou outra data.</small>' : ''}
+    </div>`;
+  }
+
   updateResumo();
 };
 
 window.selectSlot = (hora, iso) => {
   selectedTime = hora;
-  document.querySelectorAll('.slot-btn').forEach(b =>
-    b.classList.toggle('selected', b.textContent.trim() === hora));
+  document.querySelectorAll('.slot-item.livre').forEach(b => {
+    b.classList.toggle('selected', b.querySelector('.slot-hora')?.textContent.trim()===hora);
+  });
   document.getElementById('mHoraManual').value = hora;
   updateResumo();
 };
 
-document.getElementById('heatPrev')?.addEventListener('click', () => {
-  heatMonth--; if (heatMonth < 1) { heatMonth = 12; heatYear--; } renderHeatmap();
-});
-document.getElementById('heatNext')?.addEventListener('click', () => {
-  heatMonth++; if (heatMonth > 12) { heatMonth = 1; heatYear++; } renderHeatmap();
+document.getElementById('mHoraManual')?.addEventListener('change', function() {
+  if (this.value) {
+    selectedTime = this.value;
+    document.querySelectorAll('.slot-item.livre').forEach(b => b.classList.remove('selected'));
+    updateResumo();
+  }
 });
 
-// Para outro
-document.getElementById('mParaOutro')?.addEventListener('change', e =>
-  document.getElementById('mOutroWrap').style.display = e.target.checked ? '' : 'none');
+document.getElementById('heatPrev')?.addEventListener('click', () => {
+  heatMonth--; if(heatMonth<1){heatMonth=12;heatYear--;} renderHeatmap();
+});
+document.getElementById('heatNext')?.addEventListener('click', () => {
+  heatMonth++; if(heatMonth>12){heatMonth=1;heatYear++;} renderHeatmap();
+});
 
 // ── Serviço rows ──────────────────────────────────────────────
 function addSvcRow() {
   const idx = svcRows.length;
-  svcRows.push({ servico_id: null, profissional_id: null, preco: 0, duracao_min: 60 });
+  svcRows.push({ servico_id:null, profissional_id:null, preco:0, duracao_min:60 });
   const div = document.createElement('div');
   div.id = `svcRow-${idx}`;
   div.className = 'svc-row';
@@ -606,9 +770,9 @@ function addSvcRow() {
         <label style="font-size:.76rem">Serviço *</label>
         <select onchange="onSvcChange(${idx},this)">
           <option value="">Selecione…</option>
-          ${servicos.filter(s => s.categoria === 'servico').map(s =>
-            `<option value="${s.id}" data-preco="${s.preco}" data-dur="${s.duracao_min || 60}">
-              ${s.icone || ''} ${s.nome} — ${formatCurrency(s.preco)} (${s.duracao_min || 60}min)
+          ${servicos.filter(s=>s.categoria==='servico').map(s=>
+            `<option value="${s.id}" data-preco="${s.preco}" data-dur="${s.duracao_min||60}">
+              ${s.icone||''} ${s.nome} — ${formatCurrency(s.preco)} (${s.duracao_min||60}min)
             </option>`).join('')}
         </select>
       </div>
@@ -616,7 +780,7 @@ function addSvcRow() {
         <label style="font-size:.76rem">Profissional</label>
         <select onchange="onSvcProf(${idx},this)">
           <option value="">Qualquer profissional</option>
-          ${equipe.map(e => `<option value="${e.id}" style="color:${e.cor_agenda}">${e.nome}</option>`).join('')}
+          ${equipe.map(e=>`<option value="${e.id}" style="color:${e.cor_agenda}">${e.nome}</option>`).join('')}
         </select>
       </div>
       <button class="btn btn-ghost btn-sm btn-icon" style="color:var(--danger);margin-top:20px"
@@ -629,13 +793,22 @@ function addSvcRow() {
 
 window.onSvcChange = (idx, sel) => {
   const opt = sel.selectedOptions[0];
-  svcRows[idx].servico_id  = sel.value || null;
-  svcRows[idx].preco       = parseFloat(opt?.dataset?.preco || 0);
-  svcRows[idx].duracao_min = parseInt(opt?.dataset?.dur || 60);
+  svcRows[idx].servico_id  = sel.value||null;
+  svcRows[idx].preco       = parseFloat(opt?.dataset?.preco||0);
+  svcRows[idx].duracao_min = parseInt(opt?.dataset?.dur||60);
   updateResumo();
+  // Re-fetch slots if date already selected
+  if (selectedDate) {
+    const [y,m,d] = selectedDate.split('-').map(Number);
+    selectDate(y,m,d);
+  }
 };
 window.onSvcProf = (idx, sel) => {
-  svcRows[idx].profissional_id = sel.value || null;
+  svcRows[idx].profissional_id = sel.value||null;
+  if (selectedDate) {
+    const [y,m,d] = selectedDate.split('-').map(Number);
+    selectDate(y,m,d);
+  }
 };
 window.removeSvcRow = (idx) => {
   document.getElementById(`svcRow-${idx}`)?.remove();
@@ -647,7 +820,7 @@ document.getElementById('mAddServico')?.addEventListener('click', addSvcRow);
 // ── Produto rows ──────────────────────────────────────────────
 function addProdRow() {
   const idx = prodRows.length;
-  prodRows.push({ servico_id: null, quantidade: 1, preco_unitario: 0 });
+  prodRows.push({ servico_id:null, quantidade:1, preco_unitario:0 });
   const div = document.createElement('div');
   div.id = `prodRow-${idx}`;
   div.className = 'prod-row';
@@ -656,12 +829,12 @@ function addProdRow() {
       <label style="font-size:.76rem">Produto</label>
       <select onchange="onProdChange(${idx},this)">
         <option value="">Selecione…</option>
-        ${servicos.filter(s => s.categoria === 'produto').map(s =>
-          `<option value="${s.id}" data-preco="${s.preco}">${s.icone || ''} ${s.nome} — ${formatCurrency(s.preco)}</option>`).join('')}
+        ${servicos.filter(s=>s.categoria==='produto').map(s=>
+          `<option value="${s.id}" data-preco="${s.preco}">${s.icone||''} ${s.nome} — ${formatCurrency(s.preco)}</option>`).join('')}
       </select>
     </div>
     <div class="form-group" style="margin:0">
-      <label style="font-size:.76rem">Quantidade</label>
+      <label style="font-size:.76rem">Qtde</label>
       <input type="number" min="1" value="1"
         style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text)"
         onchange="onQtdeChange(${idx},this)"/>
@@ -672,56 +845,47 @@ function addProdRow() {
     </button>`;
   document.getElementById('mProdutosList').appendChild(div);
 }
-
 window.onProdChange = (idx, sel) => {
   const opt = sel.selectedOptions[0];
-  prodRows[idx].servico_id     = sel.value || null;
-  prodRows[idx].preco_unitario = parseFloat(opt?.dataset?.preco || 0);
+  prodRows[idx].servico_id     = sel.value||null;
+  prodRows[idx].preco_unitario = parseFloat(opt?.dataset?.preco||0);
   updateResumo();
 };
-window.onQtdeChange = (idx, inp) => {
-  prodRows[idx].quantidade = parseInt(inp.value) || 1;
-  updateResumo();
-};
-window.removeProdRow = (idx) => {
-  document.getElementById(`prodRow-${idx}`)?.remove();
-  prodRows[idx] = null;
-  updateResumo();
-};
+window.onQtdeChange = (idx, inp) => { prodRows[idx].quantidade=parseInt(inp.value)||1; updateResumo(); };
+window.removeProdRow = (idx) => { document.getElementById(`prodRow-${idx}`)?.remove(); prodRows[idx]=null; updateResumo(); };
 document.getElementById('mAddProduto')?.addEventListener('click', addProdRow);
 
 // ── Resumo ────────────────────────────────────────────────────
 function updateResumo() {
-  const validSvc  = svcRows.filter(Boolean).filter(s => s.servico_id);
-  const validProd = prodRows.filter(Boolean).filter(p => p.servico_id);
-  if (!validSvc.length && !validProd.length) {
-    document.getElementById('mResumo').style.display = 'none'; return;
-  }
-  const totalSvc  = validSvc.reduce((a, s) => a + s.preco, 0);
-  const totalProd = validProd.reduce((a, p) => a + (p.preco_unitario * p.quantidade), 0);
-  const total     = totalSvc + totalProd;
+  const validSvc  = svcRows.filter(Boolean).filter(s=>s.servico_id);
+  const validProd = prodRows.filter(Boolean).filter(p=>p.servico_id);
+  if (!validSvc.length&&!validProd.length) { document.getElementById('mResumo').style.display='none'; return; }
+
+  const totalSvc  = validSvc.reduce((a,s)=>a+s.preco,0);
+  const totalProd = validProd.reduce((a,p)=>a+(p.preco_unitario*p.quantidade),0);
+  const total     = totalSvc+totalProd;
 
   let lines = validSvc.map(s => {
-    const svcNome  = servicos.find(x => x.id === s.servico_id)?.nome || 'Serviço';
-    const profNome = equipe.find(x => x.id === s.profissional_id)?.nome || 'Qualquer profissional';
+    const svcNome  = servicos.find(x=>x.id===s.servico_id)?.nome||'Serviço';
+    const profNome = equipe.find(x=>x.id===s.profissional_id)?.nome||'Qualquer profissional';
     return `<div style="display:flex;justify-content:space-between">
-      <span>✂️ ${svcNome} <span style="color:var(--text3)">(${profNome})</span></span>
+      <span>✂️ ${svcNome} <span style="color:var(--text3)">(${profNome} · ${s.duracao_min}min)</span></span>
       <span>${formatCurrency(s.preco)}</span></div>`;
   }).join('');
 
   lines += validProd.map(p => {
-    const prodNome = servicos.find(x => x.id === p.servico_id)?.nome || 'Produto';
+    const prodNome = servicos.find(x=>x.id===p.servico_id)?.nome||'Produto';
     return `<div style="display:flex;justify-content:space-between">
       <span>🛍️ ${prodNome} ×${p.quantidade}</span>
-      <span>${formatCurrency(p.preco_unitario * p.quantidade)}</span></div>`;
+      <span>${formatCurrency(p.preco_unitario*p.quantidade)}</span></div>`;
   }).join('');
 
   lines += `<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);
     margin-top:8px;padding-top:8px;font-weight:700">
     <span>Total</span><span style="color:var(--secondary)">${formatCurrency(total)}</span></div>`;
 
-  if (selectedDate && (selectedTime || document.getElementById('mHoraManual').value)) {
-    const hora = selectedTime || document.getElementById('mHoraManual').value;
+  const hora = selectedTime || document.getElementById('mHoraManual').value;
+  if (selectedDate && hora) {
     lines += `<div style="margin-top:6px;color:var(--primary-light);font-size:.8rem">
       <i class="fas fa-clock"></i> ${selectedDate} às ${hora}</div>`;
   }
@@ -738,14 +902,42 @@ document.getElementById('cancelModal')?.addEventListener('click', closeModal);
 
 // ── Salvar Agendamento ────────────────────────────────────────
 document.getElementById('salvar')?.addEventListener('click', async () => {
-  const clienteId = document.getElementById('mCliente').value;
-  if (!clienteId) { showToast('Selecione um cliente.', 'warning'); return; }
+  // Resolve client ID based on mode
+  let clienteId   = null;
+  let paraOutro   = false;
+  let nomeOutro   = null;
+
+  if (paraQuemMode === 'eu') {
+    if (!myClienteId) {
+      showToast('Seu cadastro de cliente não foi encontrado. Solicite ao administrador.', 'warning'); return;
+    }
+    clienteId = myClienteId;
+  } else if (paraQuemMode === 'cliente') {
+    clienteId = document.getElementById('mCliente').value;
+    if (!clienteId) { showToast('Selecione um cliente.', 'warning'); return; }
+  } else if (paraQuemMode === 'outro') {
+    // For "outro": link to current user's client or first available client (client field is optional)
+    nomeOutro = document.getElementById('mNomeOutro').value.trim();
+    if (!nomeOutro) { showToast('Informe o nome da pessoa que será atendida.', 'warning'); return; }
+    // Try: current user's client record, then any client
+    clienteId = myClienteId || clientes[0]?.id || null;
+    // If no client found at all, auto-create a guest entry using nomeOutro
+    if (!clienteId) {
+      try {
+        const { createCliente } = await import('./supabase/database.js');
+        const newC = await createCliente({ nome: nomeOutro, ativo: true });
+        clienteId = newC?.id || null;
+      } catch { /* ignore */ }
+    }
+    if (!clienteId) { showToast('Não foi possível vincular o atendimento. Cadastre-se como cliente primeiro.', 'warning'); return; }
+    paraOutro = true;
+  }
 
   const horaManual = document.getElementById('mHoraManual').value;
   const hora = selectedTime || horaManual;
   if (!selectedDate || !hora) { showToast('Selecione uma data e horário no calendário.', 'warning'); return; }
 
-  const svcItems = svcRows.filter(Boolean).filter(s => s.servico_id);
+  const svcItems = svcRows.filter(Boolean).filter(s=>s.servico_id);
   if (!svcItems.length) { showToast('Adicione pelo menos um serviço.', 'warning'); return; }
 
   const btn = document.getElementById('salvar');
@@ -755,15 +947,13 @@ document.getElementById('salvar')?.addEventListener('click', async () => {
     const baseTime = new Date(`${selectedDate}T${hora}:00`);
     let offset = 0;
     const servicosPayload = svcItems.map(s => {
-      const inicio = new Date(baseTime.getTime() + offset * 60000);
-      const fim    = new Date(inicio.getTime() + (s.duracao_min || 60) * 60000);
-      offset += s.duracao_min || 60;
-      return { ...s, hora_inicio: inicio.toISOString(), hora_fim: fim.toISOString() };
+      const inicio = new Date(baseTime.getTime()+offset*60000);
+      const fim    = new Date(inicio.getTime()+(s.duracao_min||60)*60000);
+      offset += s.duracao_min||60;
+      return { ...s, hora_inicio:inicio.toISOString(), hora_fim:fim.toISOString() };
     });
-
-    const paraOutro  = document.getElementById('mParaOutro').checked;
-    const prodItems  = prodRows.filter(Boolean).filter(p => p.servico_id);
-    const duracaoTotal = svcItems.reduce((a, s) => a + (s.duracao_min || 60), 0);
+    const prodItems    = prodRows.filter(Boolean).filter(p=>p.servico_id);
+    const duracaoTotal = svcItems.reduce((a,s)=>a+(s.duracao_min||60),0);
 
     await createAgendamento({
       cliente_id:      clienteId,
@@ -771,10 +961,10 @@ document.getElementById('salvar')?.addEventListener('click', async () => {
       data_hora:       baseTime.toISOString(),
       duracao_min:     duracaoTotal,
       forma_pagamento: document.getElementById('mPagamento').value,
-      observacoes:     document.getElementById('mObs').value || null,
+      observacoes:     document.getElementById('mObs').value||null,
       status:          'pendente',
       para_outro:      paraOutro,
-      nome_outro:      paraOutro ? document.getElementById('mNomeOutro').value || null : null,
+      nome_outro:      nomeOutro,
       servicos:        servicosPayload,
       produtos:        prodItems
     });
@@ -783,7 +973,7 @@ document.getElementById('salvar')?.addEventListener('click', async () => {
     closeModal();
     await loadAll();
   } catch (err) {
-    showToast(err.message || 'Erro ao criar agendamento.', 'error');
+    showToast(err.message||'Erro ao criar agendamento.', 'error');
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-save"></i> Salvar Agendamento';
@@ -795,25 +985,24 @@ window.verDetalhes = async (id) => {
   document.getElementById('modalDetalhes').classList.add('open');
   document.getElementById('detalhesContent').innerHTML =
     '<div class="loading"><i class="fas fa-circle-notch spin"></i> Carregando…</div>';
-
   try {
     const ag  = await getAgendamento(id);
-    const st  = STATUS_LABELS[ag.status] || {};
+    const st  = STATUS_LABELS[ag.status]||{};
     const servNomes = ag.agendamento_servicos?.map(s =>
       `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-        <span>${s.servicos?.icone || '✂️'}</span>
-        <span>${s.servicos?.nome || '—'}</span>
-        ${s.equipe ? `<span style="color:var(--text3)">→ ${s.equipe.nome}</span>` : ''}
+        <span>${s.servicos?.icone||'✂️'}</span>
+        <span>${s.servicos?.nome||'—'}</span>
+        ${s.equipe?`<span style="color:var(--text3)">→ ${s.equipe.nome}</span>`:''}
         <span style="color:var(--text3)">(${s.duracao_min}min)</span>
         <strong>${formatCurrency(s.preco)}</strong>
-      </div>`).join('') || '—';
+      </div>`).join('')||'—';
 
     const prodNomes = ag.agendamento_produtos?.length
       ? ag.agendamento_produtos.map(p =>
         `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <span>${p.servicos?.icone || '🛍️'}</span>
-          <span>${p.servicos?.nome || '—'} ×${p.quantidade}</span>
-          <strong>${formatCurrency((p.preco_unitario || 0) * p.quantidade)}</strong>
+          <span>${p.servicos?.icone||'🛍️'}</span>
+          <span>${p.servicos?.nome||'—'} ×${p.quantidade}</span>
+          <strong>${formatCurrency((p.preco_unitario||0)*p.quantidade)}</strong>
         </div>`).join('')
       : null;
 
@@ -821,10 +1010,10 @@ window.verDetalhes = async (id) => {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:.87rem">
         <div>
           <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Cliente</label>
-          <div style="font-weight:700;margin-top:2px">${ag.clientes?.nome || '—'}</div>
-          <div style="color:var(--text2)">${ag.clientes?.telefone || ''}</div>
-          ${ag.para_outro ? `<div style="color:var(--warning);margin-top:4px;font-size:.8rem">
-            <i class="fas fa-user-friends"></i> Para: ${ag.nome_outro || 'outra pessoa'}</div>` : ''}
+          <div style="font-weight:700;margin-top:2px">${ag.clientes?.nome||'—'}</div>
+          <div style="color:var(--text2)">${ag.clientes?.telefone||''}</div>
+          ${ag.para_outro?`<div style="color:var(--warning);margin-top:4px;font-size:.8rem">
+            <i class="fas fa-user-friends"></i> Para: ${ag.nome_outro||'outra pessoa'}</div>`:''}
         </div>
         <div>
           <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Data / Hora</label>
@@ -835,44 +1024,40 @@ window.verDetalhes = async (id) => {
           <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Serviços</label>
           <div style="margin-top:4px">${servNomes}</div>
         </div>
-        ${prodNomes ? `<div style="grid-column:span 2">
+        ${prodNomes?`<div style="grid-column:span 2">
           <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Produtos</label>
           <div style="margin-top:4px">${prodNomes}</div>
-        </div>` : ''}
+        </div>`:''}
         <div>
           <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Pagamento</label>
-          <div style="margin-top:2px">${PAGAMENTO_LABELS[ag.forma_pagamento] || ag.forma_pagamento}</div>
+          <div style="margin-top:2px">${PAGAMENTO_LABELS[ag.forma_pagamento]||ag.forma_pagamento}</div>
         </div>
         <div>
           <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Status</label>
           <div style="margin-top:4px">
-            <span class="badge" style="background:${st.color}22;color:${st.color}">${st.icon || ''} ${st.label || ag.status}</span>
+            <span class="badge" style="background:${st.color}22;color:${st.color}">${st.icon||''} ${st.label||ag.status}</span>
           </div>
         </div>
         <div style="grid-column:span 2;border-top:1px solid var(--border);padding-top:12px">
           <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Total</label>
-          <div style="font-size:1.35rem;font-weight:800;color:var(--secondary);margin-top:2px">${formatCurrency(ag.valor_total || 0)}</div>
+          <div style="font-size:1.35rem;font-weight:800;color:var(--secondary);margin-top:2px">${formatCurrency(ag.valor_total||0)}</div>
         </div>
-        ${ag.observacoes ? `<div style="grid-column:span 2">
+        ${ag.observacoes?`<div style="grid-column:span 2">
           <label style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Observações</label>
           <div style="color:var(--text2);margin-top:2px">${ag.observacoes}</div>
-        </div>` : ''}
+        </div>`:''}
       </div>`;
 
     const ftr = document.getElementById('detalhesFtr');
     ftr.innerHTML = '';
-
-    // Close button always present
     const btnClose2 = document.createElement('button');
     btnClose2.className = 'btn btn-secondary';
     btnClose2.textContent = 'Fechar';
-    btnClose2.addEventListener('click', () => document.getElementById('modalDetalhes').classList.remove('open'));
+    btnClose2.addEventListener('click', ()=>document.getElementById('modalDetalhes').classList.remove('open'));
     ftr.appendChild(btnClose2);
 
-    // Admin: status editor
     if (adminMode) {
       const sel = document.createElement('select');
-      sel.id = 'newStatus';
       sel.className = 'btn btn-ghost btn-sm';
       sel.style.border = '1px solid var(--border)';
       sel.innerHTML = `<option value="">Alterar status…</option>
@@ -888,21 +1073,20 @@ window.verDetalhes = async (id) => {
       btnSave.innerHTML = '<i class="fas fa-save"></i> Salvar Status';
       btnSave.addEventListener('click', async () => {
         const ns = sel.value;
-        if (!ns) { showToast('Selecione um status.', 'warning'); return; }
+        if (!ns) { showToast('Selecione um status.','warning'); return; }
         btnSave.disabled = true;
         try {
-          await updateAgendamento(id, { status: ns });
-          showToast('Status atualizado!', 'success');
+          await updateAgendamento(id,{status:ns});
+          showToast('Status atualizado!','success');
           document.getElementById('modalDetalhes').classList.remove('open');
           await loadAll();
-        } catch (err) { showToast(err.message, 'error'); }
+        } catch(err){ showToast(err.message,'error'); }
         finally { btnSave.disabled = false; }
       });
-
       ftr.appendChild(sel);
       ftr.appendChild(btnSave);
     }
-  } catch (err) {
+  } catch(err) {
     document.getElementById('detalhesContent').innerHTML =
       `<p style="color:var(--danger)"><i class="fas fa-exclamation-circle"></i> Erro: ${err.message}</p>`;
   }
@@ -916,8 +1100,8 @@ const urlId      = new URLSearchParams(location.search).get('id');
 const urlCliente = new URLSearchParams(location.search).get('cliente');
 
 await loadAll();
-if (urlId)      setTimeout(() => verDetalhes(urlId), 300);
-if (urlCliente) setTimeout(() => openModal(), 300);
+if (urlId)      setTimeout(()=>verDetalhes(urlId), 300);
+if (urlCliente) setTimeout(()=>openModal(), 300);
 </script>
 </body>
 </html>

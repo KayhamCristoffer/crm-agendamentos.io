@@ -88,6 +88,14 @@ export { DIAS_SEMANA };
 // ─── AUTH ─────────────────────────────────────────────────────
 
 export async function signUp(email, password, nome, telefone = '') {
+  // Check if email already exists — return friendly error instead of creating duplicate
+  const { data: existing } = await sb.from('users').select('id').eq('email', email).maybeSingle();
+  if (existing) {
+    const err = new Error('User already registered');
+    err.code = 'user_already_exists';
+    throw err;
+  }
+
   const redirectTo = window.location.hostname.includes('github.io')
     ? `https://kayhamcristoffer.github.io/crm-agendamentos.io/index.html`
     : `${window.location.origin}/index.html`;
@@ -96,10 +104,28 @@ export async function signUp(email, password, nome, telefone = '') {
     options: { emailRedirectTo: redirectTo, data: { nome } }
   });
   if (error) throw error;
+
+  // If Supabase returned an existing user (identities empty = already registered)
+  if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
+    const err = new Error('User already registered');
+    err.code = 'user_already_exists';
+    throw err;
+  }
+
   if (data.user) {
+    // Create user profile
     await sb.from('users').upsert({
       id: data.user.id, email, nome, telefone: telefone || null, role: 'user'
     }, { onConflict: 'id' });
+
+    // Auto-create client record for new user
+    await sb.from('clientes').upsert({
+      nome,
+      email,
+      telefone: telefone || null,
+      criado_por: data.user.id,
+      ativo: true
+    }, { onConflict: 'email', ignoreDuplicates: true });
   }
   return data;
 }
@@ -147,6 +173,14 @@ export async function ensureProfile(user) {
         id: user.id, email: user.email, nome,
         role: isAdminUser ? 'admin' : 'user'
       }, { onConflict: 'id', ignoreDuplicates: true });
+
+      // Auto-create a client record for the new user
+      await sb.from('clientes').upsert({
+        nome,
+        email: user.email,
+        criado_por: user.id,
+        ativo: true
+      }, { onConflict: 'email', ignoreDuplicates: true });
     }
   } catch (e) { console.warn('ensureProfile:', e.message); }
 }
@@ -209,6 +243,7 @@ export async function updateHorario(diaSemana, updates) {
 }
 
 // Retorna slots de horário disponíveis para uma data considerando o estabelecimento
+// Bloqueia slots de agendamentos pendentes E confirmados (com base na duração real do serviço)
 export async function getSlotsDisponiveis(date, profissionalId = null, duracaoMin = 60) {
   const d = new Date(date);
   const diaSemana = d.getDay();
@@ -222,37 +257,60 @@ export async function getSlotsDisponiveis(date, profissionalId = null, duracaoMi
   const inicio = new Date(d); inicio.setHours(ahH, ahM, 0, 0);
   const fim    = new Date(d); fim.setHours(afH, afM, 0, 0);
 
-  // Busca agendamentos existentes do profissional nesse dia
-  let ocupados = [];
+  // Busca TODOS os agendamentos do dia (pendente + confirmado) para bloquear slots
+  const startDay = new Date(d); startDay.setHours(0,0,0,0);
+  const endDay   = new Date(d); endDay.setHours(23,59,59,999);
+
+  let ocupadosQuery = sb.from('agendamento_servicos')
+    .select('hora_inicio, hora_fim, profissional_id, agendamentos!inner(status)')
+    .gte('hora_inicio', startDay.toISOString())
+    .lte('hora_inicio', endDay.toISOString())
+    .in('agendamentos.status', ['pendente', 'confirmado']);
+
   if (profissionalId) {
-    const startDay = new Date(d); startDay.setHours(0,0,0,0);
-    const endDay   = new Date(d); endDay.setHours(23,59,59,999);
-    const { data: ags } = await sb.from('agendamento_servicos')
-      .select('hora_inicio, hora_fim')
-      .eq('profissional_id', profissionalId)
-      .gte('hora_inicio', startDay.toISOString())
-      .lte('hora_inicio', endDay.toISOString());
-    ocupados = ags ?? [];
+    ocupadosQuery = ocupadosQuery.eq('profissional_id', profissionalId);
   }
+
+  const { data: ocupadosRaw } = await ocupadosQuery;
+  const ocupados = (ocupadosRaw ?? []).map(o => ({
+    profissional_id: o.profissional_id,
+    inicio: new Date(o.hora_inicio),
+    fim:    new Date(o.hora_fim),
+  }));
 
   const slots = [];
   let cur = new Date(inicio);
   while (cur.getTime() + duracaoMin * 60000 <= fim.getTime()) {
     const slotFim = new Date(cur.getTime() + duracaoMin * 60000);
-    const busy = ocupados.some(o => {
-      const oI = new Date(o.hora_inicio);
-      const oF = new Date(o.hora_fim);
-      return cur < oF && slotFim > oI;
-    });
+    // Find if busy — if no specific prof requested, check global occupancy
+    const busyItems = ocupados.filter(o => cur < o.fim && slotFim > o.inicio);
+    const busy = busyItems.length > 0;
+
     if (!busy) {
       slots.push({
         hora: cur.toTimeString().slice(0,5),
-        iso:  cur.toISOString()
+        iso:  cur.toISOString(),
+        livre: true
+      });
+    } else {
+      // Return busy slots too so UI can show them as occupied (with professional info)
+      const profIds = [...new Set(busyItems.map(o => o.profissional_id).filter(Boolean))];
+      slots.push({
+        hora: cur.toTimeString().slice(0,5),
+        iso:  cur.toISOString(),
+        livre: false,
+        profissionais_ocupados: profIds
       });
     }
     cur = new Date(cur.getTime() + 30 * 60000); // slots de 30 em 30 min
   }
   return slots;
+}
+
+// Versão simplificada retornando apenas slots livres (compatibilidade com código legado)
+export async function getSlotsLivres(date, profissionalId = null, duracaoMin = 60) {
+  const todos = await getSlotsDisponiveis(date, profissionalId, duracaoMin);
+  return todos.filter(s => s.livre);
 }
 
 // ─── CLIENTES ────────────────────────────────────────────────
