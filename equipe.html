@@ -159,7 +159,7 @@ import {
   getAllAgendamentos, formatCurrency, toggleLike, getLikesPorProfissional,
   applyPhoneMask
 } from './supabase/database.js';
-import { getSidebarHTML, initSidebarToggle, showAdminItems } from './js/sidebar.js';
+import { getSidebarHTML, initSidebarToggle, showAdminItems, showAtendentItems } from './js/sidebar.js';
 
 document.getElementById('sidebarMount').innerHTML = getSidebarHTML('equipe');
 initSidebarToggle();
@@ -167,8 +167,10 @@ const auth = await requireAuth();
 if (!auth) throw new Error('Not authenticated');
 const { user, profile } = auth;
 const adminMode = isAdmin(user, profile);
+const atendenteMode = profile?.role === 'atendente';
 renderUserInSidebar(profile);
 if (adminMode) showAdminItems();
+else if (atendenteMode) showAtendentItems();
 setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
 
 document.getElementById('logoutBtn')?.addEventListener('click', () =>
@@ -437,12 +439,15 @@ window.editar  = (id) => { const p = all.find(x => x.id === id); if (p) openModa
 window.excluir = async (id) => {
   if (!adminMode) { showToast('Sem permissão.', 'warning'); return; }
   const p = all.find(x => x.id === id);
-  if (!confirm(`Remover "${p?.nome}" da equipe?`)) return;
+  if (!confirm(`Remover "${p?.nome}" da equipe permanentemente?\n\nSe houver agendamentos vinculados, o profissional será desativado em vez de excluído.`)) return;
   try {
     await deleteProfissional(id);
-    showToast('Profissional removido.', 'success');
+    showToast(`"${p?.nome}" removido com sucesso.`, 'success');
     await loadAll();
-  } catch (err) { showToast(err.message, 'error'); }
+  } catch (err) {
+    console.error('excluir profissional:', err);
+    showToast(err.message || 'Erro ao remover profissional.', 'error');
+  }
 };
 
 document.getElementById('salvar')?.addEventListener('click', async () => {

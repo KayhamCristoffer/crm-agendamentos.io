@@ -308,10 +308,11 @@ import {
   getAllAgendamentos, getAgendamento, createAgendamento, updateAgendamento,
   getHeatmapDoMes, getSlotsDisponiveis,
   getAllClientes, getAllEquipe, getAllServicos, getHorarios,
+  ensureUserAndClient, createCliente,
   formatCurrency, formatDateTime, formatDate, formatTime,
   STATUS_LABELS, PAGAMENTO_LABELS
 } from './supabase/database.js';
-import { getSidebarHTML, initSidebarToggle, showAdminItems } from './js/sidebar.js';
+import { getSidebarHTML, initSidebarToggle, showAdminItems, showAtendentItems, updatePendingBadge } from './js/sidebar.js';
 
 document.getElementById('sidebarMount').innerHTML = getSidebarHTML('agendamentos');
 initSidebarToggle();
@@ -319,8 +320,10 @@ const auth = await requireAuth();
 if (!auth) throw new Error('Not authenticated');
 const { user, profile } = auth;
 const adminMode = isAdmin(user, profile);
+const atendenteMode = profile?.role === 'atendente';
 renderUserInSidebar(profile);
 if (adminMode) showAdminItems();
+else if (atendenteMode) showAtendentItems();
 setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
 document.getElementById('logoutBtn')?.addEventListener('click', () =>
   import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href = 'index.html'));
@@ -372,8 +375,22 @@ async function loadAll() {
       getAllEquipe(), getAllClientes(), getAllServicos(), getHorarios()
     ]);
 
-    // Try to find current user's client record
-    myClienteId = clientes.find(c => c.email === user.email || c.email === profile?.email)?.id || null;
+    // Try to find current user's client record by user_id first, then by email
+    myClienteId = clientes.find(c => c.user_id === user.id)?.id
+               || clientes.find(c => c.email === user.email || c.email === profile?.email)?.id
+               || null;
+
+    // If still not found, auto-create via ensureUserAndClient
+    if (!myClienteId) {
+      try {
+        const result = await ensureUserAndClient(user);
+        if (result?.cliente_id) {
+          myClienteId = result.cliente_id;
+          // Refresh clientes list to include the new record
+          clientes = await getAllClientes();
+        }
+      } catch (e) { console.warn('ensureUserAndClient:', e.message); }
+    }
 
     const selProf = document.getElementById('filterProf');
     const curVal  = selProf.value;
@@ -387,11 +404,7 @@ async function loadAll() {
 
     // Update pending badge in sidebar
     const pendentes = allAgs.filter(a => a.status === 'pendente').length;
-    const badge = document.getElementById('badgePendentes');
-    if (badge) {
-      badge.style.display = pendentes > 0 ? '' : 'none';
-      badge.textContent = pendentes > 99 ? '99+' : pendentes;
-    }
+    updatePendingBadge(pendentes);
 
     applyFilters();
   } catch (err) {
@@ -570,7 +583,7 @@ window.setParaQuem = (mode) => {
   paraQuemMode = mode;
   ['btnParaMim','btnParaCliente','btnParaOutro'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) { el.className = 'btn btn-ghost btn-sm'; el.style.flex='1';el.style.minWidth='120px'; }
+    if (el) { el.className = 'btn btn-ghost btn-sm'; el.style.flex='1'; el.style.minWidth='120px'; }
   });
   const activeMap = { eu:'btnParaMim', cliente:'btnParaCliente', outro:'btnParaOutro' };
   const activeBtn = document.getElementById(activeMap[mode]);
@@ -579,6 +592,14 @@ window.setParaQuem = (mode) => {
   document.getElementById('clienteWrap').style.display = mode==='cliente' ? '' : 'none';
   document.getElementById('outroWrap').style.display   = mode==='outro'   ? '' : 'none';
   document.getElementById('euWrap').style.display      = mode==='eu'      ? '' : 'none';
+
+  // Atualiza label do modo "eu" com nome real
+  if (mode === 'eu') {
+    const nomeLabel = myClienteId
+      ? (clientes.find(c => c.id === myClienteId)?.nome || profile?.nome || user.email)
+      : (profile?.nome || user.email);
+    document.getElementById('euLabel').textContent = nomeLabel;
+  }
 };
 
 // ── Modal Novo Agendamento ─────────────────────────────────────
@@ -595,15 +616,18 @@ function openModal() {
   selCliente.innerHTML = '<option value="">Selecione o cliente…</option>' +
     clientes.map(c => `<option value="${c.id}">${c.nome}${c.telefone?' ('+c.telefone+')':''}</option>`).join('');
 
-  // Pre-select current user's client if available
-  if (myClienteId) {
-    document.getElementById('euLabel').textContent =
-      clientes.find(c=>c.id===myClienteId)?.nome || profile?.nome || user.email;
-  }
+  // Pre-set euLabel always (fallback to profile name / email)
+  document.getElementById('euLabel').textContent =
+    (myClienteId ? clientes.find(c=>c.id===myClienteId)?.nome : null)
+    || profile?.nome || user.email;
 
-  // Default mode: 'eu' if they have a client record; 'cliente' for admins without one
-  if (!myClienteId) {
+  // Default mode:
+  // - regular users always start in 'eu' (client record created on-demand at save)
+  // - admins without a client record start in 'cliente'
+  if (adminMode && !myClienteId) {
     paraQuemMode = 'cliente';
+  } else {
+    paraQuemMode = 'eu';
   }
   setParaQuem(paraQuemMode);
 
@@ -908,28 +932,49 @@ document.getElementById('salvar')?.addEventListener('click', async () => {
   let nomeOutro   = null;
 
   if (paraQuemMode === 'eu') {
+    // Auto-resolve: try to find or create the client record for this user
     if (!myClienteId) {
-      showToast('Seu cadastro de cliente não foi encontrado. Solicite ao administrador.', 'warning'); return;
+      try {
+        const btn2 = document.getElementById('salvar');
+        btn2.disabled = true; btn2.innerHTML = '<i class="fas fa-circle-notch spin"></i> Verificando cadastro…';
+        const result = await ensureUserAndClient(user);
+        if (result?.cliente_id) {
+          myClienteId = result.cliente_id;
+          clientes = await getAllClientes();
+        }
+        btn2.disabled = false; btn2.innerHTML = '<i class="fas fa-save"></i> Salvar Agendamento';
+      } catch (e) { console.warn('ensureUserAndClient in salvar:', e.message); }
+    }
+    if (!myClienteId) {
+      // Last resort: create a client record directly
+      try {
+        const newC = await createCliente({
+          user_id: user.id, nome: profile?.nome || user.email.split('@')[0],
+          email: user.email, ativo: true
+        });
+        myClienteId = newC?.id || null;
+        if (myClienteId) clientes = await getAllClientes();
+      } catch (e) { console.warn('createCliente fallback:', e.message); }
+    }
+    if (!myClienteId) {
+      showToast('Não foi possível vincular seu cadastro. Contate o administrador.', 'error'); return;
     }
     clienteId = myClienteId;
   } else if (paraQuemMode === 'cliente') {
     clienteId = document.getElementById('mCliente').value;
     if (!clienteId) { showToast('Selecione um cliente.', 'warning'); return; }
   } else if (paraQuemMode === 'outro') {
-    // For "outro": link to current user's client or first available client (client field is optional)
+    // For "outro": use current user's client; or create a guest client entry
     nomeOutro = document.getElementById('mNomeOutro').value.trim();
     if (!nomeOutro) { showToast('Informe o nome da pessoa que será atendida.', 'warning'); return; }
-    // Try: current user's client record, then any client
     clienteId = myClienteId || clientes[0]?.id || null;
-    // If no client found at all, auto-create a guest entry using nomeOutro
     if (!clienteId) {
       try {
-        const { createCliente } = await import('./supabase/database.js');
         const newC = await createCliente({ nome: nomeOutro, ativo: true });
         clienteId = newC?.id || null;
       } catch { /* ignore */ }
     }
-    if (!clienteId) { showToast('Não foi possível vincular o atendimento. Cadastre-se como cliente primeiro.', 'warning'); return; }
+    if (!clienteId) { showToast('Não foi possível vincular o atendimento.', 'warning'); return; }
     paraOutro = true;
   }
 
@@ -1096,12 +1141,14 @@ document.getElementById('closeModalDetalhes')?.addEventListener('click', () =>
   document.getElementById('modalDetalhes').classList.remove('open'));
 
 // ── URL params ────────────────────────────────────────────────
-const urlId      = new URLSearchParams(location.search).get('id');
-const urlCliente = new URLSearchParams(location.search).get('cliente');
+const urlParams  = new URLSearchParams(location.search);
+const urlId      = urlParams.get('id');
+const urlCliente = urlParams.get('cliente');
+const urlNovo    = urlParams.get('novo');
 
 await loadAll();
-if (urlId)      setTimeout(()=>verDetalhes(urlId), 300);
-if (urlCliente) setTimeout(()=>openModal(), 300);
+if (urlId)                setTimeout(()=>verDetalhes(urlId), 300);
+if (urlCliente || urlNovo) setTimeout(()=>openModal(), 300);
 </script>
 </body>
 </html>

@@ -1,13 +1,12 @@
 // ================================================================
-// DATABASE.JS — CRM Agendamentos v2 com Supabase
+// DATABASE.JS — CRM Agendamentos v3
 // ================================================================
 import { sb } from './client.js';
 import { ADMIN_UID } from './supabase-config.js';
 
-// ─── UTILS ────────────────────────────────────────────────────
-
-export function formatCurrency(value) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+// ─── UTILS ───────────────────────────────────────────────────
+export function formatCurrency(v) {
+  return new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(v||0);
 }
 export function formatDate(iso) {
   if (!iso) return '—';
@@ -15,117 +14,88 @@ export function formatDate(iso) {
 }
 export function formatDateTime(iso) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString('pt-BR', {
-    day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
-  });
+  return new Date(iso).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 export function formatTime(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
 }
-
-// Formata telefone (XX) XXXXX-XXXX
 export function formatPhone(v) {
   if (!v) return '';
   const d = v.replace(/\D/g,'');
-  if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
-  if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+  if (d.length===11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+  if (d.length===10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
   return v;
 }
-
-// Formata CPF XXX.XXX.XXX-XX
 export function formatCPF(v) {
   if (!v) return '';
   const d = v.replace(/\D/g,'');
-  if (d.length === 11)
-    return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
+  if (d.length===11) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
   return v;
 }
-
-// Máscara de telefone aplicada em input
 export function applyPhoneMask(input) {
+  if (!input) return;
   input.addEventListener('input', () => {
     let v = input.value.replace(/\D/g,'');
-    if (v.length > 11) v = v.slice(0,11);
-    if (v.length > 6)      input.value = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
-    else if (v.length > 2) input.value = `(${v.slice(0,2)}) ${v.slice(2)}`;
-    else if (v.length > 0) input.value = `(${v}`;
-    else                   input.value = v;
+    if (v.length>11) v = v.slice(0,11);
+    if (v.length>6)      input.value = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+    else if (v.length>2) input.value = `(${v.slice(0,2)}) ${v.slice(2)}`;
+    else if (v.length>0) input.value = `(${v}`;
+    else                 input.value = v;
   });
 }
-
-// Máscara de CPF aplicada em input
 export function applyCPFMask(input) {
+  if (!input) return;
   input.addEventListener('input', () => {
     let v = input.value.replace(/\D/g,'');
-    if (v.length > 11) v = v.slice(0,11);
-    if (v.length > 9)       input.value = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9)}`;
-    else if (v.length > 6)  input.value = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6)}`;
-    else if (v.length > 3)  input.value = `${v.slice(0,3)}.${v.slice(3)}`;
-    else                    input.value = v;
+    if (v.length>11) v = v.slice(0,11);
+    if (v.length>9)      input.value = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9)}`;
+    else if (v.length>6) input.value = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6)}`;
+    else if (v.length>3) input.value = `${v.slice(0,3)}.${v.slice(3)}`;
+    else                 input.value = v;
   });
 }
 
 export const STATUS_LABELS = {
-  pendente:   { label: 'Pendente',   color: '#f59e0b', icon: '🕐' },
-  confirmado: { label: 'Confirmado', color: '#6366f1', icon: '✅' },
-  concluido:  { label: 'Concluído',  color: '#10b981', icon: '✔️' },
-  cancelado:  { label: 'Cancelado',  color: '#ef4444', icon: '❌' },
-  faltou:     { label: 'Faltou',     color: '#6b7280', icon: '⚠️' }
+  pendente:   { label:'Pendente',   color:'#f59e0b', icon:'🕐' },
+  confirmado: { label:'Confirmado', color:'#6366f1', icon:'✅' },
+  concluido:  { label:'Concluído',  color:'#10b981', icon:'✔️' },
+  cancelado:  { label:'Cancelado',  color:'#ef4444', icon:'❌' },
+  faltou:     { label:'Faltou',     color:'#6b7280', icon:'⚠️' }
 };
-
 export const PAGAMENTO_LABELS = {
-  dinheiro:       'Dinheiro',
-  pix:            'PIX',
-  cartao_debito:  'Cartão Débito',
-  cartao_credito: 'Cartão Crédito',
-  outros:         'Outros'
+  dinheiro:'Dinheiro', pix:'PIX',
+  cartao_debito:'Cartão Débito', cartao_credito:'Cartão Crédito', outros:'Outros'
 };
+export const DIAS_SEMANA = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 
-const DIAS_SEMANA = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
-export { DIAS_SEMANA };
-
-// ─── AUTH ─────────────────────────────────────────────────────
+// ─── AUTH ────────────────────────────────────────────────────
 
 export async function signUp(email, password, nome, telefone = '') {
-  // Check if email already exists — return friendly error instead of creating duplicate
+  // Verifica se já existe — evita duplicata com mensagem clara
   const { data: existing } = await sb.from('users').select('id').eq('email', email).maybeSingle();
   if (existing) {
-    const err = new Error('User already registered');
-    err.code = 'user_already_exists';
-    throw err;
+    const err = new Error('User already registered'); err.code = 'user_already_exists'; throw err;
   }
 
   const redirectTo = window.location.hostname.includes('github.io')
-    ? `https://kayhamcristoffer.github.io/crm-agendamentos.io/index.html`
+    ? 'https://kayhamcristoffer.github.io/crm-agendamentos.io/index.html'
     : `${window.location.origin}/index.html`;
+
   const { data, error } = await sb.auth.signUp({
     email, password,
     options: { emailRedirectTo: redirectTo, data: { nome } }
   });
   if (error) throw error;
 
-  // If Supabase returned an existing user (identities empty = already registered)
   if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
-    const err = new Error('User already registered');
-    err.code = 'user_already_exists';
-    throw err;
+    const err = new Error('User already registered'); err.code = 'user_already_exists'; throw err;
   }
 
   if (data.user) {
-    // Create user profile
-    await sb.from('users').upsert({
-      id: data.user.id, email, nome, telefone: telefone || null, role: 'user'
-    }, { onConflict: 'id' });
-
-    // Auto-create client record for new user
-    await sb.from('clientes').upsert({
-      nome,
-      email,
-      telefone: telefone || null,
-      criado_por: data.user.id,
-      ativo: true
-    }, { onConflict: 'email', ignoreDuplicates: true });
+    // handle_new_user trigger cria users + clientes automaticamente
+    // Chamamos ensure para garantir telefone e vínculo correto
+    await ensureUserAndClient(data.user, nome, telefone);
   }
   return data;
 }
@@ -133,7 +103,8 @@ export async function signUp(email, password, nome, telefone = '') {
 export async function signIn(email, password) {
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) throw error;
-  if (data.user) await ensureProfile(data.user);
+  // Garante registro user + cliente em TODA autenticação
+  if (data.user) await ensureUserAndClient(data.user);
   return data;
 }
 
@@ -155,58 +126,109 @@ export async function resetPassword(email) {
 export function onAuthStateChange(callback) {
   const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, session) => {
     if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-      await ensureProfile(session.user);
+      await ensureUserAndClient(session.user);
     }
     callback(session?.user ?? null, event);
   });
   return subscription;
 }
 
-export async function ensureProfile(user) {
-  if (!user) return;
+/**
+ * ensureUserAndClient — garante que user existe em `users` e tem um registro em `clientes`.
+ * Chamado em TODA autenticação (login, register, refresh).
+ * Retorna { user, cliente_id } ou null.
+ */
+export async function ensureUserAndClient(user, nomeFallback = null, telefoneFallback = null) {
+  if (!user) return null;
   try {
-    const { data: existing } = await sb.from('users').select('id').eq('id', user.id).maybeSingle();
-    if (!existing) {
-      const nome = user.user_metadata?.nome || user.email.split('@')[0];
-      const isAdminUser = user.id === ADMIN_UID;
-      await sb.from('users').upsert({
-        id: user.id, email: user.email, nome,
-        role: isAdminUser ? 'admin' : 'user'
-      }, { onConflict: 'id', ignoreDuplicates: true });
+    const nome = nomeFallback || user.user_metadata?.nome || user.email.split('@')[0];
+    const tel  = telefoneFallback || user.user_metadata?.telefone || null;
 
-      // Auto-create a client record for the new user
-      await sb.from('clientes').upsert({
-        nome,
-        email: user.email,
-        criado_por: user.id,
-        ativo: true
-      }, { onConflict: 'email', ignoreDuplicates: true });
+    // Tenta via stored procedure (atomicidade)
+    const { data, error } = await sb.rpc('ensure_user_and_client', {
+      p_user_id:  user.id,
+      p_email:    user.email,
+      p_nome:     nome,
+      p_telefone: tel
+    });
+
+    if (error) {
+      // Fallback JS caso a function não exista ainda
+      console.warn('ensure_user_and_client RPC:', error.message);
+      return await _ensureUserAndClientFallback(user, nome, tel);
     }
-  } catch (e) { console.warn('ensureProfile:', e.message); }
+    return data;
+  } catch (e) {
+    console.warn('ensureUserAndClient:', e.message);
+    return null;
+  }
 }
 
-// ─── USERS ────────────────────────────────────────────────────
+// Fallback JS puro caso a stored procedure não esteja disponível
+async function _ensureUserAndClientFallback(user, nome, telefone) {
+  const isAdm = user.id === ADMIN_UID;
+
+  // Upsert user
+  await sb.from('users').upsert({
+    id: user.id, email: user.email, nome,
+    telefone: telefone || null,
+    role: isAdm ? 'admin' : 'user'
+  }, { onConflict: 'id' });
+
+  // Upsert cliente vinculado por user_id ou email
+  const { data: existing } = await sb.from('clientes')
+    .select('id')
+    .or(`user_id.eq.${user.id},email.eq.${user.email}`)
+    .maybeSingle();
+
+  if (!existing) {
+    const { data: novo } = await sb.from('clientes').insert({
+      user_id: user.id, nome, email: user.email,
+      telefone: telefone || null, criado_por: user.id, ativo: true
+    }).select('id').maybeSingle();
+    return { cliente_id: novo?.id || null };
+  } else {
+    // Garante vínculo user_id
+    await sb.from('clientes').update({ user_id: user.id }).eq('id', existing.id);
+    return { cliente_id: existing.id };
+  }
+}
+
+// Busca cliente pelo user_id (para encontrar o registro do usuário logado)
+export async function getClienteByUserId(userId) {
+  if (!userId) return null;
+  // Tenta RPC primeiro para garantir que o cliente existe
+  try {
+    const { data: authData } = await sb.auth.getUser();
+    if (authData?.user) {
+      await ensureUserAndClient(authData.user);
+    }
+  } catch { /* ignore */ }
+
+  const { data } = await sb.from('clientes').select('*')
+    .eq('user_id', userId).eq('ativo', true).maybeSingle();
+  return data || null;
+}
+
+// ─── USERS ───────────────────────────────────────────────────
 
 export async function getUser(userId) {
   const { data, error } = await sb.from('users').select('*').eq('id', userId).single();
   if (error) throw error;
   return data;
 }
-
 export async function getAllUsers() {
   const { data, error } = await sb.from('users').select('*').order('nome');
   if (error) throw error;
   return data ?? [];
 }
-
 export async function updateUserProfile(userId, updates) {
-  const { data, error } = await sb
-    .from('users').update({ ...updates, updated_at: new Date().toISOString() })
+  const { data, error } = await sb.from('users')
+    .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', userId).select();
   if (error) throw error;
   return data?.[0] ?? null;
 }
-
 export async function setUserRole(userId, role) {
   return updateUserProfile(userId, { role });
 }
@@ -220,34 +242,32 @@ export async function getConfigSistema() {
   (data ?? []).forEach(r => { cfg[r.chave] = r.valor; });
   return cfg;
 }
-
 export async function setConfigSistema(chave, valor) {
   const { error } = await sb.from('config_sistema')
     .upsert({ chave, valor, updated_at: new Date().toISOString() }, { onConflict: 'chave' });
   if (error) throw error;
 }
 
-// ─── HORÁRIOS DE FUNCIONAMENTO ────────────────────────────────
+// ─── HORÁRIOS ────────────────────────────────────────────────
 
 export async function getHorarios() {
-  const { data, error } = await sb.from('horarios_funcionamento')
-    .select('*').order('dia_semana');
+  const { data, error } = await sb.from('horarios_funcionamento').select('*').order('dia_semana');
   if (error) return [];
   return data ?? [];
 }
-
 export async function updateHorario(diaSemana, updates) {
   const { error } = await sb.from('horarios_funcionamento')
     .upsert({ dia_semana: diaSemana, ...updates }, { onConflict: 'dia_semana' });
   if (error) throw error;
 }
 
-// Retorna slots de horário disponíveis para uma data considerando o estabelecimento
-// Bloqueia slots de agendamentos pendentes E confirmados (com base na duração real do serviço)
+// ─── SLOTS DISPONÍVEIS ───────────────────────────────────────
+// Retorna slots livres E ocupados (com nomes dos profissionais ocupados)
+
 export async function getSlotsDisponiveis(date, profissionalId = null, duracaoMin = 60) {
   const d = new Date(date);
   const diaSemana = d.getDay();
-  const horarios = await getHorarios();
+  const horarios  = await getHorarios();
   const h = horarios.find(x => x.dia_semana === diaSemana);
   if (!h || !h.aberto) return [];
 
@@ -257,57 +277,44 @@ export async function getSlotsDisponiveis(date, profissionalId = null, duracaoMi
   const inicio = new Date(d); inicio.setHours(ahH, ahM, 0, 0);
   const fim    = new Date(d); fim.setHours(afH, afM, 0, 0);
 
-  // Busca TODOS os agendamentos do dia (pendente + confirmado) para bloquear slots
   const startDay = new Date(d); startDay.setHours(0,0,0,0);
   const endDay   = new Date(d); endDay.setHours(23,59,59,999);
 
-  let ocupadosQuery = sb.from('agendamento_servicos')
-    .select('hora_inicio, hora_fim, profissional_id, agendamentos!inner(status)')
+  let q = sb.from('agendamento_servicos')
+    .select('hora_inicio, hora_fim, profissional_id, equipe(nome), agendamentos!inner(status)')
     .gte('hora_inicio', startDay.toISOString())
     .lte('hora_inicio', endDay.toISOString())
-    .in('agendamentos.status', ['pendente', 'confirmado']);
+    .in('agendamentos.status', ['pendente','confirmado']);
 
-  if (profissionalId) {
-    ocupadosQuery = ocupadosQuery.eq('profissional_id', profissionalId);
-  }
+  if (profissionalId) q = q.eq('profissional_id', profissionalId);
 
-  const { data: ocupadosRaw } = await ocupadosQuery;
+  const { data: ocupadosRaw } = await q;
   const ocupados = (ocupadosRaw ?? []).map(o => ({
-    profissional_id: o.profissional_id,
+    profissional_id:   o.profissional_id,
+    profissional_nome: o.equipe?.nome || null,
     inicio: new Date(o.hora_inicio),
-    fim:    new Date(o.hora_fim),
+    fim:    new Date(o.hora_fim)
   }));
 
   const slots = [];
   let cur = new Date(inicio);
   while (cur.getTime() + duracaoMin * 60000 <= fim.getTime()) {
-    const slotFim = new Date(cur.getTime() + duracaoMin * 60000);
-    // Find if busy — if no specific prof requested, check global occupancy
-    const busyItems = ocupados.filter(o => cur < o.fim && slotFim > o.inicio);
-    const busy = busyItems.length > 0;
+    const slotFim  = new Date(cur.getTime() + duracaoMin * 60000);
+    const busyList = ocupados.filter(o => cur < o.fim && slotFim > o.inicio);
+    const livre    = busyList.length === 0;
 
-    if (!busy) {
-      slots.push({
-        hora: cur.toTimeString().slice(0,5),
-        iso:  cur.toISOString(),
-        livre: true
-      });
-    } else {
-      // Return busy slots too so UI can show them as occupied (with professional info)
-      const profIds = [...new Set(busyItems.map(o => o.profissional_id).filter(Boolean))];
-      slots.push({
-        hora: cur.toTimeString().slice(0,5),
-        iso:  cur.toISOString(),
-        livre: false,
-        profissionais_ocupados: profIds
-      });
-    }
-    cur = new Date(cur.getTime() + 30 * 60000); // slots de 30 em 30 min
+    slots.push({
+      hora: cur.toTimeString().slice(0,5),
+      iso:  cur.toISOString(),
+      livre,
+      profissionais_ocupados: livre ? [] : busyList.map(o => o.profissional_id).filter(Boolean),
+      nomes_ocupados:         livre ? [] : [...new Set(busyList.map(o => o.profissional_nome).filter(Boolean))]
+    });
+    cur = new Date(cur.getTime() + 30 * 60000);
   }
   return slots;
 }
 
-// Versão simplificada retornando apenas slots livres (compatibilidade com código legado)
 export async function getSlotsLivres(date, profissionalId = null, duracaoMin = 60) {
   const todos = await getSlotsDisponiveis(date, profissionalId, duracaoMin);
   return todos.filter(s => s.livre);
@@ -316,91 +323,63 @@ export async function getSlotsLivres(date, profissionalId = null, duracaoMin = 6
 // ─── CLIENTES ────────────────────────────────────────────────
 
 export async function getAllClientes(includeInactive = false) {
-  let q = sb.from('clientes').select('*').order('nome');
+  let q = sb.from('clientes').select('*, users(role, avatar_emote)').order('nome');
   if (!includeInactive) q = q.eq('ativo', true);
   const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
 }
-
 export async function getCliente(id) {
-  const { data, error } = await sb.from('clientes').select('*').eq('id', id).single();
+  const { data, error } = await sb.from('clientes').select('*, users(*)').eq('id', id).single();
   if (error) throw error;
   return data;
 }
-
 export async function searchClientes(query) {
-  const { data, error } = await sb.from('clientes')
-    .select('*')
+  const { data, error } = await sb.from('clientes').select('*')
     .or(`nome.ilike.%${query}%,email.ilike.%${query}%,telefone.ilike.%${query}%,cpf.ilike.%${query}%`)
-    .eq('ativo', true)
-    .order('nome').limit(50);
+    .eq('ativo', true).order('nome').limit(50);
   if (error) throw error;
   return data ?? [];
 }
-
 export async function createCliente(clienteData) {
-  // Garante criado_por = uid do usuário autenticado para evitar FK violation
   const { data: authData } = await sb.auth.getUser();
   const payload = { ...clienteData };
-  if (authData?.user) {
-    payload.criado_por = authData.user.id;
-  } else {
-    delete payload.criado_por; // anonymous fallback
-  }
+  if (authData?.user) payload.criado_por = authData.user.id;
+  else delete payload.criado_por;
   const { data, error } = await sb.from('clientes').insert(payload).select();
   if (error) throw error;
   return data?.[0] ?? null;
 }
-
 export async function updateCliente(id, updates) {
-  // Remove criado_por do update para não violar FK
   const payload = { ...updates };
   delete payload.criado_por;
   const { data, error } = await sb.from('clientes')
-    .update({ ...payload, updated_at: new Date().toISOString() })
-    .eq('id', id).select();
+    .update({ ...payload, updated_at: new Date().toISOString() }).eq('id', id).select();
   if (error) throw error;
   return data?.[0] ?? null;
 }
-
 export async function deleteCliente(id) {
   const { error } = await sb.from('clientes').update({ ativo: false }).eq('id', id);
   if (error) throw error;
 }
-
-export async function getClienteStats(clienteId) {
-  const { data: ags } = await sb.from('agendamentos')
-    .select('status, valor_total, data_hora').eq('cliente_id', clienteId)
-    .order('data_hora', { ascending: false });
-  const total       = ags?.length ?? 0;
-  const concluidos  = ags?.filter(a => a.status === 'concluido').length ?? 0;
-  const gastoTotal  = ags?.filter(a => a.status === 'concluido')
-    .reduce((s, a) => s + (a.valor_total || 0), 0) ?? 0;
-  const ultimaVisita = ags?.find(a => a.status === 'concluido')?.data_hora ?? null;
-  return { total, concluidos, gastoTotal, ultimaVisita };
-}
-
 export async function atualizarEstatisticasCliente(clienteId) {
+  if (!clienteId) return;
   try {
+    await sb.rpc('update_cliente_stats', { p_cliente_id: clienteId });
+  } catch {
+    // fallback JS
     const { data: ags } = await sb.from('agendamentos')
-      .select('status, valor_total, data_hora')
-      .eq('cliente_id', clienteId)
-      .eq('status', 'concluido')
-      .order('data_hora', { ascending: false });
-    const concluidos   = ags?.length ?? 0;
-    const totalGasto   = ags?.reduce((s, a) => s + (a.valor_total || 0), 0) ?? 0;
-    const ultimaVisita = ags?.[0]?.data_hora ?? null;
+      .select('status, valor_total, data_hora').eq('cliente_id', clienteId).eq('status','concluido');
     await sb.from('clientes').update({
-      total_visitas: concluidos,
-      total_gasto:   totalGasto,
-      ultima_visita: ultimaVisita,
+      total_visitas: ags?.length ?? 0,
+      total_gasto:   ags?.reduce((s,a)=>s+(a.valor_total||0),0) ?? 0,
+      ultima_visita: ags?.[0]?.data_hora ?? null,
       updated_at:    new Date().toISOString()
     }).eq('id', clienteId);
-  } catch(e) { console.warn('atualizarEstatisticasCliente:', e.message); }
+  }
 }
 
-// ─── EQUIPE ───────────────────────────────────────────────────
+// ─── EQUIPE ──────────────────────────────────────────────────
 
 export async function getAllEquipe(includeInactive = false) {
   let q = sb.from('equipe').select('*').order('nome');
@@ -409,29 +388,31 @@ export async function getAllEquipe(includeInactive = false) {
   if (error) throw error;
   return data ?? [];
 }
-
 export async function createProfissional(profData) {
   const { data, error } = await sb.from('equipe').insert(profData).select();
   if (error) throw error;
   return data?.[0] ?? null;
 }
-
 export async function updateProfissional(id, updates) {
   const { data, error } = await sb.from('equipe').update(updates).eq('id', id).select();
   if (error) throw error;
   return data?.[0] ?? null;
 }
-
+// Hard delete — remove fisicamente (RLS garante que só admin consegue)
+// Se tiver FK violations (agendamentos vinculados), faz soft-delete (ativo=false)
 export async function deleteProfissional(id) {
-  const { error } = await sb.from('equipe').update({ ativo: false }).eq('id', id);
-  if (error) throw error;
+  const { error } = await sb.from('equipe').delete().eq('id', id);
+  if (error) {
+    // FK violation: desativar em vez de deletar fisicamente
+    const { error: e2 } = await sb.from('equipe').update({ ativo: false }).eq('id', id);
+    if (e2) throw new Error('Não foi possível remover o profissional: ' + (e2.message || e2));
+  }
 }
 
-// ─── EQUIPE LIKES ─────────────────────────────────────────────
+// ─── EQUIPE LIKES ────────────────────────────────────────────
 
 export async function getLikesPorProfissional() {
-  const { data, error } = await sb.from('equipe_likes')
-    .select('profissional_id, user_id');
+  const { data, error } = await sb.from('equipe_likes').select('profissional_id, user_id');
   if (error) return {};
   const map = {};
   (data ?? []).forEach(l => {
@@ -440,20 +421,15 @@ export async function getLikesPorProfissional() {
   });
   return map;
 }
-
 export async function toggleLike(profissionalId, userId) {
-  const { data: existing } = await sb.from('equipe_likes')
-    .select('id')
-    .eq('profissional_id', profissionalId)
-    .eq('user_id', userId)
-    .maybeSingle();
+  const { data: existing } = await sb.from('equipe_likes').select('id')
+    .eq('profissional_id', profissionalId).eq('user_id', userId).maybeSingle();
   if (existing) {
     await sb.from('equipe_likes').delete().eq('id', existing.id);
     return false;
-  } else {
-    await sb.from('equipe_likes').insert({ profissional_id: profissionalId, user_id: userId });
-    return true;
   }
+  await sb.from('equipe_likes').insert({ profissional_id: profissionalId, user_id: userId });
+  return true;
 }
 
 // ─── SERVIÇOS ────────────────────────────────────────────────
@@ -465,7 +441,6 @@ export async function getAllServicos(includeInactive = false) {
   if (error) throw error;
   return data ?? [];
 }
-
 export async function getServicos(categoria = null) {
   let q = sb.from('servicos').select('*').eq('ativo', true).order('nome');
   if (categoria) q = q.eq('categoria', categoria);
@@ -473,19 +448,16 @@ export async function getServicos(categoria = null) {
   if (error) throw error;
   return data ?? [];
 }
-
-export async function createServico(servicoData) {
-  const { data, error } = await sb.from('servicos').insert(servicoData).select();
+export async function createServico(d) {
+  const { data, error } = await sb.from('servicos').insert(d).select();
   if (error) throw error;
   return data?.[0] ?? null;
 }
-
-export async function updateServico(id, updates) {
-  const { data, error } = await sb.from('servicos').update(updates).eq('id', id).select();
+export async function updateServico(id, u) {
+  const { data, error } = await sb.from('servicos').update(u).eq('id', id).select();
   if (error) throw error;
   return data?.[0] ?? null;
 }
-
 export async function deleteServico(id) {
   const { error } = await sb.from('servicos').update({ ativo: false }).eq('id', id);
   if (error) throw error;
@@ -494,30 +466,22 @@ export async function deleteServico(id) {
 // ─── AGENDAMENTOS ────────────────────────────────────────────
 
 export async function getAllAgendamentos(filters = {}) {
-  let q = sb.from('agendamentos')
-    .select(`*,
-      clientes(id, nome, telefone, email),
-      agendamento_servicos(
-        id, preco, duracao_min, hora_inicio, hora_fim,
-        servicos(id, nome, preco, duracao_min, icone),
-        equipe(id, nome, cargo, cor_agenda)
-      ),
-      agendamento_produtos(
-        id, quantidade, preco_unitario,
-        servicos(id, nome, preco, icone)
-      ),
-      users(id, nome)
-    `)
-    .order('data_hora', { ascending: false });
+  let q = sb.from('agendamentos').select(`*,
+    clientes(id, nome, telefone, email),
+    agendamento_servicos(
+      id, preco, duracao_min, hora_inicio, hora_fim,
+      servicos(id, nome, preco, duracao_min, icone),
+      equipe(id, nome, cargo, cor_agenda)
+    ),
+    agendamento_produtos(id, quantidade, preco_unitario, servicos(id, nome, preco, icone)),
+    users(id, nome)
+  `).order('data_hora', { ascending: false });
 
-  if (filters.status)         q = q.eq('status', filters.status);
-  if (filters.cliente_id)     q = q.eq('cliente_id', filters.cliente_id);
-  if (filters.profissional_id) {
-    // Filtrar via agendamento_servicos requer subquery — fazemos no lado JS
-  }
-  if (filters.dataInicio)     q = q.gte('data_hora', filters.dataInicio);
-  if (filters.dataFim)        q = q.lte('data_hora', filters.dataFim);
-  if (filters.limit)          q = q.limit(filters.limit);
+  if (filters.status)      q = q.eq('status', filters.status);
+  if (filters.cliente_id)  q = q.eq('cliente_id', filters.cliente_id);
+  if (filters.dataInicio)  q = q.gte('data_hora', filters.dataInicio);
+  if (filters.dataFim)     q = q.lte('data_hora', filters.dataFim);
+  if (filters.limit)       q = q.limit(filters.limit);
 
   const { data, error } = await q;
   if (error) throw error;
@@ -532,14 +496,12 @@ export async function getAllAgendamentos(filters = {}) {
 }
 
 export async function getAgendamento(id) {
-  const { data, error } = await sb.from('agendamentos')
-    .select(`*,
-      clientes(*),
-      agendamento_servicos(*, servicos(*), equipe(*)),
-      agendamento_produtos(*, servicos(*)),
-      users(id, nome)
-    `)
-    .eq('id', id).single();
+  const { data, error } = await sb.from('agendamentos').select(`*,
+    clientes(*),
+    agendamento_servicos(*, servicos(*), equipe(*)),
+    agendamento_produtos(*, servicos(*)),
+    users(id, nome)
+  `).eq('id', id).single();
   if (error) throw error;
   return data;
 }
@@ -551,81 +513,73 @@ export async function getAgendamentosDoDia(date) {
 }
 
 export async function getAgendamentosDoMes(year, month) {
-  const start = new Date(year, month - 1, 1);
+  const start = new Date(year, month-1, 1);
   const end   = new Date(year, month, 0, 23, 59, 59);
   return getAllAgendamentos({ dataInicio: start.toISOString(), dataFim: end.toISOString() });
 }
 
-// Cria agendamento com múltiplos serviços e produtos
+// createAgendamento — com verificação de conflito mostrando nome do profissional
 export async function createAgendamento(agendamentoData) {
   const { servicos: servicosItems = [], produtos: produtosItems = [], ...agData } = agendamentoData;
 
-  // Garante criado_por = uid do usuário autenticado para evitar FK violation
   if (!agData.criado_por) {
     const { data: authData } = await sb.auth.getUser();
     if (authData?.user) agData.criado_por = authData.user.id;
   }
 
-  // Verifica conflito de horário por profissional em agendamento_servicos
+  // Verifica conflito de horário — mostra nome do profissional no erro
   for (const svc of servicosItems) {
     if (!svc.profissional_id) continue;
     const inicio  = new Date(svc.hora_inicio);
-    const durMin  = svc.duracao_min || 60;
-    const fimSlot = new Date(inicio.getTime() + durMin * 60000);
+    const fimSlot = new Date(inicio.getTime() + (svc.duracao_min||60)*60000);
+
     const { data: conflito } = await sb.from('agendamento_servicos')
-      .select('id, agendamentos(status)')
+      .select('id, equipe(nome), agendamentos!inner(status)')
       .eq('profissional_id', svc.profissional_id)
-      .gte('hora_inicio', inicio.toISOString())
       .lt('hora_inicio', fimSlot.toISOString())
+      .gt('hora_fim',    inicio.toISOString())
+      .in('agendamentos.status', ['pendente','confirmado'])
       .limit(1);
-    const ativo = (conflito ?? []).filter(c =>
-      ['pendente','confirmado'].includes(c.agendamentos?.status)
-    );
-    if (ativo.length > 0) {
-      throw new Error(`Conflito de horário! O profissional já tem um atendimento nesse horário.`);
+
+    if (conflito?.length > 0) {
+      const profNome = conflito[0]?.equipe?.nome || 'este profissional';
+      throw new Error(`⚠️ Conflito de horário! ${profNome} já tem um atendimento neste horário. Escolha outro horário ou profissional.`);
     }
   }
 
-  // Calcula valor total
-  const totalServicos = servicosItems.reduce((s, i) => s + (i.preco || 0), 0);
-  const totalProdutos = produtosItems.reduce((s, i) => s + (i.preco_unitario || 0) * (i.quantidade || 1), 0);
-  agData.valor_total  = totalServicos + totalProdutos - (agData.desconto || 0);
-
-  // Duração total calculada a partir dos serviços
-  if (!agData.duracao_min) {
-    agData.duracao_min = servicosItems.reduce((s, i) => s + (i.duracao_min || 60), 0) || 60;
-  }
+  const totalServicos = servicosItems.reduce((s,i) => s+(i.preco||0), 0);
+  const totalProdutos = produtosItems.reduce((s,i) => s+(i.preco_unitario||0)*(i.quantidade||1), 0);
+  agData.valor_total  = totalServicos + totalProdutos - (agData.desconto||0);
+  if (!agData.duracao_min)
+    agData.duracao_min = servicosItems.reduce((s,i) => s+(i.duracao_min||60), 0) || 60;
 
   const { data, error } = await sb.from('agendamentos').insert(agData).select();
   if (error) throw error;
   const ag = data?.[0];
   if (!ag) throw new Error('Erro ao criar agendamento.');
 
-  // Insere itens de serviço
   if (servicosItems.length) {
-    const svcRows = servicosItems.map(s => ({
+    const rows = servicosItems.map(s => ({
       agendamento_id:  ag.id,
       servico_id:      s.servico_id || null,
       profissional_id: s.profissional_id || null,
       preco:           s.preco || 0,
       duracao_min:     s.duracao_min || 60,
       hora_inicio:     s.hora_inicio || ag.data_hora,
-      hora_fim:        s.hora_fim || new Date(new Date(ag.data_hora).getTime() + (s.duracao_min||60)*60000).toISOString()
+      hora_fim:        s.hora_fim || new Date(new Date(ag.data_hora).getTime()+(s.duracao_min||60)*60000).toISOString()
     }));
-    const { error: svcErr } = await sb.from('agendamento_servicos').insert(svcRows);
-    if (svcErr) console.warn('agendamento_servicos insert:', svcErr.message);
+    const { error: svcErr } = await sb.from('agendamento_servicos').insert(rows);
+    if (svcErr) console.warn('agendamento_servicos:', svcErr.message);
   }
-
-  // Insere itens de produto
   if (produtosItems.length) {
-    const prodRows = produtosItems.map(p => ({
+    const rows = produtosItems.map(p => ({
       agendamento_id: ag.id,
       servico_id:     p.servico_id || null,
       quantidade:     p.quantidade || 1,
       preco_unitario: p.preco_unitario || 0
     }));
-    const { error: prodErr } = await sb.from('agendamento_produtos').insert(prodRows);
-    if (prodErr) console.warn('agendamento_produtos insert:', prodErr.message);
+    const { error: pErr } = await sb.from('agendamento_produtos').insert(rows);
+    if (pErr) console.warn('agendamento_produtos:', pErr.message);
   }
 
   await atualizarEstatisticasCliente(agData.cliente_id);
@@ -634,25 +588,20 @@ export async function createAgendamento(agendamentoData) {
 
 export async function updateAgendamento(id, updates) {
   const { data, error } = await sb.from('agendamentos')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id).select();
+    .update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id).select();
   if (error) throw error;
 
   if (updates.status && data?.[0]?.cliente_id) {
     await atualizarEstatisticasCliente(data[0].cliente_id);
     if (updates.status === 'concluido') {
       const ag = data[0];
-      // Garante criado_por para evitar FK violation no financeiro
       const { data: authData } = await sb.auth.getUser();
-      await sb.from('financeiro').insert({
-        tipo: 'receita',
-        descricao: `Agendamento concluído`,
-        valor: ag.valor_total || 0,
-        categoria: 'servico',
+      sb.from('financeiro').insert({
+        tipo: 'receita', descricao: 'Agendamento concluído',
+        valor: ag.valor_total || 0, categoria: 'servico',
         data: new Date().toISOString().slice(0,10),
-        agendamento_id: id,
-        criado_por: authData?.user?.id || null
-      }).then(({ error: fe }) => { if (fe) console.warn('financeiro insert:', fe.message); });
+        agendamento_id: id, criado_por: authData?.user?.id || null
+      }).then(({ error: fe }) => { if (fe) console.warn('financeiro:', fe.message); });
     }
   }
   return data?.[0] ?? null;
@@ -663,21 +612,16 @@ export async function deleteAgendamento(id) {
   if (error) throw error;
 }
 
-// Heatmap — conta agendamentos por dia do mês
+// Heatmap
 export async function getHeatmapDoMes(year, month) {
-  const start = new Date(year, month - 1, 1);
+  const start = new Date(year, month-1, 1);
   const end   = new Date(year, month, 0, 23, 59, 59);
-  const { data, error } = await sb.from('agendamentos')
-    .select('data_hora, status')
-    .gte('data_hora', start.toISOString())
-    .lte('data_hora', end.toISOString())
-    .not('status', 'eq', 'cancelado');
+  const { data, error } = await sb.from('agendamentos').select('data_hora, status')
+    .gte('data_hora', start.toISOString()).lte('data_hora', end.toISOString())
+    .not('status','eq','cancelado');
   if (error) return {};
   const map = {};
-  (data ?? []).forEach(a => {
-    const day = new Date(a.data_hora).getDate();
-    map[day] = (map[day] || 0) + 1;
-  });
+  (data ?? []).forEach(a => { const d = new Date(a.data_hora).getDate(); map[d]=(map[d]||0)+1; });
   return map;
 }
 
@@ -687,7 +631,7 @@ export async function getLancamentos(filters = {}) {
   let q = sb.from('financeiro')
     .select('*, agendamentos(id, clientes(nome)), users(nome)')
     .order('data', { ascending: false });
-  if (filters.tipo)      q = q.eq('tipo', filters.tipo);
+  if (filters.tipo)       q = q.eq('tipo', filters.tipo);
   if (filters.dataInicio) q = q.gte('data', filters.dataInicio);
   if (filters.dataFim)    q = q.lte('data', filters.dataFim);
   if (filters.limit)      q = q.limit(filters.limit);
@@ -695,54 +639,47 @@ export async function getLancamentos(filters = {}) {
   if (error) throw error;
   return data ?? [];
 }
-
-export async function createLancamento(lancamentoData) {
-  const { data, error } = await sb.from('financeiro').insert(lancamentoData).select();
+export async function createLancamento(d) {
+  const { data, error } = await sb.from('financeiro').insert(d).select();
   if (error) throw error;
   return data?.[0] ?? null;
 }
-
 export async function deleteLancamento(id) {
   const { error } = await sb.from('financeiro').delete().eq('id', id);
   if (error) throw error;
 }
-
 export async function getResumoFinanceiro(ano, mes) {
   const inicio = `${ano}-${String(mes).padStart(2,'0')}-01`;
   const fim    = `${ano}-${String(mes).padStart(2,'0')}-31`;
-  const { data, error } = await sb.from('financeiro')
-    .select('tipo, valor').gte('data', inicio).lte('data', fim);
+  const { data, error } = await sb.from('financeiro').select('tipo, valor').gte('data',inicio).lte('data',fim);
   if (error) throw error;
-  const receitas = (data ?? []).filter(l => l.tipo === 'receita').reduce((s,l) => s+(l.valor||0), 0);
-  const despesas = (data ?? []).filter(l => l.tipo === 'despesa').reduce((s,l) => s+(l.valor||0), 0);
-  return { receitas, despesas, lucro: receitas - despesas };
+  const receitas = (data??[]).filter(l=>l.tipo==='receita').reduce((s,l)=>s+(l.valor||0),0);
+  const despesas = (data??[]).filter(l=>l.tipo==='despesa').reduce((s,l)=>s+(l.valor||0),0);
+  return { receitas, despesas, lucro: receitas-despesas };
 }
-
 export async function getResumoFinanceiroMensal(ano) {
-  const inicio = `${ano}-01-01`;
-  const fim    = `${ano}-12-31`;
-  const { data, error } = await sb.from('financeiro')
-    .select('tipo, valor, data').gte('data', inicio).lte('data', fim);
+  const { data, error } = await sb.from('financeiro').select('tipo, valor, data')
+    .gte('data',`${ano}-01-01`).lte('data',`${ano}-12-31`);
   if (error) throw error;
-  const meses = Array.from({length:12}, (_,i) => ({ mes:i+1, receitas:0, despesas:0, lucro:0 }));
-  (data ?? []).forEach(l => {
-    const m = parseInt(l.data.slice(5,7), 10) - 1;
-    if (l.tipo === 'receita') meses[m].receitas += l.valor||0;
-    else                      meses[m].despesas += l.valor||0;
+  const meses = Array.from({length:12},(_,i)=>({mes:i+1,receitas:0,despesas:0,lucro:0}));
+  (data??[]).forEach(l => {
+    const m = parseInt(l.data.slice(5,7),10)-1;
+    if (l.tipo==='receita') meses[m].receitas+=l.valor||0;
+    else                    meses[m].despesas+=l.valor||0;
     meses[m].lucro = meses[m].receitas - meses[m].despesas;
   });
   return meses;
 }
 
-// ─── DASHBOARD STATS ─────────────────────────────────────────
+// ─── DASHBOARD ───────────────────────────────────────────────
 
 export async function getDashboardStats() {
   try {
-    const hoje       = new Date();
-    const inicioDia  = new Date(hoje); inicioDia.setHours(0,0,0,0);
-    const fimDia     = new Date(hoje); fimDia.setHours(23,59,59,999);
-    const inicioMes  = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    const fimMes     = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0, 23,59,59);
+    const hoje      = new Date();
+    const inicioDia = new Date(hoje); inicioDia.setHours(0,0,0,0);
+    const fimDia    = new Date(hoje); fimDia.setHours(23,59,59,999);
+    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    const fimMes    = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0, 23, 59, 59);
 
     const [
       { count: totalClientes },
@@ -751,71 +688,92 @@ export async function getDashboardStats() {
       { count: pendentes }
     ] = await Promise.all([
       sb.from('clientes').select('*',{count:'exact',head:true}).eq('ativo',true),
-      sb.from('agendamentos').select('*',{count:'exact',head:true})
-        .gte('data_hora', inicioDia.toISOString()).lte('data_hora', fimDia.toISOString()),
-      sb.from('agendamentos').select('*',{count:'exact',head:true})
-        .gte('data_hora', inicioMes.toISOString()).lte('data_hora', fimMes.toISOString()),
+      sb.from('agendamentos').select('*',{count:'exact',head:true}).gte('data_hora',inicioDia.toISOString()).lte('data_hora',fimDia.toISOString()),
+      sb.from('agendamentos').select('*',{count:'exact',head:true}).gte('data_hora',inicioMes.toISOString()).lte('data_hora',fimMes.toISOString()),
       sb.from('agendamentos').select('*',{count:'exact',head:true}).eq('status','pendente')
     ]);
 
     const resumo = await getResumoFinanceiro(hoje.getFullYear(), hoje.getMonth()+1);
 
-    const { data: proximosAgendamentos } = await sb.from('agendamentos')
-      .select(`*,
-        clientes(nome, telefone),
-        agendamento_servicos(servicos(nome, icone), equipe(nome, cor_agenda))
-      `)
-      .gte('data_hora', new Date().toISOString())
-      .in('status', ['pendente','confirmado'])
-      .order('data_hora').limit(5);
+    const { data: proximosAgendamentos } = await sb.from('agendamentos').select(`*,
+      clientes(nome, telefone),
+      agendamento_servicos(servicos(nome, icone), equipe(nome, cor_agenda))
+    `).gte('data_hora', new Date().toISOString()).in('status',['pendente','confirmado']).order('data_hora').limit(5);
 
     const { data: topClientes } = await sb.from('clientes')
       .select('id, nome, total_visitas, total_gasto, ultima_visita')
-      .eq('ativo', true)
-      .order('total_visitas', { ascending: false }).limit(5);
+      .eq('ativo',true).order('total_visitas',{ascending:false}).limit(5);
 
     return {
-      totalClientes:    totalClientes    ?? 0,
-      agendamentosHoje: agendamentosHoje ?? 0,
-      agendamentosMes:  agendamentosMes  ?? 0,
-      pendentes:        pendentes        ?? 0,
-      receitaMes:       resumo.receitas,
-      despesasMes:      resumo.despesas,
-      lucroMes:         resumo.lucro,
-      proximosAgendamentos: proximosAgendamentos ?? [],
-      topClientes:          topClientes          ?? []
+      totalClientes: totalClientes??0, agendamentosHoje: agendamentosHoje??0,
+      agendamentosMes: agendamentosMes??0, pendentes: pendentes??0,
+      receitaMes: resumo.receitas, despesasMes: resumo.despesas, lucroMes: resumo.lucro,
+      proximosAgendamentos: proximosAgendamentos??[], topClientes: topClientes??[]
     };
-  } catch(e) {
-    console.error('getDashboardStats:', e);
-    return null;
-  }
+  } catch(e) { console.error('getDashboardStats:', e); return null; }
 }
 
-// ─── CHAT ─────────────────────────────────────────────────────
+// ─── CHAT ────────────────────────────────────────────────────
 
-export async function getChatMessages(clienteId) {
+export async function getChatMessages(clienteId, limit = 100) {
   const { data, error } = await sb.from('chat_messages')
-    .select('*, users(nome)').eq('cliente_id', clienteId).order('created_at');
+    .select('*, users(nome, avatar_emote, role)')
+    .eq('cliente_id', clienteId)
+    .order('created_at', { ascending: true })
+    .limit(limit);
   if (error) throw error;
   return data ?? [];
 }
 
-export async function sendChatMessage(clienteId, userId, mensagem, deCliente = false) {
+export async function getChatClientes() {
+  // Returns distinct client IDs that have messages
+  const { data, error } = await sb.from('chat_messages')
+    .select('cliente_id, clientes(id, nome, telefone, email)')
+    .order('created_at', { ascending: false });
+  if (error) return [];
+  // Deduplicate by cliente_id
+  const seen = new Set();
+  return (data ?? []).filter(m => {
+    if (seen.has(m.cliente_id)) return false;
+    seen.add(m.cliente_id);
+    return true;
+  }).map(m => m.clientes).filter(Boolean);
+}
+
+export async function sendChatMessage(clienteId, userId, mensagem, deAdmin = false) {
   const { data, error } = await sb.from('chat_messages').insert({
-    cliente_id: clienteId, user_id: userId,
-    mensagem, de_cliente: deCliente, lida: false
-  }).select();
+    cliente_id: clienteId,
+    user_id:    userId,
+    mensagem,
+    de_admin:   deAdmin,
+    lida:       false
+  }).select('*, users(nome, avatar_emote, role)');
   if (error) throw error;
   return data?.[0] ?? null;
 }
 
-export async function markMessagesAsRead(clienteId) {
+export async function markMessagesAsRead(clienteId, isAdmin = false) {
+  // Admin marks client messages as read; client marks admin messages as read
+  const col = isAdmin ? 'de_admin' : 'de_admin';
   await sb.from('chat_messages')
-    .update({ lida: true }).eq('cliente_id', clienteId).eq('de_cliente', true).eq('lida', false);
+    .update({ lida: true })
+    .eq('cliente_id', clienteId)
+    .eq('de_admin', isAdmin ? false : true)
+    .eq('lida', false);
 }
 
-export async function subscribeChat(clienteId, callback) {
-  return sb.channel(`chat-${clienteId}`)
+export async function getUnreadChatCount(isAdmin = false) {
+  // Admin: count unread messages FROM clients (de_admin = false)
+  // Client: count unread messages FROM admin (de_admin = true)
+  const { count } = await sb.from('chat_messages')
+    .select('*', { count: 'exact', head: true })
+    .eq('lida', false)
+    .eq('de_admin', isAdmin ? false : true);
+  return count ?? 0;
+}
+
+export function subscribeChat(clienteId, callback) {
+  return sb.channel(`chat:${clienteId}`)
     .on('postgres_changes', {
       event: 'INSERT', schema: 'public', table: 'chat_messages',
       filter: `cliente_id=eq.${clienteId}`
@@ -823,9 +781,8 @@ export async function subscribeChat(clienteId, callback) {
     .subscribe();
 }
 
-export async function subscribeAgendamentos(callback) {
-  return sb.channel('agendamentos-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' },
-      async () => callback())
+export function subscribeAgendamentos(callback) {
+  return sb.channel('agendamentos-live')
+    .on('postgres_changes', { event:'*', schema:'public', table:'agendamentos' }, () => callback())
     .subscribe();
 }
