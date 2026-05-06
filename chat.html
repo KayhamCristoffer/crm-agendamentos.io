@@ -402,13 +402,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
-import { requireAuth, renderUserInSidebar, showToast, isAdmin } from './supabase/session-manager.js';
+import { requireAuth, renderUserInSidebar, showToast, isAdmin, isStaff } from './supabase/session-manager.js';
 import {
   getChatMessages, sendChatMessage, markMessagesAsRead, getUnreadChatCount,
   getChatClientes, subscribeChat, ensureUserAndClient,
   getAllClientes, formatDateTime
 } from './supabase/database.js';
-import { getSidebarHTML, initSidebarToggle, showAdminItems, updateChatBadge } from './js/sidebar.js';
+import { getSidebarHTML, initSidebarToggle, showAdminItems, showStaffItems, updateChatBadge } from './js/sidebar.js';
 
 // ── Init ─────────────────────────────────────────────────────
 document.getElementById('sidebarMount').innerHTML = getSidebarHTML('chat');
@@ -418,9 +418,11 @@ const auth = await requireAuth();
 if (!auth) throw new Error('Not authenticated');
 const { user, profile } = auth;
 const adminMode = isAdmin(user, profile);
+const staffMode = isStaff(user, profile);
 
 renderUserInSidebar(profile);
 if (adminMode) showAdminItems();
+else if (staffMode) showStaffItems();
 setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
 
 // Topbar avatar/name

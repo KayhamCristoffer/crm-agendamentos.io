@@ -1,5 +1,6 @@
 // ============================================================
-// SUPABASE CLIENT — CRM Agendamentos
+// SUPABASE CLIENT — CRM Agendamentos v4.0
+// Tabela: usuarios (antigo users)
 // ============================================================
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
 
@@ -26,7 +27,7 @@ export async function getCurrentUser() {
 
 export async function getUserProfile(userId) {
   const { data, error } = await sb
-    .from('users')
+    .from('usuarios')
     .select('*')
     .eq('id', userId)
     .single();

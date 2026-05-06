@@ -178,10 +178,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
-import { requireAuth, renderUserInSidebar, showToast, isAdmin } from './supabase/session-manager.js';
+import { requireAuth, renderUserInSidebar, showToast, isAdmin, isStaff } from './supabase/session-manager.js';
 import { updateUserProfile, getAllAgendamentos, formatDateTime, formatCurrency, STATUS_LABELS, applyPhoneMask } from './supabase/database.js';
 import { sb } from './supabase/client.js';
-import { getSidebarHTML, initSidebarToggle, showAdminItems } from './js/sidebar.js';
+import { getSidebarHTML, initSidebarToggle, showAdminItems, showStaffItems } from './js/sidebar.js';
 
 document.getElementById('sidebarMount').innerHTML = getSidebarHTML('');
 initSidebarToggle();
@@ -191,6 +191,7 @@ if (!auth) throw new Error('Not authenticated');
 const { user, profile } = auth;
 renderUserInSidebar(profile);
 if (isAdmin(user, profile)) showAdminItems();
+else if (isStaff(user, profile)) showStaffItems();
 setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
 
 document.getElementById('logoutBtn')?.addEventListener('click', () =>

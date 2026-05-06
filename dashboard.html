@@ -152,12 +152,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
-import { requireAuth, renderUserInSidebar, showToast, isAdmin } from './supabase/session-manager.js';
+import { requireAuth, renderUserInSidebar, showToast, isAdmin, isStaff } from './supabase/session-manager.js';
 import {
   getDashboardStats, getResumoFinanceiroMensal, getAllAgendamentos,
   formatCurrency, formatDateTime, STATUS_LABELS
 } from './supabase/database.js';
-import { getSidebarHTML, initSidebarToggle, showAdminItems, showAtendentItems, updatePendingBadge } from './js/sidebar.js';
+import { getSidebarHTML, initSidebarToggle, showAdminItems, showStaffItems, updatePendingBadge } from './js/sidebar.js';
 
 // ── Init ──────────────────────────────────────────────────────
 document.getElementById('sidebarMount').innerHTML = getSidebarHTML('dashboard');
@@ -171,7 +171,7 @@ const atendenteMode = profile?.role === 'atendente';
 
 renderUserInSidebar(profile);
 if (adminMode) showAdminItems();
-else if (atendenteMode) showAtendentItems();
+else if (atendenteMode) showStaffItems();
 
 // Topbar avatar/name
 const ta = document.getElementById('topbarAvatar');
@@ -241,12 +241,17 @@ async function loadDashboard() {
       document.getElementById('statLucro').textContent   = formatCurrency(stats.lucroMes);
     }
 
+    // Reveal staff-visible elements (finance stats, clientes link, charts)
+    if (adminMode || atendenteMode) {
+      document.querySelectorAll('[data-admin-only="true"]').forEach(el => el.style.display = '');
+    }
+
     // Update pending badge
     updatePendingBadge(stats.pendentes);
 
     renderProximosAgendamentos(stats.proximosAgendamentos);
     renderTopClientes(stats.topClientes);
-    if (adminMode) await loadCharts();
+    if (adminMode || atendenteMode) await loadCharts();
   } catch (err) {
     console.error('loadDashboard:', err);
   }

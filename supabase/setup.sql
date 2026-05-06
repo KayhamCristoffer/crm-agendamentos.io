@@ -1,6 +1,6 @@
 -- ================================================================
--- CRM AGENDAMENTOS — SETUP SQL v3
--- DROP GERAL + RECRIAÇÃO COMPLETA com stored procedures
+-- CRM AGENDAMENTOS — SETUP SQL v4.0
+-- Tabela `usuarios` (rename de `users`), roles: cliente/atendente/admin
 -- Execute no: Supabase > SQL Editor > New Query > Run
 -- ================================================================
 
@@ -20,34 +20,37 @@ DROP TABLE IF EXISTS equipe                  CASCADE;
 DROP TABLE IF EXISTS clientes                CASCADE;
 DROP TABLE IF EXISTS horarios_funcionamento  CASCADE;
 DROP TABLE IF EXISTS config_sistema          CASCADE;
-DROP TABLE IF EXISTS users                   CASCADE;
+DROP TABLE IF EXISTS usuarios                CASCADE;
+DROP TABLE IF EXISTS users                   CASCADE; -- drop legado se existir
 
-DROP TRIGGER  IF EXISTS on_auth_user_created    ON auth.users;
-DROP TRIGGER  IF EXISTS users_updated_at        ON users;
-DROP TRIGGER  IF EXISTS clientes_updated_at     ON clientes;
-DROP TRIGGER  IF EXISTS agendamentos_updated_at ON agendamentos;
+DROP TRIGGER  IF EXISTS on_auth_user_created      ON auth.users;
+DROP TRIGGER  IF EXISTS usuarios_updated_at       ON usuarios;
+DROP TRIGGER  IF EXISTS clientes_updated_at       ON clientes;
+DROP TRIGGER  IF EXISTS agendamentos_updated_at   ON agendamentos;
 
-DROP FUNCTION IF EXISTS is_admin()                  CASCADE;
-DROP FUNCTION IF EXISTS handle_new_user()           CASCADE;
+DROP FUNCTION IF EXISTS is_admin()                              CASCADE;
+DROP FUNCTION IF EXISTS is_staff()                             CASCADE;
+DROP FUNCTION IF EXISTS handle_new_user()                      CASCADE;
 DROP FUNCTION IF EXISTS ensure_user_and_client(UUID,TEXT,TEXT,TEXT) CASCADE;
-DROP FUNCTION IF EXISTS create_agendamento_completo(JSONB) CASCADE;
-DROP FUNCTION IF EXISTS get_slots_disponiveis(DATE,UUID,INT) CASCADE;
-DROP FUNCTION IF EXISTS update_cliente_stats(UUID)  CASCADE;
-DROP FUNCTION IF EXISTS update_updated_at()         CASCADE;
+DROP FUNCTION IF EXISTS create_agendamento_completo(JSONB)     CASCADE;
+DROP FUNCTION IF EXISTS get_slots_disponiveis(DATE,UUID,INT)   CASCADE;
+DROP FUNCTION IF EXISTS update_cliente_stats(UUID)             CASCADE;
+DROP FUNCTION IF EXISTS update_updated_at()                    CASCADE;
 DROP FUNCTION IF EXISTS finalizar_agendamento(UUID,TEXT,NUMERIC,TEXT) CASCADE;
+DROP FUNCTION IF EXISTS check_schedule_conflict(UUID,TIMESTAMPTZ,TIMESTAMPTZ) CASCADE;
 
 -- ================================================================
 -- 2. TABELAS
 -- ================================================================
 
--- USERS
-CREATE TABLE users (
+-- USUARIOS  (antigo users)
+CREATE TABLE usuarios (
     id           UUID PRIMARY KEY
-                 CONSTRAINT fk_users_auth REFERENCES auth.users(id) ON DELETE CASCADE,
+                 CONSTRAINT fk_usuarios_auth REFERENCES auth.users(id) ON DELETE CASCADE,
     email        TEXT UNIQUE NOT NULL,
     nome         TEXT NOT NULL,
     telefone     TEXT,
-    role         TEXT DEFAULT 'user' CHECK (role IN ('user','atendente','admin')),
+    role         TEXT DEFAULT 'cliente' CHECK (role IN ('cliente','atendente','admin')),
     avatar_url   TEXT,
     avatar_emote TEXT DEFAULT '😊',
     ativo        BOOLEAN DEFAULT TRUE,
@@ -73,10 +76,10 @@ CREATE TABLE horarios_funcionamento (
     UNIQUE(dia_semana)
 );
 
--- CLIENTES  (user pode ser cliente — ligado por email)
+-- CLIENTES  (vinculado ao usuário logado por email/user_id)
 CREATE TABLE clientes (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id         UUID REFERENCES users(id) ON DELETE SET NULL,  -- vínculo ao user se existir
+    user_id         UUID REFERENCES usuarios(id) ON DELETE SET NULL,
     nome            TEXT NOT NULL,
     email           TEXT,
     telefone        TEXT,
@@ -86,13 +89,13 @@ CREATE TABLE clientes (
     cidade          TEXT,
     observacoes     TEXT,
     tags            TEXT[],
-    total_visitas   INT          DEFAULT 0,
+    total_visitas   INT           DEFAULT 0,
     total_gasto     NUMERIC(10,2) DEFAULT 0,
     ultima_visita   TIMESTAMPTZ,
-    ativo           BOOLEAN      DEFAULT TRUE,
-    criado_por      UUID REFERENCES users(id) ON DELETE SET NULL,
-    created_at      TIMESTAMPTZ  DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ  DEFAULT NOW()
+    ativo           BOOLEAN       DEFAULT TRUE,
+    criado_por      UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+    created_at      TIMESTAMPTZ   DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ   DEFAULT NOW()
 );
 
 -- EQUIPE
@@ -113,8 +116,8 @@ CREATE TABLE equipe (
 -- EQUIPE LIKES
 CREATE TABLE equipe_likes (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    profissional_id UUID NOT NULL REFERENCES equipe(id)  ON DELETE CASCADE,
-    user_id         UUID NOT NULL REFERENCES users(id)   ON DELETE CASCADE,
+    profissional_id UUID NOT NULL REFERENCES equipe(id)    ON DELETE CASCADE,
+    user_id         UUID NOT NULL REFERENCES usuarios(id)  ON DELETE CASCADE,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(profissional_id, user_id)
 );
@@ -137,8 +140,8 @@ CREATE TABLE servicos (
 -- AGENDAMENTOS
 CREATE TABLE agendamentos (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    cliente_id      UUID NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
-    criado_por      UUID REFERENCES users(id) ON DELETE SET NULL,
+    cliente_id      UUID NOT NULL REFERENCES clientes(id)  ON DELETE CASCADE,
+    criado_por      UUID REFERENCES usuarios(id)           ON DELETE SET NULL,
     data_hora       TIMESTAMPTZ NOT NULL,
     duracao_min     INT          DEFAULT 60,
     status          TEXT         DEFAULT 'pendente'
@@ -159,8 +162,8 @@ CREATE TABLE agendamentos (
 CREATE TABLE agendamento_servicos (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     agendamento_id  UUID NOT NULL REFERENCES agendamentos(id) ON DELETE CASCADE,
-    servico_id      UUID REFERENCES servicos(id) ON DELETE SET NULL,
-    profissional_id UUID REFERENCES equipe(id)   ON DELETE SET NULL,
+    servico_id      UUID REFERENCES servicos(id)              ON DELETE SET NULL,
+    profissional_id UUID REFERENCES equipe(id)                ON DELETE SET NULL,
     preco           NUMERIC(10,2) DEFAULT 0,
     duracao_min     INT           DEFAULT 60,
     hora_inicio     TIMESTAMPTZ,
@@ -172,7 +175,7 @@ CREATE TABLE agendamento_servicos (
 CREATE TABLE agendamento_produtos (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     agendamento_id  UUID NOT NULL REFERENCES agendamentos(id) ON DELETE CASCADE,
-    servico_id      UUID REFERENCES servicos(id) ON DELETE SET NULL,
+    servico_id      UUID REFERENCES servicos(id)              ON DELETE SET NULL,
     quantidade      INT           DEFAULT 1,
     preco_unitario  NUMERIC(10,2) DEFAULT 0,
     created_at      TIMESTAMPTZ DEFAULT NOW()
@@ -187,16 +190,16 @@ CREATE TABLE financeiro (
     categoria      TEXT,
     data           DATE DEFAULT CURRENT_DATE,
     agendamento_id UUID REFERENCES agendamentos(id) ON DELETE SET NULL,
-    criado_por     UUID REFERENCES users(id)        ON DELETE SET NULL,
+    criado_por     UUID REFERENCES usuarios(id)     ON DELETE SET NULL,
     created_at     TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- CHAT MESSAGES
 CREATE TABLE chat_messages (
     id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    cliente_id UUID NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
-    user_id    UUID REFERENCES users(id) ON DELETE SET NULL,
-    de_admin   BOOLEAN DEFAULT FALSE,   -- TRUE = enviado pelo admin/sistema
+    cliente_id UUID NOT NULL REFERENCES clientes(id)  ON DELETE CASCADE,
+    user_id    UUID REFERENCES usuarios(id)            ON DELETE SET NULL,
+    de_admin   BOOLEAN DEFAULT FALSE,   -- TRUE = enviado pelo admin/atendente
     mensagem   TEXT NOT NULL,
     lida       BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -206,45 +209,52 @@ CREATE TABLE chat_messages (
 -- 3. FUNÇÕES / STORED PROCEDURES
 -- ================================================================
 
--- ── is_admin(): verifica se o usuário é admin ─────────────────
+-- ── is_admin(): verifica se o usuário é admin ──────────────────
 CREATE OR REPLACE FUNCTION is_admin()
 RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = public AS $$
     SELECT EXISTS (
-        SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin'
+        SELECT 1 FROM usuarios WHERE id = auth.uid() AND role = 'admin'
     ) OR auth.uid() = '37a7c0ff-f22b-43fd-be0b-4164a0ad26e7'::uuid;
 $$;
 
--- ── update_updated_at(): trigger genérico de timestamp ────────
+-- ── is_staff(): verifica se é admin ou atendente ───────────────
+CREATE OR REPLACE FUNCTION is_staff()
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM usuarios WHERE id = auth.uid() AND role IN ('admin','atendente')
+    ) OR auth.uid() = '37a7c0ff-f22b-43fd-be0b-4164a0ad26e7'::uuid;
+$$;
+
+-- ── update_updated_at(): trigger genérico de timestamp ─────────
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
 $$;
 
--- ── handle_new_user(): cria perfil user após signup ───────────
--- Também cria automaticamente um registro de cliente vinculado
+-- ── handle_new_user(): cria perfil usuario após signup ─────────
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public AS $$
 DECLARE
     v_nome TEXT;
     v_role TEXT;
-    v_cliente_id UUID;
 BEGIN
     v_nome := COALESCE(NEW.raw_user_meta_data->>'nome', split_part(NEW.email,'@',1));
     v_role := CASE
         WHEN NEW.id = '37a7c0ff-f22b-43fd-be0b-4164a0ad26e7'::uuid THEN 'admin'
-        ELSE 'user'
+        ELSE 'cliente'
     END;
 
     -- Cria / atualiza perfil de usuário
-    INSERT INTO public.users (id, email, nome, role)
+    INSERT INTO public.usuarios (id, email, nome, role)
     VALUES (NEW.id, NEW.email, v_nome, v_role)
     ON CONFLICT (id) DO UPDATE SET
         email = EXCLUDED.email,
-        nome  = COALESCE(EXCLUDED.nome, users.nome);
+        nome  = COALESCE(EXCLUDED.nome, usuarios.nome);
 
-    -- Cria / atualiza registro de cliente vinculado ao user
+    -- Cria / atualiza registro de cliente vinculado ao usuario
     INSERT INTO public.clientes (user_id, nome, email, criado_por, ativo)
     VALUES (NEW.id, v_nome, NEW.email, NEW.id, TRUE)
     ON CONFLICT DO NOTHING;
@@ -253,8 +263,7 @@ BEGIN
 END;
 $$;
 
--- ── ensure_user_and_client(): garante user + cliente no login ─
--- Chamado pelo frontend em cada autenticação
+-- ── ensure_user_and_client(): garante usuario + cliente no login ─
 CREATE OR REPLACE FUNCTION ensure_user_and_client(
     p_user_id   UUID,
     p_email     TEXT,
@@ -266,27 +275,27 @@ SET search_path = public AS $$
 DECLARE
     v_nome       TEXT;
     v_role       TEXT;
-    v_user       users%ROWTYPE;
+    v_user       usuarios%ROWTYPE;
     v_cliente_id UUID;
 BEGIN
     v_nome := COALESCE(p_nome, split_part(p_email,'@',1));
 
-    -- UPSERT users
-    INSERT INTO public.users (id, email, nome, telefone, role)
+    -- UPSERT usuarios
+    INSERT INTO public.usuarios (id, email, nome, telefone, role)
     VALUES (
         p_user_id, p_email, v_nome, p_telefone,
-        CASE WHEN p_user_id = '37a7c0ff-f22b-43fd-be0b-4164a0ad26e7'::uuid THEN 'admin' ELSE 'user' END
+        CASE WHEN p_user_id = '37a7c0ff-f22b-43fd-be0b-4164a0ad26e7'::uuid THEN 'admin' ELSE 'cliente' END
     )
     ON CONFLICT (id) DO UPDATE SET
-        email     = EXCLUDED.email,
-        telefone  = COALESCE(EXCLUDED.telefone, users.telefone),
-        nome      = COALESCE(EXCLUDED.nome, users.nome),
+        email      = EXCLUDED.email,
+        telefone   = COALESCE(EXCLUDED.telefone, usuarios.telefone),
+        nome       = COALESCE(EXCLUDED.nome, usuarios.nome),
         updated_at = NOW()
     RETURNING * INTO v_user;
 
-    -- Se user não foi retornado (ON CONFLICT), busca o existente
+    -- Se usuario não foi retornado (ON CONFLICT sem RETURNING), busca o existente
     IF v_user.id IS NULL THEN
-        SELECT * INTO v_user FROM public.users WHERE id = p_user_id;
+        SELECT * INTO v_user FROM public.usuarios WHERE id = p_user_id;
     END IF;
 
     -- UPSERT clientes: vincula por user_id ou email
@@ -299,7 +308,6 @@ BEGIN
         VALUES (p_user_id, v_nome, p_email, p_telefone, p_user_id, TRUE)
         RETURNING id INTO v_cliente_id;
     ELSE
-        -- Garante vínculo user_id
         UPDATE public.clientes SET
             user_id    = COALESCE(user_id, p_user_id),
             telefone   = COALESCE(telefone, p_telefone),
@@ -314,7 +322,7 @@ BEGIN
 END;
 $$;
 
--- ── update_cliente_stats(): recalcula visitas/gasto do cliente ─
+-- ── update_cliente_stats(): recalcula visitas/gasto do cliente ──
 CREATE OR REPLACE FUNCTION update_cliente_stats(p_cliente_id UUID)
 RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public AS $$
@@ -364,10 +372,8 @@ BEGIN
         RAISE EXCEPTION 'Agendamento % não encontrado', p_ag_id;
     END IF;
 
-    -- Recalcula stats do cliente
     PERFORM update_cliente_stats(v_ag.cliente_id);
 
-    -- Lança no financeiro se concluído
     IF p_status = 'concluido' THEN
         INSERT INTO financeiro (tipo, descricao, valor, categoria, data, agendamento_id, criado_por)
         VALUES (
@@ -390,7 +396,7 @@ BEGIN
 END;
 $$;
 
--- ── get_slots_disponiveis(): retorna slots livres/ocupados ─────
+-- ── get_slots_disponiveis(): retorna slots livres/ocupados ──────
 CREATE OR REPLACE FUNCTION get_slots_disponiveis(
     p_date          DATE,
     p_prof_id       UUID    DEFAULT NULL,
@@ -456,7 +462,7 @@ BEGIN
 END;
 $$;
 
--- ── check_schedule_conflict(): helper para createAgendamento ──
+-- ── check_schedule_conflict(): helper para createAgendamento ───
 CREATE OR REPLACE FUNCTION check_schedule_conflict(
     p_prof_id    UUID,
     p_hora_ini   TIMESTAMPTZ,
@@ -488,8 +494,8 @@ CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
-CREATE TRIGGER users_updated_at
-    BEFORE UPDATE ON users
+CREATE TRIGGER usuarios_updated_at
+    BEFORE UPDATE ON usuarios
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 CREATE TRIGGER clientes_updated_at
@@ -503,7 +509,7 @@ CREATE TRIGGER agendamentos_updated_at
 -- ================================================================
 -- 5. ROW LEVEL SECURITY
 -- ================================================================
-ALTER TABLE users                  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE usuarios               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE config_sistema         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE horarios_funcionamento ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clientes               ENABLE ROW LEVEL SECURITY;
@@ -516,24 +522,24 @@ ALTER TABLE agendamento_produtos   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE financeiro             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_messages          ENABLE ROW LEVEL SECURITY;
 
--- USERS
-CREATE POLICY "u_sel" ON users FOR SELECT  USING (auth.uid() IS NOT NULL);
-CREATE POLICY "u_ins" ON users FOR INSERT  WITH CHECK (auth.uid() = id OR is_admin());
-CREATE POLICY "u_upd" ON users FOR UPDATE
+-- USUARIOS
+CREATE POLICY "u_sel" ON usuarios FOR SELECT  USING (auth.uid() IS NOT NULL);
+CREATE POLICY "u_ins" ON usuarios FOR INSERT  WITH CHECK (auth.uid() = id OR is_admin());
+CREATE POLICY "u_upd" ON usuarios FOR UPDATE
     USING (auth.uid() = id OR is_admin())
     WITH CHECK (auth.uid() = id OR is_admin());
-CREATE POLICY "u_del" ON users FOR DELETE  USING (is_admin());
+CREATE POLICY "u_del" ON usuarios FOR DELETE  USING (is_admin());
 
 -- CONFIG SISTEMA
 CREATE POLICY "cfg_sel" ON config_sistema FOR SELECT  USING (auth.uid() IS NOT NULL);
-CREATE POLICY "cfg_ins" ON config_sistema FOR INSERT  WITH CHECK (is_admin());
-CREATE POLICY "cfg_upd" ON config_sistema FOR UPDATE  USING (is_admin());
+CREATE POLICY "cfg_ins" ON config_sistema FOR INSERT  WITH CHECK (is_staff());
+CREATE POLICY "cfg_upd" ON config_sistema FOR UPDATE  USING (is_staff());
 CREATE POLICY "cfg_del" ON config_sistema FOR DELETE  USING (is_admin());
 
 -- HORÁRIOS
 CREATE POLICY "h_sel" ON horarios_funcionamento FOR SELECT  USING (auth.uid() IS NOT NULL);
-CREATE POLICY "h_ins" ON horarios_funcionamento FOR INSERT  WITH CHECK (is_admin());
-CREATE POLICY "h_upd" ON horarios_funcionamento FOR UPDATE  USING (is_admin());
+CREATE POLICY "h_ins" ON horarios_funcionamento FOR INSERT  WITH CHECK (is_staff());
+CREATE POLICY "h_upd" ON horarios_funcionamento FOR UPDATE  USING (is_staff());
 CREATE POLICY "h_del" ON horarios_funcionamento FOR DELETE  USING (is_admin());
 
 -- CLIENTES: qualquer autenticado lê/insere/atualiza; só admin deleta
@@ -544,9 +550,9 @@ CREATE POLICY "c_del" ON clientes FOR DELETE  USING (is_admin());
 
 -- EQUIPE
 CREATE POLICY "e_sel" ON equipe FOR SELECT  USING (auth.uid() IS NOT NULL);
-CREATE POLICY "e_ins" ON equipe FOR INSERT  WITH CHECK (is_admin());
-CREATE POLICY "e_upd" ON equipe FOR UPDATE  USING (is_admin());
-CREATE POLICY "e_del" ON equipe FOR DELETE  USING (is_admin());
+CREATE POLICY "e_ins" ON equipe FOR INSERT  WITH CHECK (is_staff());
+CREATE POLICY "e_upd" ON equipe FOR UPDATE  USING (is_staff());
+CREATE POLICY "e_del" ON equipe FOR DELETE  USING (is_staff());
 
 -- EQUIPE LIKES
 CREATE POLICY "el_sel" ON equipe_likes FOR SELECT  USING (auth.uid() IS NOT NULL);
@@ -555,15 +561,15 @@ CREATE POLICY "el_del" ON equipe_likes FOR DELETE  USING (auth.uid() = user_id O
 
 -- SERVICOS
 CREATE POLICY "s_sel" ON servicos FOR SELECT  USING (auth.uid() IS NOT NULL);
-CREATE POLICY "s_ins" ON servicos FOR INSERT  WITH CHECK (is_admin());
-CREATE POLICY "s_upd" ON servicos FOR UPDATE  USING (is_admin());
-CREATE POLICY "s_del" ON servicos FOR DELETE  USING (is_admin());
+CREATE POLICY "s_ins" ON servicos FOR INSERT  WITH CHECK (is_staff());
+CREATE POLICY "s_upd" ON servicos FOR UPDATE  USING (is_staff());
+CREATE POLICY "s_del" ON servicos FOR DELETE  USING (is_staff());
 
--- AGENDAMENTOS: todos authenticated podem criar/ler/editar; só admin deleta
+-- AGENDAMENTOS: todos authenticated podem criar/ler/editar; staff deleta
 CREATE POLICY "a_sel" ON agendamentos FOR SELECT  USING (auth.uid() IS NOT NULL);
 CREATE POLICY "a_ins" ON agendamentos FOR INSERT  WITH CHECK (auth.uid() IS NOT NULL);
 CREATE POLICY "a_upd" ON agendamentos FOR UPDATE  USING (auth.uid() IS NOT NULL);
-CREATE POLICY "a_del" ON agendamentos FOR DELETE  USING (is_admin());
+CREATE POLICY "a_del" ON agendamentos FOR DELETE  USING (is_staff());
 
 -- AGENDAMENTO SERVICOS
 CREATE POLICY "as_sel" ON agendamento_servicos FOR SELECT  USING (auth.uid() IS NOT NULL);
@@ -577,11 +583,11 @@ CREATE POLICY "ap_ins" ON agendamento_produtos FOR INSERT  WITH CHECK (auth.uid(
 CREATE POLICY "ap_upd" ON agendamento_produtos FOR UPDATE  USING (auth.uid() IS NOT NULL);
 CREATE POLICY "ap_del" ON agendamento_produtos FOR DELETE  USING (auth.uid() IS NOT NULL);
 
--- FINANCEIRO
+-- FINANCEIRO: staff insere/edita/deleta; todos authenticated lêem
 CREATE POLICY "f_sel" ON financeiro FOR SELECT  USING (auth.uid() IS NOT NULL);
-CREATE POLICY "f_ins" ON financeiro FOR INSERT  WITH CHECK (auth.uid() IS NOT NULL);
-CREATE POLICY "f_upd" ON financeiro FOR UPDATE  USING (is_admin());
-CREATE POLICY "f_del" ON financeiro FOR DELETE  USING (is_admin());
+CREATE POLICY "f_ins" ON financeiro FOR INSERT  WITH CHECK (is_staff());
+CREATE POLICY "f_upd" ON financeiro FOR UPDATE  USING (is_staff());
+CREATE POLICY "f_del" ON financeiro FOR DELETE  USING (is_staff());
 
 -- CHAT: qualquer autenticado lê/envia; admin pode apagar
 CREATE POLICY "ch_sel" ON chat_messages FOR SELECT  USING (auth.uid() IS NOT NULL);
@@ -592,28 +598,29 @@ CREATE POLICY "ch_del" ON chat_messages FOR DELETE  USING (is_admin());
 -- ================================================================
 -- 6. ÍNDICES
 -- ================================================================
-CREATE INDEX idx_users_role            ON users(role);
-CREATE INDEX idx_users_email           ON users(email);
-CREATE INDEX idx_clientes_nome         ON clientes(nome);
-CREATE INDEX idx_clientes_email        ON clientes(email);
-CREATE INDEX idx_clientes_user_id      ON clientes(user_id);
-CREATE INDEX idx_clientes_criado_por   ON clientes(criado_por);
-CREATE INDEX idx_equipe_ativo          ON equipe(ativo);
-CREATE INDEX idx_servicos_categoria    ON servicos(categoria, ativo);
-CREATE INDEX idx_ag_data               ON agendamentos(data_hora);
-CREATE INDEX idx_ag_status             ON agendamentos(status);
-CREATE INDEX idx_ag_cliente            ON agendamentos(cliente_id);
-CREATE INDEX idx_ag_criado_por         ON agendamentos(criado_por);
-CREATE INDEX idx_ag_svc_ag             ON agendamento_servicos(agendamento_id);
-CREATE INDEX idx_ag_svc_prof           ON agendamento_servicos(profissional_id);
-CREATE INDEX idx_ag_svc_horas          ON agendamento_servicos(hora_inicio, hora_fim);
-CREATE INDEX idx_ag_prod_ag            ON agendamento_produtos(agendamento_id);
-CREATE INDEX idx_fin_data              ON financeiro(data);
-CREATE INDEX idx_fin_tipo              ON financeiro(tipo);
-CREATE INDEX idx_chat_cliente          ON chat_messages(cliente_id);
-CREATE INDEX idx_chat_created          ON chat_messages(created_at DESC);
-CREATE INDEX idx_likes_prof            ON equipe_likes(profissional_id);
-CREATE INDEX idx_likes_user            ON equipe_likes(user_id);
+CREATE INDEX idx_usuarios_role          ON usuarios(role);
+CREATE INDEX idx_usuarios_email         ON usuarios(email);
+CREATE INDEX idx_clientes_nome          ON clientes(nome);
+CREATE INDEX idx_clientes_email         ON clientes(email);
+CREATE INDEX idx_clientes_user_id       ON clientes(user_id);
+CREATE INDEX idx_clientes_criado_por    ON clientes(criado_por);
+CREATE INDEX idx_equipe_ativo           ON equipe(ativo);
+CREATE INDEX idx_servicos_categoria     ON servicos(categoria, ativo);
+CREATE INDEX idx_ag_data                ON agendamentos(data_hora);
+CREATE INDEX idx_ag_status              ON agendamentos(status);
+CREATE INDEX idx_ag_cliente             ON agendamentos(cliente_id);
+CREATE INDEX idx_ag_criado_por          ON agendamentos(criado_por);
+CREATE INDEX idx_ag_svc_ag              ON agendamento_servicos(agendamento_id);
+CREATE INDEX idx_ag_svc_prof            ON agendamento_servicos(profissional_id);
+CREATE INDEX idx_ag_svc_horas           ON agendamento_servicos(hora_inicio, hora_fim);
+CREATE INDEX idx_ag_prod_ag             ON agendamento_produtos(agendamento_id);
+CREATE INDEX idx_fin_data               ON financeiro(data);
+CREATE INDEX idx_fin_tipo               ON financeiro(tipo);
+CREATE INDEX idx_fin_criado_por         ON financeiro(criado_por);
+CREATE INDEX idx_chat_cliente           ON chat_messages(cliente_id);
+CREATE INDEX idx_chat_created           ON chat_messages(created_at DESC);
+CREATE INDEX idx_likes_prof             ON equipe_likes(profissional_id);
+CREATE INDEX idx_likes_user             ON equipe_likes(user_id);
 
 -- ================================================================
 -- 7. DADOS INICIAIS
@@ -666,4 +673,4 @@ ON CONFLICT DO NOTHING;
 -- ================================================================
 -- PRONTO — execute este script no SQL Editor do Supabase
 -- ================================================================
-SELECT 'Setup v3 aplicado com sucesso!' AS resultado;
+SELECT 'Setup v4.0 aplicado com sucesso! Tabela usuarios, roles: cliente/atendente/admin' AS resultado;

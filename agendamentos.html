@@ -312,7 +312,7 @@ import {
   formatCurrency, formatDateTime, formatDate, formatTime,
   STATUS_LABELS, PAGAMENTO_LABELS
 } from './supabase/database.js';
-import { getSidebarHTML, initSidebarToggle, showAdminItems, showAtendentItems, updatePendingBadge } from './js/sidebar.js';
+import { getSidebarHTML, initSidebarToggle, showAdminItems, showStaffItems, updatePendingBadge } from './js/sidebar.js';
 
 document.getElementById('sidebarMount').innerHTML = getSidebarHTML('agendamentos');
 initSidebarToggle();
@@ -323,7 +323,7 @@ const adminMode = isAdmin(user, profile);
 const atendenteMode = profile?.role === 'atendente';
 renderUserInSidebar(profile);
 if (adminMode) showAdminItems();
-else if (atendenteMode) showAtendentItems();
+else if (atendenteMode) showStaffItems();
 setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
 document.getElementById('logoutBtn')?.addEventListener('click', () =>
   import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href = 'index.html'));
@@ -530,7 +530,7 @@ window.showCalDay = async (y, m, d) => {
   const dateStr = new Date(y,m-1,d).toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
   const el = document.getElementById('calDayDetail');
 
-  // Build side-by-side: appointments list + hourly timeline
+  // ── Build rich hourly timeline with profissional + cliente + serviço + status ──
   let timelineHtml = '';
   const hours = {};
   ags.forEach(ag => {
@@ -539,31 +539,85 @@ window.showCalDay = async (y, m, d) => {
     hours[h].push(ag);
   });
 
-  for (let h = 7; h <= 20; h++) {
+  // Determine operating hours for this day
+  const dow = new Date(y,m-1,d).getDay();
+  const horar = horarios.find(x => x.dia_semana === dow);
+  const dayOpen = horar?.aberto !== false;
+  const hourStart = horar ? parseInt(horar.hora_abertura?.split(':')[0] || '7') : 7;
+  const hourEnd   = horar ? parseInt(horar.hora_fechamento?.split(':')[0] || '20') : 20;
+
+  for (let h = Math.min(hourStart, 7); h <= Math.max(hourEnd, 20); h++) {
     const hAgs = hours[h] || [];
-    timelineHtml += `<div style="display:flex;gap:8px;min-height:36px;padding:3px 0;
-        border-bottom:1px solid var(--border);align-items:flex-start">
-      <span style="width:40px;font-size:.74rem;color:var(--text3);padding-top:4px;flex-shrink:0">${String(h).padStart(2,'0')}:00</span>
-      <div style="flex:1">
-        ${hAgs.map(ag => {
-          const st = STATUS_LABELS[ag.status]||{};
-          const servN = ag.agendamento_servicos?.map(s=>s.servicos?.nome||'').filter(Boolean).join(', ')||'—';
-          return `<div onclick="verDetalhes('${ag.id}')" style="background:${st.color}22;border-left:3px solid ${st.color};
-              border-radius:5px;padding:4px 8px;margin-bottom:3px;cursor:pointer;font-size:.77rem">
-            <strong>${ag.clientes?.nome||'—'}</strong> · ${servN}
-            <span class="badge" style="background:${st.color}22;color:${st.color};font-size:.65rem;margin-left:4px">${st.icon||''} ${st.label||ag.status}</span>
-          </div>`;
-        }).join('')}
+    const inHours = h >= hourStart && h < hourEnd;
+    const bgStyle = !dayOpen ? 'background:rgba(107,114,128,.04)' : (!inHours ? 'background:rgba(239,68,68,.04)' : '');
+    timelineHtml += `<div style="display:flex;gap:10px;min-height:40px;padding:4px 0;
+        border-bottom:1px solid var(--border);align-items:flex-start;${bgStyle}">
+      <span style="width:46px;font-size:.72rem;color:${inHours&&dayOpen?'var(--text3)':'var(--danger)'};
+          padding-top:5px;flex-shrink:0;font-weight:600">${String(h).padStart(2,'0')}:00</span>
+      <div style="flex:1;min-width:0">
+        ${hAgs.length === 0
+          ? (inHours && dayOpen
+              ? `<span style="font-size:.7rem;color:var(--text3);opacity:.5">— livre —</span>`
+              : '')
+          : hAgs.map(ag => {
+              const st        = STATUS_LABELS[ag.status] || {};
+              const cor       = ag.agendamento_servicos?.[0]?.equipe?.cor_agenda || st.color || '#6366f1';
+              const clienteNome = ag.para_outro
+                ? (ag.nome_outro || 'Outra pessoa')
+                : (ag.clientes?.nome || '—');
+              const clienteTel  = ag.clientes?.telefone || '';
+              const servicos    = ag.agendamento_servicos?.map(s => {
+                const sNome = s.servicos?.nome || '';
+                const pNome = s.equipe?.nome || '';
+                const pCor  = s.equipe?.cor_agenda || '#6366f1';
+                const sIco  = s.servicos?.icone || '✂️';
+                return `<span style="display:inline-flex;align-items:center;gap:3px;margin-right:6px;font-size:.72rem">
+                  ${sIco} ${sNome}
+                  ${pNome ? `<span style="color:${pCor};font-weight:700">→ ${pNome}</span>` : ''}
+                </span>`;
+              }).join('') || '—';
+              const hora = new Date(ag.data_hora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+              return `<div onclick="verDetalhes('${ag.id}')"
+                  style="background:${cor}18;border-left:3px solid ${cor};border-radius:6px;
+                         padding:6px 10px;margin-bottom:4px;cursor:pointer">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px">
+                  <span style="font-size:.75rem;color:${cor};font-weight:700">${hora}</span>
+                  <strong style="font-size:.82rem">${clienteNome}</strong>
+                  ${clienteTel ? `<span style="font-size:.7rem;color:var(--text2)"><i class="fas fa-phone" style="font-size:.6rem"></i> ${clienteTel}</span>` : ''}
+                  <span class="badge" style="background:${st.color}22;color:${st.color};font-size:.65rem;margin-left:auto">${st.icon||''} ${st.label||ag.status}</span>
+                </div>
+                <div style="font-size:.75rem;color:var(--text2)">${servicos}</div>
+                ${ag.para_outro ? `<div style="font-size:.68rem;color:var(--warning);margin-top:2px"><i class="fas fa-user-friends"></i> Para: ${ag.nome_outro||'outra pessoa'}</div>` : ''}
+              </div>`;
+            }).join('')
+        }
       </div>
     </div>`;
   }
 
+  // Slot summary at bottom
+  const slotSummary = ags.length > 0
+    ? `<div style="padding:8px 0 4px;font-size:.75rem;color:var(--text2);border-top:1px solid var(--border);margin-top:4px">
+        ${ags.filter(a=>a.status==='pendente').length} pendente(s) ·
+        ${ags.filter(a=>a.status==='confirmado').length} confirmado(s) ·
+        ${ags.filter(a=>a.status==='concluido').length} concluído(s) ·
+        ${ags.filter(a=>a.status==='cancelado').length} cancelado(s)
+       </div>`
+    : '';
+
   el.innerHTML = `<div class="card">
-    <div class="card-header">
-      <span class="card-title">📅 ${dateStr} — ${ags.length} agendamento(s)</span>
+    <div class="card-header" style="gap:10px;flex-wrap:wrap">
+      <span class="card-title">📅 ${dateStr}</span>
+      <span style="font-size:.78rem;color:var(--text2)">${ags.length} agendamento(s)</span>
+      ${!dayOpen ? `<span class="badge badge-gray" style="font-size:.7rem">Fechado</span>` : ''}
+      <button class="btn btn-primary btn-sm" style="margin-left:auto"
+        onclick="document.getElementById('btnNovo').click()">
+        <i class="fas fa-plus"></i> Novo
+      </button>
     </div>
-    <div style="max-height:400px;overflow-y:auto;padding:8px 0">
-      ${timelineHtml || '<p style="color:var(--text3);font-size:.84rem;padding:12px 0">Nenhum agendamento neste dia.</p>'}
+    <div style="max-height:480px;overflow-y:auto">
+      ${timelineHtml || '<p style="color:var(--text3);font-size:.84rem;padding:12px 0;text-align:center"><i class="fas fa-calendar-check"></i><br>Nenhum agendamento neste dia.</p>'}
+      ${slotSummary}
     </div>
   </div>`;
 };
@@ -679,13 +733,14 @@ async function renderHeatmap() {
     if (isPast&&!isToday) cls+=' past';
     if (closed) cls+=' closed';
     if (isSel)  cls+=' selected';
-    const clickable = !isPast && !closed;
-    html += `<div class="${cls}" ${clickable?`onclick="selectDate(${heatYear},${heatMonth},${d})"`:''} title="${count} agendamento(s)">${d}</div>`;
+    // Admin can click closed days to manually schedule (manual time entry)
+    const clickable = !isPast && (!closed || adminMode);
+    html += `<div class="${cls}" ${clickable?`onclick="selectDate(${heatYear},${heatMonth},${d},${closed})"`:''} title="${count} agendamento(s)${closed?' (Fechado)':''}">${d}</div>`;
   }
   document.getElementById('heatGrid').innerHTML = html;
 }
 
-window.selectDate = async (y, m, d) => {
+window.selectDate = async (y, m, d, isClosed = false) => {
   selectedDate = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
   selectedTime = null;
   document.getElementById('mHoraManual').value = '';
@@ -702,20 +757,33 @@ window.selectDate = async (y, m, d) => {
   const container = document.getElementById('slotsContainer');
   container.innerHTML = '<div style="text-align:center;padding:20px"><i class="fas fa-circle-notch spin" style="color:var(--primary)"></i></div>';
 
+  // For closed days (admin only): skip slot loading, show manual-time-only notice
+  if (isClosed) {
+    container.innerHTML = `<div style="padding:10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);
+        border-radius:8px;font-size:.8rem;color:var(--warning);text-align:center;margin-bottom:8px">
+      <i class="fas fa-store-slash"></i> Dia fechado — horários automáticos indisponíveis.<br>
+      <small style="color:var(--text2)">Use o campo manual abaixo para inserir o horário.</small>
+    </div>`;
+    updateResumo();
+    return;
+  }
+
   // getSlotsDisponiveis retorna TODOS os slots (livres e ocupados)
   const slots = await getSlotsDisponiveis(selectedDate, profId, durMin);
 
   if (!slots.length) {
-    container.innerHTML = '<p style="color:var(--text2);font-size:.84rem;text-align:center"><i class="fas fa-store-slash"></i><br>Estabelecimento fechado neste dia.</p>';
+    container.innerHTML = `<div style="padding:10px;background:rgba(239,68,68,.08);border-radius:8px;font-size:.8rem;color:var(--danger);text-align:center">
+      <i class="fas fa-store-slash"></i><br>Estabelecimento fechado neste dia.<br>
+      <small style="color:var(--text2);margin-top:4px;display:block">Use o campo manual abaixo para forçar um horário.</small>
+    </div>`;
+    updateResumo();
     return;
   }
 
-  // Build profissional name map
+  // Build profissional name map for occupied slots
   const profMap = {};
   equipe.forEach(e => { profMap[e.id] = e.nome; });
 
-  // For non-admin: hide detail of WHO is occupying (privacy), just show "Ocupado"
-  // For admin: show professional name + hint to pick another slot
   container.innerHTML = slots.map(s => {
     if (s.livre) {
       return `<div class="slot-item livre${selectedTime===s.hora?' selected':''}" onclick="selectSlot('${s.hora}','${s.iso}')">
@@ -725,32 +793,33 @@ window.selectDate = async (y, m, d) => {
         <i class="fas fa-check" style="color:#10b981;font-size:.7rem"></i>
       </div>`;
     } else {
-      const profNomes = adminMode
-        ? (s.profissionais_ocupados||[]).map(id=>profMap[id]||'Profissional').join(', ')
-        : '';
-      const tooltip = adminMode ? `Ocupado — ${profNomes || 'Profissional indisponível'}` : 'Horário indisponível';
-      const infoText = profNomes
-        ? `<span class="slot-info" style="color:#ef4444">Ocupado · <strong>${profNomes}</strong></span>`
-        : `<span class="slot-info">Indisponível</span>`;
-      // Admin: suggest picking another slot/professional
-      const adminHint = adminMode && profNomes
-        ? `<span style="font-size:.68rem;color:var(--warning);margin-left:4px" title="Escolha outro horário ou profissional">⚠️</span>`
-        : '';
+      // Show client + professional info for occupied slots (admin sees detail, others just "Ocupado")
+      const ocupInfo = (adminMode || atendenteMode)
+        ? s.ocupacoes?.map(o => {
+            const pNome = o.profissional_nome || profMap[o.profissional_id] || 'Prof.';
+            const cNome = o.cliente_nome || '—';
+            const sNome = o.servico_nome || '';
+            return `${pNome}${cNome !== '—' ? ' · ' + cNome : ''}${sNome ? ' · ' + sNome : ''}`;
+          }).join('; ') || 'Ocupado'
+        : 'Horário indisponível';
+      const tooltip = `Ocupado — ${ocupInfo}`;
       return `<div class="slot-item ocupado" title="${tooltip}">
         <span class="slot-dot" style="background:#ef4444"></span>
         <span class="slot-hora">${s.hora}</span>
-        ${infoText}${adminHint}
+        <span class="slot-info" style="color:#ef4444;font-size:.72rem" title="${tooltip}">
+          ${(adminMode || atendenteMode) ? ocupInfo.slice(0,40)+(ocupInfo.length>40?'…':'') : 'Indisponível'}
+        </span>
         <i class="fas fa-times" style="color:#ef4444;font-size:.7rem"></i>
       </div>`;
     }
   }).join('');
 
-  // Summary: how many slots available
+  // Summary line
   const livresCount = slots.filter(s=>s.livre).length;
   if (livresCount === 0) {
-    container.innerHTML += `<div style="margin-top:10px;padding:8px;background:rgba(239,68,68,.1);border-radius:8px;font-size:.78rem;color:#ef4444;text-align:center">
-      <i class="fas fa-calendar-times"></i> Nenhum horário disponível neste dia${profId?' para este profissional':''}.
-      ${profId ? '<br><small>Tente outro profissional ou outra data.</small>' : ''}
+    container.innerHTML += `<div style="margin-top:8px;padding:8px;background:rgba(239,68,68,.08);border-radius:8px;font-size:.78rem;color:#ef4444;text-align:center">
+      <i class="fas fa-calendar-times"></i> Nenhum slot livre neste dia${profId?' para este profissional':''}.
+      ${profId ? '<br><small>Tente outro profissional ou use o horário manual.</small>' : ''}
     </div>`;
   }
 

@@ -174,11 +174,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
-import { requireAuth, renderUserInSidebar, showToast, isAdmin } from './supabase/session-manager.js';
+import { requireAuth, renderUserInSidebar, showToast, isAdmin, isStaff } from './supabase/session-manager.js';
 import { getLancamentos, createLancamento, deleteLancamento,
          getResumoFinanceiro, getResumoFinanceiroMensal,
          formatCurrency, formatDate } from './supabase/database.js';
-import { getSidebarHTML, initSidebarToggle, showAdminItems } from './js/sidebar.js';
+import { getSidebarHTML, initSidebarToggle, showAdminItems, showStaffItems } from './js/sidebar.js';
 
 document.getElementById('sidebarMount').innerHTML = getSidebarHTML('financeiro');
 initSidebarToggle();
@@ -186,7 +186,15 @@ const auth = await requireAuth();
 if (!auth) throw new Error('Not authenticated');
 const { user, profile } = auth;
 renderUserInSidebar(profile);
-if (isAdmin(user,profile)) showAdminItems();
+const adminMode = isAdmin(user, profile);
+const staffMode = isStaff(user, profile);
+if (adminMode) showAdminItems();
+else if (staffMode) showStaffItems();
+// Só staff pode adicionar/remover lançamentos
+if (!staffMode) {
+  document.getElementById('btnNovaReceita')?.remove();
+  document.getElementById('btnNovaDespesa')?.remove();
+}
 setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
 document.getElementById('logoutBtn')?.addEventListener('click', () =>
   import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href='index.html'));
@@ -255,7 +263,7 @@ function renderTabela(list) {
         ${l.tipo==='despesa'?'-':''}${formatCurrency(l.valor)}
       </td>
       <td class="td-actions">
-        <button class="btn btn-ghost btn-sm btn-icon" onclick="excluir('${l.id}')" style="color:var(--danger)" title="Excluir"><i class="fas fa-trash"></i></button>
+        ${staffMode ? `<button class="btn btn-ghost btn-sm btn-icon" onclick="excluir('${l.id}')" style="color:var(--danger)" title="Excluir"><i class="fas fa-trash"></i></button>` : ''}
       </td>
     </tr>`).join('');
 }
@@ -359,6 +367,7 @@ document.getElementById('salvar')?.addEventListener('click', async () => {
   if (!data) { showToast('Informe a data.','warning'); return; }
   const btn = document.getElementById('salvar'); btn.disabled=true;
   try {
+    if (!staffMode) { showToast('Sem permissão para criar lançamentos.','warning'); return; }
     await createLancamento({
       tipo:       document.getElementById('lTipo').value,
       descricao,  valor,  data,
@@ -372,6 +381,7 @@ document.getElementById('salvar')?.addEventListener('click', async () => {
 });
 
 window.excluir = async (id) => {
+  if (!staffMode) { showToast('Sem permissão para excluir lançamentos.','warning'); return; }
   if (!confirm('Excluir este lançamento?')) return;
   try { await deleteLancamento(id); showToast('Removido.','success'); loadPeriod(); }
   catch(err) { showToast(err.message,'error'); }

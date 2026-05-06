@@ -159,7 +159,7 @@ import {
   getAllAgendamentos, formatCurrency, toggleLike, getLikesPorProfissional,
   applyPhoneMask
 } from './supabase/database.js';
-import { getSidebarHTML, initSidebarToggle, showAdminItems, showAtendentItems } from './js/sidebar.js';
+import { getSidebarHTML, initSidebarToggle, showAdminItems, showStaffItems } from './js/sidebar.js';
 
 document.getElementById('sidebarMount').innerHTML = getSidebarHTML('equipe');
 initSidebarToggle();
@@ -170,7 +170,7 @@ const adminMode = isAdmin(user, profile);
 const atendenteMode = profile?.role === 'atendente';
 renderUserInSidebar(profile);
 if (adminMode) showAdminItems();
-else if (atendenteMode) showAtendentItems();
+else if (atendenteMode) showStaffItems();
 setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
 
 document.getElementById('logoutBtn')?.addEventListener('click', () =>
@@ -425,9 +425,13 @@ function openModal(p = null, fotoOnly = false) {
 }
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
 
+// Hide "Novo Profissional" entirely for cliente role
+if (!adminMode && !atendenteMode) {
+  document.getElementById('btnNovo')?.remove();
+}
 document.getElementById('btnNovo')?.addEventListener('click', () => {
   if (!adminMode) {
-    showToast('Apenas administradores podem adicionar profissionais. Solicite ao admin.', 'warning');
+    showToast('Apenas administradores podem adicionar profissionais.', 'warning');
     return;
   }
   openModal();

@@ -1,6 +1,6 @@
 // ============================================================
-// SESSION MANAGER — CRM Agendamentos
-// Gestão de sessão com Supabase Auth
+// SESSION MANAGER — CRM Agendamentos v4.0
+// Tabela: usuarios | Roles: cliente/atendente/admin
 // ============================================================
 import { sb, getCurrentUser, getUserProfile } from './client.js';
 import { ADMIN_UID } from './supabase-config.js';
@@ -24,7 +24,7 @@ export async function initSession(onReady, onLogout) {
       try {
         currentProfile = await getUserProfile(session.user.id);
       } catch {
-        currentProfile = { id: session.user.id, role: 'user', nome: session.user.email };
+        currentProfile = { id: session.user.id, role: 'cliente', nome: session.user.email };
       }
       setupActivityTracking(onLogout);
       onReady?.(currentUser, currentProfile);
@@ -48,7 +48,7 @@ export async function requireAuth(adminRequired = false) {
   try {
     currentProfile = await getUserProfile(session.user.id);
   } catch {
-    currentProfile = { id: session.user.id, role: 'user' };
+    currentProfile = { id: session.user.id, role: 'cliente' };
   }
 
   if (adminRequired) {
@@ -63,6 +63,20 @@ export async function requireAuth(adminRequired = false) {
 // ── Verifica se é admin ──────────────────────────────────────
 export function isAdmin(user = currentUser, profile = currentProfile) {
   return profile?.role === 'admin' || user?.id === ADMIN_UID;
+}
+
+// ── Verifica se é admin ou atendente (staff) ─────────────────
+export function isStaff(user = currentUser, profile = currentProfile) {
+  return profile?.role === 'admin' || profile?.role === 'atendente' ||
+         (user?.id === (typeof ADMIN_UID !== 'undefined' ? ADMIN_UID : ''));
+}
+
+// ── isAtendente mantido por compatibilidade ──────────────────
+export function isAtendente(user = null, profile = null) {
+  const u = user || currentUser;
+  const p = profile || currentProfile;
+  return p?.role === 'atendente' || p?.role === 'admin' ||
+         (u?.id === (typeof ADMIN_UID !== 'undefined' ? ADMIN_UID : ''));
 }
 
 // ── Activity tracking ────────────────────────────────────────
@@ -112,9 +126,13 @@ export function renderUserInSidebar(profile) {
   const elNome  = document.getElementById('sidebarNome');
   const elRole  = document.getElementById('sidebarRole');
   const elAvatar= document.getElementById('sidebarAvatar');
-  const roleLabels = { admin:'👑 Admin', atendente:'🧑‍💼 Atendente', user:'👤 Usuário' };
+  const roleLabels = {
+    admin:     '👑 Admin',
+    atendente: '🧑‍💼 Atendente',
+    cliente:   '👤 Cliente'
+  };
   if (elNome)   elNome.textContent   = profile.nome || profile.email || 'Usuário';
-  if (elRole)   elRole.textContent   = roleLabels[profile.role] || '👤 Usuário';
+  if (elRole)   elRole.textContent   = roleLabels[profile.role] || '👤 Cliente';
   if (elAvatar) {
     if (profile.avatar_url) {
       elAvatar.style.backgroundImage = `url(${profile.avatar_url})`;
@@ -131,12 +149,6 @@ export function renderUserInSidebar(profile) {
       elAvatar.textContent = (profile.nome || 'U')[0].toUpperCase();
     }
   }
-}
-
-// ── Verifica se é atendente ou admin ─────────────────────────
-export function isAtendente(user = null, profile = null) {
-  return profile?.role === 'atendente' || profile?.role === 'admin' ||
-         (user?.id === (typeof ADMIN_UID !== 'undefined' ? ADMIN_UID : ''));
 }
 
 // ── Toast notifications ──────────────────────────────────────

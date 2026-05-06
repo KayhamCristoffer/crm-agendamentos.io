@@ -1,16 +1,23 @@
 // ============================================================
-// SIDEBAR COMPONENT v5 — controle de acesso por role
+// SIDEBAR COMPONENT v4.0 — controle de acesso por role
+// Roles: cliente / atendente / admin
+// admin + atendente = staff (veem tudo)
+// cliente = vê apenas Principal (dashboard, agendamentos, equipe, chat, perfil)
 // ============================================================
-export function getSidebarHTML(activePage = '', userRole = 'user') {
+export function getSidebarHTML(activePage = '', userRole = 'cliente') {
   const pages = [
+    // ── Principal (todos os roles)
     { id: 'dashboard',    href: 'dashboard.html',   icon: 'fa-chart-line',   label: 'Dashboard',     section: 'Principal' },
     { id: 'agendamentos', href: 'agendamentos.html', icon: 'fa-calendar-alt', label: 'Agendamentos',  section: 'Principal' },
     { id: 'equipe',       href: 'equipe.html',       icon: 'fa-user-tie',     label: 'Equipe',        section: 'Principal' },
     { id: 'chat',         href: 'chat.html',         icon: 'fa-comments',     label: 'Chat',          section: 'Principal' },
-    { id: 'clientes',     href: 'clientes.html',     icon: 'fa-users',        label: 'Clientes',      section: 'Gestão',    adminOnly: true },
-    { id: 'servicos',     href: 'servicos.html',     icon: 'fa-tags',         label: 'Serviços',      section: 'Gestão',    adminOnly: true },
-    { id: 'financeiro',   href: 'financeiro.html',   icon: 'fa-dollar-sign',  label: 'Financeiro',    section: 'Gestão',    adminOnly: true },
-    { id: 'admin',        href: 'admin.html',        icon: 'fa-shield-alt',   label: 'Administração', section: 'Sistema',   adminOnly: true },
+    { id: 'perfil',       href: 'perfil.html',       icon: 'fa-user-circle',  label: 'Meu Perfil',    section: 'Principal' },
+    // ── Gestão (staff: admin + atendente)
+    { id: 'clientes',     href: 'clientes.html',     icon: 'fa-users',        label: 'Clientes',      section: 'Gestão',   staffOnly: true },
+    { id: 'servicos',     href: 'servicos.html',     icon: 'fa-tags',         label: 'Serviços',      section: 'Gestão',   staffOnly: true },
+    { id: 'financeiro',   href: 'financeiro.html',   icon: 'fa-dollar-sign',  label: 'Financeiro',    section: 'Gestão',   staffOnly: true },
+    // ── Sistema (admin only)
+    { id: 'admin',        href: 'admin.html',        icon: 'fa-shield-alt',   label: 'Administração', section: 'Sistema',  adminOnly: true },
   ];
 
   const sections = {};
@@ -26,7 +33,7 @@ export function getSidebarHTML(activePage = '', userRole = 'user') {
       <div class="sidebar-logo-icon">📅</div>
       <div class="sidebar-logo-text">
         <h2>CRM Agenda</h2>
-        <small>v3.0</small>
+        <small>v4.0</small>
       </div>
     </div>
     <div class="sidebar-user">
@@ -39,13 +46,20 @@ export function getSidebarHTML(activePage = '', userRole = 'user') {
     <nav class="sidebar-nav" id="sidebarNav">`;
 
   Object.entries(sections).forEach(([section, items]) => {
-    html += `<div class="nav-section">${section}</div>`;
+    // Decide se a seção deve aparecer por padrão ou ficará oculta
+    const allStaffOnly  = items.every(i => i.staffOnly || i.adminOnly);
+    const allAdminOnly  = items.every(i => i.adminOnly);
+    const sectionHidden = allStaffOnly ? ' style="display:none"' : '';
+
+    html += `<div class="nav-section"${sectionHidden} data-section="${section}">${section}</div>`;
     items.forEach(item => {
       const active = activePage === item.id ? ' active' : '';
-      // adminOnly items start hidden; showAdminItems() reveals them
-      const hidden = item.adminOnly ? ' style="display:none"' : '';
+      const hidden = (item.staffOnly || item.adminOnly) ? ' style="display:none"' : '';
+      const attrs  = [];
+      if (item.staffOnly) attrs.push('data-staff-only="true"');
+      if (item.adminOnly) attrs.push('data-admin-only="true"');
       html += `
-      <a href="${item.href}" class="nav-item${active}"${hidden} data-page="${item.id}"${item.adminOnly ? ' data-admin-only="true"' : ''}>
+      <a href="${item.href}" class="nav-item${active}"${hidden} data-page="${item.id}" ${attrs.join(' ')}>
         <i class="fas ${item.icon}"></i>
         <span>${item.label}</span>
         ${item.id === 'agendamentos' ? '<span class="nav-badge" id="badgePendentes" style="display:none">0</span>' : ''}
@@ -87,17 +101,32 @@ export function initSidebarToggle() {
   });
 }
 
-// Called after auth to reveal admin-only menu items (Clientes, Serviços, Financeiro, Admin)
+// Revela itens de staff (admin + atendente): Clientes, Serviços, Financeiro, Administração
 export function showAdminItems() {
-  document.querySelectorAll('[data-admin-only="true"]').forEach(el => {
+  // Show all staff-only AND admin-only items
+  document.querySelectorAll('[data-staff-only="true"],[data-admin-only="true"]').forEach(el => {
+    el.style.display = '';
+  });
+  // Show section headers
+  document.querySelectorAll('[data-section="Gestão"],[data-section="Sistema"]').forEach(el => {
     el.style.display = '';
   });
 }
 
-// Called for atendente role — reveals only the Clientes link (read access)
+// Revela itens de staff sem o item de Administração (admin.html)
+// Usado por atendente — vê Clientes, Serviços, Financeiro mas NÃO Administração
+export function showStaffItems() {
+  document.querySelectorAll('[data-staff-only="true"]').forEach(el => {
+    el.style.display = '';
+  });
+  // Show Gestão section header
+  const gestaoSection = document.querySelector('[data-section="Gestão"]');
+  if (gestaoSection) gestaoSection.style.display = '';
+}
+
+// Alias mantido por compatibilidade com páginas existentes
 export function showAtendentItems() {
-  const clientesLink = document.querySelector('[data-page="clientes"]');
-  if (clientesLink) clientesLink.style.display = '';
+  showStaffItems();
 }
 
 // Update pending appointments badge

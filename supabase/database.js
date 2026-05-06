@@ -1,5 +1,6 @@
 // ================================================================
-// DATABASE.JS — CRM Agendamentos v3
+// DATABASE.JS — CRM Agendamentos v4.0
+// Tabela: usuarios (antigo users) | Roles: cliente/atendente/admin
 // ================================================================
 import { sb } from './client.js';
 import { ADMIN_UID } from './supabase-config.js';
@@ -73,27 +74,39 @@ export const DIAS_SEMANA = ['Domingo','Segunda','Terça','Quarta','Quinta','Sext
 
 export async function signUp(email, password, nome, telefone = '') {
   // Verifica se já existe — evita duplicata com mensagem clara
-  const { data: existing } = await sb.from('users').select('id').eq('email', email).maybeSingle();
+  const { data: existing } = await sb.from('usuarios').select('id').eq('email', email).maybeSingle();
   if (existing) {
-    const err = new Error('User already registered'); err.code = 'user_already_exists'; throw err;
+    const err = new Error('Usuário já cadastrado com este e-mail.'); err.code = 'user_already_exists'; throw err;
   }
 
-  const redirectTo = window.location.hostname.includes('github.io')
-    ? 'https://kayhamcristoffer.github.io/crm-agendamentos.io/index.html'
-    : `${window.location.origin}/index.html`;
+  // Produção: GitHub Pages, Cloudflare Pages ou domínio configurado
+  // Garante que o redirectTo aponta para a raiz correta
+  function getRedirectBase() {
+    const h = window.location.hostname;
+    const p = window.location.pathname;
+    if (h === 'localhost' || h === '127.0.0.1') return window.location.origin;
+    if (h.includes('github.io')) {
+      // GitHub Pages: https://user.github.io/repo-name
+      const repo = p.split('/')[1] || '';
+      return repo ? `https://${h}/${repo}` : `https://${h}`;
+    }
+    // Custom domain / Cloudflare Pages / other
+    return window.location.origin;
+  }
+  const redirectTo = `${getRedirectBase()}/index.html`;
 
   const { data, error } = await sb.auth.signUp({
     email, password,
-    options: { emailRedirectTo: redirectTo, data: { nome } }
+    options: { emailRedirectTo: redirectTo, data: { nome, telefone } }
   });
   if (error) throw error;
 
   if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
-    const err = new Error('User already registered'); err.code = 'user_already_exists'; throw err;
+    const err = new Error('Usuário já cadastrado com este e-mail.'); err.code = 'user_already_exists'; throw err;
   }
 
   if (data.user) {
-    // handle_new_user trigger cria users + clientes automaticamente
+    // handle_new_user trigger cria usuarios + clientes automaticamente
     // Chamamos ensure para garantir telefone e vínculo correto
     await ensureUserAndClient(data.user, nome, telefone);
   }
@@ -103,7 +116,7 @@ export async function signUp(email, password, nome, telefone = '') {
 export async function signIn(email, password) {
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) throw error;
-  // Garante registro user + cliente em TODA autenticação
+  // Garante registro usuario + cliente em TODA autenticação
   if (data.user) await ensureUserAndClient(data.user);
   return data;
 }
@@ -114,9 +127,17 @@ export async function signOut() {
 }
 
 export async function resetPassword(email) {
-  const base = window.location.hostname.includes('github.io')
-    ? 'https://kayhamcristoffer.github.io/crm-agendamentos.io'
-    : window.location.origin;
+  const h = window.location.hostname;
+  const p = window.location.pathname;
+  let base;
+  if (h === 'localhost' || h === '127.0.0.1') {
+    base = window.location.origin;
+  } else if (h.includes('github.io')) {
+    const repo = p.split('/')[1] || '';
+    base = repo ? `https://${h}/${repo}` : `https://${h}`;
+  } else {
+    base = window.location.origin;
+  }
   const { error } = await sb.auth.resetPasswordForEmail(email, {
     redirectTo: `${base}/change-password.html`
   });
@@ -134,9 +155,8 @@ export function onAuthStateChange(callback) {
 }
 
 /**
- * ensureUserAndClient — garante que user existe em `users` e tem um registro em `clientes`.
+ * ensureUserAndClient — garante que usuario existe em `usuarios` e tem um registro em `clientes`.
  * Chamado em TODA autenticação (login, register, refresh).
- * Retorna { user, cliente_id } ou null.
  */
 export async function ensureUserAndClient(user, nomeFallback = null, telefoneFallback = null) {
   if (!user) return null;
@@ -153,7 +173,6 @@ export async function ensureUserAndClient(user, nomeFallback = null, telefoneFal
     });
 
     if (error) {
-      // Fallback JS caso a function não exista ainda
       console.warn('ensure_user_and_client RPC:', error.message);
       return await _ensureUserAndClientFallback(user, nome, tel);
     }
@@ -168,11 +187,11 @@ export async function ensureUserAndClient(user, nomeFallback = null, telefoneFal
 async function _ensureUserAndClientFallback(user, nome, telefone) {
   const isAdm = user.id === ADMIN_UID;
 
-  // Upsert user
-  await sb.from('users').upsert({
+  // Upsert usuario
+  await sb.from('usuarios').upsert({
     id: user.id, email: user.email, nome,
     telefone: telefone || null,
-    role: isAdm ? 'admin' : 'user'
+    role: isAdm ? 'admin' : 'cliente'
   }, { onConflict: 'id' });
 
   // Upsert cliente vinculado por user_id ou email
@@ -188,21 +207,17 @@ async function _ensureUserAndClientFallback(user, nome, telefone) {
     }).select('id').maybeSingle();
     return { cliente_id: novo?.id || null };
   } else {
-    // Garante vínculo user_id
     await sb.from('clientes').update({ user_id: user.id }).eq('id', existing.id);
     return { cliente_id: existing.id };
   }
 }
 
-// Busca cliente pelo user_id (para encontrar o registro do usuário logado)
+// Busca cliente pelo user_id
 export async function getClienteByUserId(userId) {
   if (!userId) return null;
-  // Tenta RPC primeiro para garantir que o cliente existe
   try {
     const { data: authData } = await sb.auth.getUser();
-    if (authData?.user) {
-      await ensureUserAndClient(authData.user);
-    }
+    if (authData?.user) await ensureUserAndClient(authData.user);
   } catch { /* ignore */ }
 
   const { data } = await sb.from('clientes').select('*')
@@ -210,27 +225,35 @@ export async function getClienteByUserId(userId) {
   return data || null;
 }
 
-// ─── USERS ───────────────────────────────────────────────────
+// ─── USUARIOS (antigo users) ─────────────────────────────────
 
 export async function getUser(userId) {
-  const { data, error } = await sb.from('users').select('*').eq('id', userId).single();
+  const { data, error } = await sb.from('usuarios').select('*').eq('id', userId).single();
   if (error) throw error;
   return data;
 }
 export async function getAllUsers() {
-  const { data, error } = await sb.from('users').select('*').order('nome');
+  const { data, error } = await sb.from('usuarios').select('*').order('nome');
   if (error) throw error;
   return data ?? [];
 }
 export async function updateUserProfile(userId, updates) {
-  const { data, error } = await sb.from('users')
+  const { data, error } = await sb.from('usuarios')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', userId).select();
   if (error) throw error;
   return data?.[0] ?? null;
 }
 export async function setUserRole(userId, role) {
-  return updateUserProfile(userId, { role });
+  // Validate role
+  const validRoles = ['cliente','atendente','admin'];
+  if (!validRoles.includes(role)) throw new Error(`Role inválido: ${role}`);
+  const { data, error } = await sb.from('usuarios')
+    .update({ role, updated_at: new Date().toISOString() })
+    .eq('id', userId)
+    .select();
+  if (error) throw error;
+  return data?.[0] ?? null;
 }
 
 // ─── CONFIG SISTEMA ──────────────────────────────────────────
@@ -262,7 +285,7 @@ export async function updateHorario(diaSemana, updates) {
 }
 
 // ─── SLOTS DISPONÍVEIS ───────────────────────────────────────
-// Retorna slots livres E ocupados (com nomes dos profissionais ocupados)
+// Retorna slots livres E ocupados (com nomes dos profissionais e info de cliente para admin)
 
 export async function getSlotsDisponiveis(date, profissionalId = null, duracaoMin = 60) {
   const d = new Date(date);
@@ -280,8 +303,17 @@ export async function getSlotsDisponiveis(date, profissionalId = null, duracaoMi
   const startDay = new Date(d); startDay.setHours(0,0,0,0);
   const endDay   = new Date(d); endDay.setHours(23,59,59,999);
 
+  // Busca ocupações com dados de cliente e serviço para exibição no calendário
   let q = sb.from('agendamento_servicos')
-    .select('hora_inicio, hora_fim, profissional_id, equipe(nome), agendamentos!inner(status)')
+    .select(`
+      hora_inicio, hora_fim, profissional_id,
+      equipe(id, nome, cor_agenda),
+      agendamentos!inner(
+        id, status, para_outro, nome_outro,
+        clientes(id, nome, telefone)
+      ),
+      servicos(id, nome, icone)
+    `)
     .gte('hora_inicio', startDay.toISOString())
     .lte('hora_inicio', endDay.toISOString())
     .in('agendamentos.status', ['pendente','confirmado']);
@@ -292,6 +324,15 @@ export async function getSlotsDisponiveis(date, profissionalId = null, duracaoMi
   const ocupados = (ocupadosRaw ?? []).map(o => ({
     profissional_id:   o.profissional_id,
     profissional_nome: o.equipe?.nome || null,
+    profissional_cor:  o.equipe?.cor_agenda || '#6366f1',
+    cliente_nome:      o.agendamentos?.para_outro
+                         ? (o.agendamentos?.nome_outro || 'Outra pessoa')
+                         : (o.agendamentos?.clientes?.nome || null),
+    cliente_tel:       o.agendamentos?.clientes?.telefone || null,
+    agendamento_id:    o.agendamentos?.id || null,
+    servico_nome:      o.servicos?.nome || null,
+    servico_icone:     o.servicos?.icone || '✂️',
+    status:            o.agendamentos?.status || 'pendente',
     inicio: new Date(o.hora_inicio),
     fim:    new Date(o.hora_fim)
   }));
@@ -307,8 +348,7 @@ export async function getSlotsDisponiveis(date, profissionalId = null, duracaoMi
       hora: cur.toTimeString().slice(0,5),
       iso:  cur.toISOString(),
       livre,
-      profissionais_ocupados: livre ? [] : busyList.map(o => o.profissional_id).filter(Boolean),
-      nomes_ocupados:         livre ? [] : [...new Set(busyList.map(o => o.profissional_nome).filter(Boolean))]
+      ocupacoes: livre ? [] : busyList
     });
     cur = new Date(cur.getTime() + 30 * 60000);
   }
@@ -323,14 +363,14 @@ export async function getSlotsLivres(date, profissionalId = null, duracaoMin = 6
 // ─── CLIENTES ────────────────────────────────────────────────
 
 export async function getAllClientes(includeInactive = false) {
-  let q = sb.from('clientes').select('*, users(role, avatar_emote)').order('nome');
+  let q = sb.from('clientes').select('*, usuarios(role, avatar_emote)').order('nome');
   if (!includeInactive) q = q.eq('ativo', true);
   const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
 }
 export async function getCliente(id) {
-  const { data, error } = await sb.from('clientes').select('*, users(*)').eq('id', id).single();
+  const { data, error } = await sb.from('clientes').select('*, usuarios(*)').eq('id', id).single();
   if (error) throw error;
   return data;
 }
@@ -367,7 +407,6 @@ export async function atualizarEstatisticasCliente(clienteId) {
   try {
     await sb.rpc('update_cliente_stats', { p_cliente_id: clienteId });
   } catch {
-    // fallback JS
     const { data: ags } = await sb.from('agendamentos')
       .select('status, valor_total, data_hora').eq('cliente_id', clienteId).eq('status','concluido');
     await sb.from('clientes').update({
@@ -398,12 +437,10 @@ export async function updateProfissional(id, updates) {
   if (error) throw error;
   return data?.[0] ?? null;
 }
-// Hard delete — remove fisicamente (RLS garante que só admin consegue)
-// Se tiver FK violations (agendamentos vinculados), faz soft-delete (ativo=false)
+// Hard delete — se tiver FK violations, faz soft-delete
 export async function deleteProfissional(id) {
   const { error } = await sb.from('equipe').delete().eq('id', id);
   if (error) {
-    // FK violation: desativar em vez de deletar fisicamente
     const { error: e2 } = await sb.from('equipe').update({ ativo: false }).eq('id', id);
     if (e2) throw new Error('Não foi possível remover o profissional: ' + (e2.message || e2));
   }
@@ -474,7 +511,7 @@ export async function getAllAgendamentos(filters = {}) {
       equipe(id, nome, cargo, cor_agenda)
     ),
     agendamento_produtos(id, quantidade, preco_unitario, servicos(id, nome, preco, icone)),
-    users(id, nome)
+    usuarios(id, nome)
   `).order('data_hora', { ascending: false });
 
   if (filters.status)      q = q.eq('status', filters.status);
@@ -500,7 +537,7 @@ export async function getAgendamento(id) {
     clientes(*),
     agendamento_servicos(*, servicos(*), equipe(*)),
     agendamento_produtos(*, servicos(*)),
-    users(id, nome)
+    usuarios(id, nome)
   `).eq('id', id).single();
   if (error) throw error;
   return data;
@@ -629,7 +666,7 @@ export async function getHeatmapDoMes(year, month) {
 
 export async function getLancamentos(filters = {}) {
   let q = sb.from('financeiro')
-    .select('*, agendamentos(id, clientes(nome)), users(nome)')
+    .select('*, agendamentos(id, clientes(nome)), usuarios(nome)')
     .order('data', { ascending: false });
   if (filters.tipo)       q = q.eq('tipo', filters.tipo);
   if (filters.dataInicio) q = q.gte('data', filters.dataInicio);
@@ -717,7 +754,7 @@ export async function getDashboardStats() {
 
 export async function getChatMessages(clienteId, limit = 100) {
   const { data, error } = await sb.from('chat_messages')
-    .select('*, users(nome, avatar_emote, role)')
+    .select('*, usuarios(nome, avatar_emote, role)')
     .eq('cliente_id', clienteId)
     .order('created_at', { ascending: true })
     .limit(limit);
@@ -726,12 +763,10 @@ export async function getChatMessages(clienteId, limit = 100) {
 }
 
 export async function getChatClientes() {
-  // Returns distinct client IDs that have messages
   const { data, error } = await sb.from('chat_messages')
     .select('cliente_id, clientes(id, nome, telefone, email)')
     .order('created_at', { ascending: false });
   if (error) return [];
-  // Deduplicate by cliente_id
   const seen = new Set();
   return (data ?? []).filter(m => {
     if (seen.has(m.cliente_id)) return false;
@@ -741,20 +776,24 @@ export async function getChatClientes() {
 }
 
 export async function sendChatMessage(clienteId, userId, mensagem, deAdmin = false) {
-  const { data, error } = await sb.from('chat_messages').insert({
+  // Insert com campo de_admin explícito para evitar cache schema issues
+  const payload = {
     cliente_id: clienteId,
     user_id:    userId,
-    mensagem,
-    de_admin:   deAdmin,
+    mensagem:   String(mensagem),
+    de_admin:   Boolean(deAdmin),
     lida:       false
-  }).select('*, users(nome, avatar_emote, role)');
+  };
+  const { data, error } = await sb.from('chat_messages')
+    .insert(payload)
+    .select('id, cliente_id, user_id, mensagem, de_admin, lida, created_at, usuarios(nome, avatar_emote, role)');
   if (error) throw error;
   return data?.[0] ?? null;
 }
 
 export async function markMessagesAsRead(clienteId, isAdmin = false) {
-  // Admin marks client messages as read; client marks admin messages as read
-  const col = isAdmin ? 'de_admin' : 'de_admin';
+  // Admin marca como lidas as mensagens de clientes (de_admin = false)
+  // Cliente marca como lidas as mensagens de admins (de_admin = true)
   await sb.from('chat_messages')
     .update({ lida: true })
     .eq('cliente_id', clienteId)
@@ -763,8 +802,6 @@ export async function markMessagesAsRead(clienteId, isAdmin = false) {
 }
 
 export async function getUnreadChatCount(isAdmin = false) {
-  // Admin: count unread messages FROM clients (de_admin = false)
-  // Client: count unread messages FROM admin (de_admin = true)
   const { count } = await sb.from('chat_messages')
     .select('*', { count: 'exact', head: true })
     .eq('lida', false)

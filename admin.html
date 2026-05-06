@@ -121,7 +121,7 @@
             <div class="stat-mini"><h3 id="siClientes">—</h3><p>Clientes</p></div>
             <div class="stat-mini"><h3 id="siAgs">—</h3><p>Agendamentos</p></div>
             <div class="stat-mini"><h3 id="siServicos">—</h3><p>Serviços</p></div>
-            <div class="stat-mini"><h3>v2.0</h3><p>Versão</p></div>
+            <div class="stat-mini"><h3>v4.0</h3><p>Versão</p></div>
             <div class="stat-mini"><h3>Supabase</h3><p>Backend</p></div>
           </div>
         </div>
@@ -212,7 +212,7 @@
     <div class="form-group">
       <label>Nível de Acesso</label>
       <select id="roleSelect">
-        <option value="user">👤 Usuário comum</option>
+        <option value="cliente">👤 Cliente</option>
         <option value="atendente">🧑‍💼 Atendente</option>
         <option value="admin">👑 Administrador</option>
       </select>
@@ -226,7 +226,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
-import { requireAuth, renderUserInSidebar, showToast, isAdmin } from './supabase/session-manager.js';
+import { requireAuth, renderUserInSidebar, showToast, isAdmin, isStaff } from './supabase/session-manager.js';
 import {
   getAllUsers, setUserRole, getConfigSistema, setConfigSistema,
   getHorarios, updateHorario, getAllClientes, getAllAgendamentos,
@@ -234,7 +234,7 @@ import {
   getResumoFinanceiro, applyPhoneMask
 } from './supabase/database.js';
 import { sb } from './supabase/client.js';
-import { getSidebarHTML, initSidebarToggle, showAdminItems } from './js/sidebar.js';
+import { getSidebarHTML, initSidebarToggle, showAdminItems, showStaffItems } from './js/sidebar.js';
 
 document.getElementById('sidebarMount').innerHTML = getSidebarHTML('admin');
 initSidebarToggle();
@@ -289,8 +289,8 @@ async function loadUsers() {
   }
 }
 
-const roleLabels = { admin:'👑 Admin', atendente:'🧑‍💼 Atendente', user:'👤 Usuário' };
-const roleColors  = { admin:'badge-warning', atendente:'badge-primary', user:'badge-info' };
+const roleLabels = { admin:'👑 Admin', atendente:'🧑‍💼 Atendente', cliente:'👤 Cliente' };
+const roleColors  = { admin:'badge-warning', atendente:'badge-primary', cliente:'badge-info' };
 
 function renderUsers() {
   const el = document.getElementById('userList');
@@ -327,14 +327,20 @@ document.getElementById('cancelRole')?.addEventListener('click', () => document.
 document.getElementById('salvarRole')?.addEventListener('click', async () => {
   if (!editingUserId) return;
   const role = document.getElementById('roleSelect').value;
+  if (!role) { showToast('Selecione um nível.','warning'); return; }
   const btn = document.getElementById('salvarRole'); btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Salvando…';
   try {
-    await setUserRole(editingUserId, role);
+    // Usa update direto via sb para garantir que o campo correto seja atualizado
+    const { error } = await sb.from('usuarios')
+      .update({ role, updated_at: new Date().toISOString() })
+      .eq('id', editingUserId);
+    if (error) throw error;
     showToast('Nível de acesso atualizado!','success');
     document.getElementById('modalRole').classList.remove('open');
     await loadUsers();
-  } catch (err) { showToast(err.message,'error'); }
-  finally { btn.disabled = false; }
+  } catch (err) { showToast(err.message || 'Erro ao atualizar role.','error'); }
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Salvar'; }
 });
 
 // ── SISTEMA ──────────────────────────────────────────────────
