@@ -17,7 +17,6 @@ export function getSidebarHTML(activePage = '', userRole = 'cliente') {
     { id: 'servicos',     href: 'servicos.html',     icon: 'fa-tags',         label: 'Serviços',      section: 'Gestão',   staffOnly: true },
     { id: 'financeiro',   href: 'financeiro.html',   icon: 'fa-dollar-sign',  label: 'Financeiro',    section: 'Gestão',   staffOnly: true },
     // ── Sistema (admin only)
-    { id: 'admin',        href: 'admin.html',        icon: 'fa-shield-alt',   label: 'Informações',   section: 'Sistema',   staffOnly: true },
     { id: 'admin',        href: 'admin.html',        icon: 'fa-shield-alt',   label: 'Administração', section: 'Sistema',  adminOnly: true },
   ];
 
