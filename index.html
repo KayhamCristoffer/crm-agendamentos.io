@@ -509,6 +509,17 @@ import { signIn, signUp, resetPassword, onAuthStateChange } from './supabase/dat
 import { showToast } from './supabase/session-manager.js';
 import { applyPhoneMask } from './supabase/database.js';
 
+// Check session immediately on page load (before onAuthStateChange fires)
+import { sb } from './supabase/client.js';
+(async () => {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session?.user) { window.location.href = 'dashboard.html'; return; }
+  } catch { /* ignore */ }
+  // Show page only when we know user is not logged in
+  setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
+})();
+
 onAuthStateChange((user) => {
   if (user) window.location.href = 'dashboard.html';
 });

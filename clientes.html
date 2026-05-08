@@ -152,6 +152,12 @@ if (!auth) throw new Error('Not authenticated');
 const { user, profile } = auth;
 const adminMode = isAdmin(user, profile);
 const staffMode = isStaff(user, profile);
+// Clientes não têm acesso → redirecionar para dashboard
+if (!staffMode) {
+  showToast('Acesso restrito. Redirecionando…', 'warning');
+  setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
+  throw new Error('Acesso negado: cliente');
+}
 renderUserInSidebar(profile);
 if (adminMode) showAdminItems();
 else if (staffMode) showStaffItems();

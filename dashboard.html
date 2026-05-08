@@ -80,31 +80,42 @@
       <!-- QUICK ACTIONS -->
       <div class="card mb-24">
         <div class="card-header"><span class="card-title">⚡ Ações Rápidas</span></div>
-        <div class="quick-actions">
+        <div class="quick-actions" id="quickActions">
+          <!-- Visible to ALL roles -->
           <div class="quick-action-btn" onclick="window.location.href='agendamentos.html?novo=1'">
             <i class="fas fa-calendar-plus"></i><span>Novo Agendamento</span>
           </div>
           <div class="quick-action-btn" onclick="window.location.href='agendamentos.html'">
             <i class="fas fa-calendar-alt"></i><span>Ver Agenda</span>
           </div>
-          <div class="quick-action-btn" onclick="window.location.href='equipe.html'">
-            <i class="fas fa-user-tie"></i><span>Equipe</span>
-          </div>
           <div class="quick-action-btn" onclick="window.location.href='chat.html'">
             <i class="fas fa-comments"></i><span>Chat</span>
           </div>
-          <!-- Admin-only quick actions -->
-          <div class="quick-action-btn" onclick="window.location.href='clientes.html?action=novo'"
-               data-admin-only="true" style="display:none">
+          <!-- Staff (atendente + admin) only -->
+          <div class="quick-action-btn" data-staff-only="true" style="display:none"
+               onclick="window.location.href='equipe.html'">
+            <i class="fas fa-user-tie"></i><span>Equipe</span>
+          </div>
+          <div class="quick-action-btn" data-staff-only="true" style="display:none"
+               onclick="window.location.href='clientes.html'">
+            <i class="fas fa-users"></i><span>Clientes</span>
+          </div>
+          <!-- Admin only -->
+          <div class="quick-action-btn" data-admin-only="true" style="display:none"
+               onclick="window.location.href='clientes.html?action=novo'">
             <i class="fas fa-user-plus"></i><span>Novo Cliente</span>
           </div>
-          <div class="quick-action-btn" onclick="window.location.href='financeiro.html'"
-               data-admin-only="true" style="display:none">
+          <div class="quick-action-btn" data-admin-only="true" style="display:none"
+               onclick="window.location.href='financeiro.html'">
             <i class="fas fa-chart-bar"></i><span>Financeiro</span>
           </div>
-          <div class="quick-action-btn" onclick="window.location.href='clientes.html'"
-               data-admin-only="true" style="display:none">
-            <i class="fas fa-users"></i><span>Clientes</span>
+          <div class="quick-action-btn" data-admin-only="true" style="display:none"
+               onclick="window.location.href='servicos.html'">
+            <i class="fas fa-tags"></i><span>Serviços</span>
+          </div>
+          <div class="quick-action-btn" data-admin-only="true" style="display:none"
+               onclick="window.location.href='admin.html'">
+            <i class="fas fa-cog"></i><span>Administração</span>
           </div>
         </div>
       </div>
@@ -244,6 +255,10 @@ async function loadDashboard() {
     // Reveal staff-visible elements (finance stats, clientes link, charts)
     if (adminMode || atendenteMode) {
       document.querySelectorAll('[data-admin-only="true"]').forEach(el => el.style.display = '');
+    }
+    // Staff-only quick actions (atendente + admin)
+    if (adminMode || atendenteMode) {
+      document.querySelectorAll('[data-staff-only="true"]').forEach(el => el.style.display = '');
     }
 
     // Update pending badge

@@ -102,6 +102,9 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" id="cancelModal">Cancelar</button>
+      <button class="btn btn-danger btn-sm" id="btnDeletar" style="display:none;margin-right:auto;color:var(--danger);border:1px solid var(--danger);background:transparent">
+        <i class="fas fa-trash"></i> Excluir
+      </button>
       <button class="btn btn-primary" id="salvar"><i class="fas fa-save"></i> Salvar</button>
     </div>
   </div>
@@ -121,6 +124,12 @@ if (!auth) throw new Error('Not authenticated');
 const { user, profile } = auth;
 const adminMode = isAdmin(user, profile);
 const staffMode = isStaff(user, profile);
+// Clientes não têm acesso → redirecionar para dashboard
+if (!staffMode) {
+  showToast('Acesso restrito. Redirecionando…', 'warning');
+  setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
+  throw new Error('Acesso negado: cliente');
+}
 renderUserInSidebar(profile);
 if (adminMode) showAdminItems();
 else if (staffMode) showStaffItems();
@@ -242,13 +251,33 @@ function openModal(s = null) {
   document.getElementById('sAtivo').checked   = s?.ativo??true;
   document.getElementById('duracaoGroup').style.display =
     (s?.categoria==='produto') ? 'none' : '';
+  // Show delete button only when editing existing item
+  const btnDeletar = document.getElementById('btnDeletar');
+  if (btnDeletar) btnDeletar.style.display = editingId ? '' : 'none';
   document.getElementById('modal').classList.add('open');
 }
 function closeModal(){ document.getElementById('modal').classList.remove('open'); }
 
-document.getElementById('btnNovo')?.addEventListener('click', () => openModal());
+// Novo button — admin only
+document.getElementById('btnNovo')?.addEventListener('click', () => {
+  if (!adminMode) { showToast('Apenas administradores podem criar serviços.', 'warning'); return; }
+  openModal();
+});
 document.getElementById('closeModal')?.addEventListener('click', closeModal);
 document.getElementById('cancelModal')?.addEventListener('click', closeModal);
+
+// Delete from modal
+document.getElementById('btnDeletar')?.addEventListener('click', async () => {
+  if (!adminMode || !editingId) return;
+  const s = all.find(x => x.id === editingId);
+  if (!confirm(`Desativar "${s?.nome}"?`)) return;
+  try {
+    await deleteServico(editingId);
+    showToast('Serviço desativado!', 'success');
+    closeModal();
+    await loadAll();
+  } catch(err) { showToast(err.message, 'error'); }
+});
 
 window.editar = id => { const s = all.find(x=>x.id===id); if(s) openModal(s); };
 window.toggleAtivo = async (id, ativo) => {

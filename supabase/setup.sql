@@ -1,6 +1,7 @@
 -- ================================================================
--- CRM AGENDAMENTOS — SETUP SQL v4.0
+-- CRM AGENDAMENTOS — SETUP SQL v4.1
 -- Tabela `usuarios` (rename de `users`), roles: cliente/atendente/admin
+-- v4.1: deleteUserAndData RPC, FK constraint names, minor fixes
 -- Execute no: Supabase > SQL Editor > New Query > Run
 -- ================================================================
 
@@ -38,6 +39,7 @@ DROP FUNCTION IF EXISTS update_cliente_stats(UUID)             CASCADE;
 DROP FUNCTION IF EXISTS update_updated_at()                    CASCADE;
 DROP FUNCTION IF EXISTS finalizar_agendamento(UUID,TEXT,NUMERIC,TEXT) CASCADE;
 DROP FUNCTION IF EXISTS check_schedule_conflict(UUID,TIMESTAMPTZ,TIMESTAMPTZ) CASCADE;
+DROP FUNCTION IF EXISTS delete_user_and_data(UUID)                         CASCADE;
 
 -- ================================================================
 -- 2. TABELAS
@@ -487,6 +489,41 @@ BEGIN
 END;
 $$;
 
+-- ── delete_user_and_data(): admin removes user + client + chat ─
+-- Preserves financeiro records (FK set null). Requires admin role.
+DROP FUNCTION IF EXISTS delete_user_and_data(UUID) CASCADE;
+CREATE OR REPLACE FUNCTION delete_user_and_data(p_user_id UUID)
+RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+DECLARE
+    v_cliente_id UUID;
+BEGIN
+    -- Must be admin
+    IF NOT is_admin() THEN
+        RAISE EXCEPTION 'Permissão negada: apenas administradores podem excluir usuários';
+    END IF;
+
+    -- Get the linked cliente record
+    SELECT id INTO v_cliente_id FROM clientes WHERE user_id = p_user_id LIMIT 1;
+
+    IF v_cliente_id IS NOT NULL THEN
+        -- Remove chat messages for this client
+        DELETE FROM chat_messages WHERE cliente_id = v_cliente_id;
+        -- Soft-delete cliente (unlink user_id to preserve FK refs in financeiro/agendamentos)
+        UPDATE clientes SET ativo = FALSE, user_id = NULL WHERE id = v_cliente_id;
+    END IF;
+
+    -- Remove chat messages sent by this user
+    DELETE FROM chat_messages WHERE user_id = p_user_id;
+
+    -- Remove the usuario record (CASCADE removes auth.users via FK)
+    DELETE FROM usuarios WHERE id = p_user_id;
+END;
+$$;
+
+-- Grant execute to authenticated users (RLS + is_admin() check inside)
+GRANT EXECUTE ON FUNCTION delete_user_and_data(UUID) TO authenticated;
+
 -- ================================================================
 -- 4. TRIGGERS
 -- ================================================================
@@ -673,4 +710,4 @@ ON CONFLICT DO NOTHING;
 -- ================================================================
 -- PRONTO — execute este script no SQL Editor do Supabase
 -- ================================================================
-SELECT 'Setup v4.0 aplicado com sucesso! Tabela usuarios, roles: cliente/atendente/admin' AS resultado;
+SELECT 'Setup v4.1 aplicado com sucesso! Tabela usuarios, roles: cliente/atendente/admin' AS resultado;

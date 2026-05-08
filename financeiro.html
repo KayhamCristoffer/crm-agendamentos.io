@@ -192,8 +192,11 @@ if (adminMode) showAdminItems();
 else if (staffMode) showStaffItems();
 // Só staff pode adicionar/remover lançamentos
 if (!staffMode) {
-  document.getElementById('btnNovaReceita')?.remove();
-  document.getElementById('btnNovaDespesa')?.remove();
+  // Clientes não têm acesso à página financeira → redirecionar
+  showToast('Acesso restrito. Redirecionando…', 'warning');
+  setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
+  document.getElementById('pageLoader')?.classList.remove('hide');
+  throw new Error('Acesso negado: cliente');
 }
 setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
 document.getElementById('logoutBtn')?.addEventListener('click', () =>

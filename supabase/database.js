@@ -242,6 +242,15 @@ export async function updateUserProfile(userId, updates) {
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', userId).select();
   if (error) throw error;
+  // Sync nome/telefone to clientes table if they exist there
+  const syncFields = {};
+  if (updates.nome)     syncFields.nome     = updates.nome;
+  if (updates.telefone !== undefined) syncFields.telefone = updates.telefone;
+  if (Object.keys(syncFields).length) {
+    await sb.from('clientes')
+      .update({ ...syncFields, updated_at: new Date().toISOString() })
+      .eq('user_id', userId);
+  }
   return data?.[0] ?? null;
 }
 export async function setUserRole(userId, role) {
@@ -363,15 +372,29 @@ export async function getSlotsLivres(date, profissionalId = null, duracaoMin = 6
 // ─── CLIENTES ────────────────────────────────────────────────
 
 export async function getAllClientes(includeInactive = false) {
-  let q = sb.from('clientes').select('*, usuarios(role, avatar_emote)').order('nome');
+  // Use explicit FK hint to avoid "more than one relationship" error
+  let q = sb.from('clientes').select('*, usuarios!clientes_user_id_fkey(role, avatar_emote)').order('nome');
   if (!includeInactive) q = q.eq('ativo', true);
   const { data, error } = await q;
-  if (error) throw error;
+  if (error) {
+    // Fallback: query without join if FK hint not available
+    let q2 = sb.from('clientes').select('*').order('nome');
+    if (!includeInactive) q2 = q2.eq('ativo', true);
+    const { data: d2, error: e2 } = await q2;
+    if (e2) throw e2;
+    return d2 ?? [];
+  }
   return data ?? [];
 }
 export async function getCliente(id) {
-  const { data, error } = await sb.from('clientes').select('*, usuarios(*)').eq('id', id).single();
-  if (error) throw error;
+  const { data, error } = await sb.from('clientes')
+    .select('*, usuarios!clientes_user_id_fkey(*)')
+    .eq('id', id).single();
+  if (error) {
+    const { data: d2, error: e2 } = await sb.from('clientes').select('*').eq('id', id).single();
+    if (e2) throw e2;
+    return d2;
+  }
   return data;
 }
 export async function searchClientes(query) {
@@ -666,7 +689,7 @@ export async function getHeatmapDoMes(year, month) {
 
 export async function getLancamentos(filters = {}) {
   let q = sb.from('financeiro')
-    .select('*, agendamentos(id, clientes(nome)), usuarios(nome)')
+    .select('*, agendamentos(id, clientes(nome)), usuarios!financeiro_criado_por_fkey(nome)')
     .order('data', { ascending: false });
   if (filters.tipo)       q = q.eq('tipo', filters.tipo);
   if (filters.dataInicio) q = q.gte('data', filters.dataInicio);
@@ -754,17 +777,24 @@ export async function getDashboardStats() {
 
 export async function getChatMessages(clienteId, limit = 100) {
   const { data, error } = await sb.from('chat_messages')
-    .select('*, usuarios(nome, avatar_emote, role)')
+    .select('*, usuarios!chat_messages_user_id_fkey(nome, avatar_emote, role)')
     .eq('cliente_id', clienteId)
     .order('created_at', { ascending: true })
     .limit(limit);
-  if (error) throw error;
+  if (error) {
+    // fallback without join
+    const { data: d2, error: e2 } = await sb.from('chat_messages')
+      .select('*').eq('cliente_id', clienteId)
+      .order('created_at', { ascending: true }).limit(limit);
+    if (e2) throw e2;
+    return d2 ?? [];
+  }
   return data ?? [];
 }
 
 export async function getChatClientes() {
   const { data, error } = await sb.from('chat_messages')
-    .select('cliente_id, clientes(id, nome, telefone, email)')
+    .select('cliente_id, clientes!chat_messages_cliente_id_fkey(id, nome, telefone, email)')
     .order('created_at', { ascending: false });
   if (error) return [];
   const seen = new Set();
@@ -786,7 +816,7 @@ export async function sendChatMessage(clienteId, userId, mensagem, deAdmin = fal
   };
   const { data, error } = await sb.from('chat_messages')
     .insert(payload)
-    .select('id, cliente_id, user_id, mensagem, de_admin, lida, created_at, usuarios(nome, avatar_emote, role)');
+    .select('id, cliente_id, user_id, mensagem, de_admin, lida, created_at, usuarios!chat_messages_user_id_fkey(nome, avatar_emote, role)');
   if (error) throw error;
   return data?.[0] ?? null;
 }
@@ -822,4 +852,24 @@ export function subscribeAgendamentos(callback) {
   return sb.channel('agendamentos-live')
     .on('postgres_changes', { event:'*', schema:'public', table:'agendamentos' }, () => callback())
     .subscribe();
+}
+
+// ─── DELETE USER (admin only) ─────────────────────────────────
+// Removes usuario, cliente record, chat_messages; preserves financeiro
+export async function deleteUserAndData(userId) {
+  if (!userId) throw new Error('userId obrigatório');
+  // 1. Remove chat_messages by user
+  await sb.from('chat_messages').delete().eq('user_id', userId);
+  // 2. Get cliente record linked to this user
+  const { data: c } = await sb.from('clientes').select('id').eq('user_id', userId).maybeSingle();
+  if (c?.id) {
+    // Remove chat_messages by cliente
+    await sb.from('chat_messages').delete().eq('cliente_id', c.id);
+    // Soft-delete cliente (preserves FK refs in financeiro/agendamentos)
+    await sb.from('clientes').update({ ativo: false, user_id: null }).eq('id', c.id);
+  }
+  // 3. Delete usuario (CASCADE will handle auth.users FK if policy allows)
+  const { error } = await sb.from('usuarios').delete().eq('id', userId);
+  if (error) throw error;
+  // Note: deleting from auth.users requires service role; this handles the public schema
 }

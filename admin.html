@@ -203,9 +203,9 @@
 
 <!-- Modal Alterar Role -->
 <div class="modal-overlay" id="modalRole">
-  <div class="modal" style="max-width:380px">
+  <div class="modal" style="max-width:420px">
     <div class="modal-header">
-      <h3><i class="fas fa-user-shield"></i> Alterar Nível de Acesso</h3>
+      <h3><i class="fas fa-user-shield"></i> Gerenciar Usuário</h3>
       <button class="modal-close" id="closeModalRole"><i class="fas fa-times"></i></button>
     </div>
     <p id="modalRoleUser" style="font-size:.84rem;color:var(--text2);margin-bottom:12px"></p>
@@ -217,9 +217,17 @@
         <option value="admin">👑 Administrador</option>
       </select>
     </div>
+    <div style="margin-top:16px;padding:12px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px">
+      <div style="font-size:.8rem;font-weight:700;color:var(--danger);margin-bottom:6px"><i class="fas fa-exclamation-triangle"></i> Zona de Perigo</div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:10px">Remove o usuário e seus dados de conversa. Registros financeiros são preservados.</div>
+      <button class="btn btn-sm" id="btnDeleteUser"
+        style="color:var(--danger);border:1px solid var(--danger);background:transparent;width:100%">
+        <i class="fas fa-trash"></i> Excluir este usuário
+      </button>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" id="cancelRole">Cancelar</button>
-      <button class="btn btn-primary" id="salvarRole"><i class="fas fa-save"></i> Salvar</button>
+      <button class="btn btn-primary" id="salvarRole"><i class="fas fa-save"></i> Salvar Role</button>
     </div>
   </div>
 </div>
@@ -309,21 +317,26 @@ function renderUsers() {
       <span class="badge ${roleColors[u.role]||'badge-info'}" style="font-size:.7rem">${roleLabels[u.role]||u.role}</span>
       <span class="badge ${u.ativo?'badge-success':'badge-gray'}" style="font-size:.7rem">${u.ativo?'Ativo':'Inativo'}</span>
       ${u.id !== user.id ? `
-      <button class="btn btn-ghost btn-sm btn-icon" onclick="openRoleModal('${u.id}','${u.nome||u.email}','${u.role}')" title="Alterar Role">
-        <i class="fas fa-user-shield"></i>
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="openRoleModal('${u.id}','${escHtml(u.nome||u.email)}','${u.role}')" title="Gerenciar usuário">
+        <i class="fas fa-user-cog"></i>
       </button>` : '<span style="font-size:.7rem;color:var(--text3);padding:4px 6px">Você</span>'}
     </div>`).join('');
 }
 
-// Role modal
+// Escape helper for user names in onclick attrs
+function escHtml(s) { return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+// Role / manage user modal
 window.openRoleModal = (uid, nome, currentRole) => {
   editingUserId = uid;
-  document.getElementById('modalRoleUser').textContent = `Usuário: ${nome}`;
+  document.getElementById('modalRoleUser').innerHTML =
+    `<i class="fas fa-user" style="color:var(--primary-light)"></i> <strong>${nome}</strong>`;
   document.getElementById('roleSelect').value = currentRole;
   document.getElementById('modalRole').classList.add('open');
 };
 document.getElementById('closeModalRole')?.addEventListener('click', () => document.getElementById('modalRole').classList.remove('open'));
-document.getElementById('cancelRole')?.addEventListener('click', () => document.getElementById('modalRole').classList.remove('open'));
+document.getElementById('cancelRole')?.addEventListener('click',   () => document.getElementById('modalRole').classList.remove('open'));
+
 document.getElementById('salvarRole')?.addEventListener('click', async () => {
   if (!editingUserId) return;
   const role = document.getElementById('roleSelect').value;
@@ -331,7 +344,6 @@ document.getElementById('salvarRole')?.addEventListener('click', async () => {
   const btn = document.getElementById('salvarRole'); btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Salvando…';
   try {
-    // Usa update direto via sb para garantir que o campo correto seja atualizado
     const { error } = await sb.from('usuarios')
       .update({ role, updated_at: new Date().toISOString() })
       .eq('id', editingUserId);
@@ -340,7 +352,24 @@ document.getElementById('salvarRole')?.addEventListener('click', async () => {
     document.getElementById('modalRole').classList.remove('open');
     await loadUsers();
   } catch (err) { showToast(err.message || 'Erro ao atualizar role.','error'); }
-  finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Salvar'; }
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Salvar Role'; }
+});
+
+document.getElementById('btnDeleteUser')?.addEventListener('click', async () => {
+  if (!editingUserId) return;
+  const u = allUsers.find(x => x.id === editingUserId);
+  const nome = u?.nome || u?.email || 'este usuário';
+  if (!confirm(`Excluir "${nome}"?\nIsso remove o usuário, cliente e conversas.\nRegistros financeiros são preservados.`)) return;
+  const btn = document.getElementById('btnDeleteUser'); btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Excluindo…';
+  try {
+    const { deleteUserAndData } = await import('./supabase/database.js');
+    await deleteUserAndData(editingUserId);
+    showToast('Usuário excluído com sucesso!','success');
+    document.getElementById('modalRole').classList.remove('open');
+    await loadUsers();
+  } catch (err) { showToast(err.message || 'Erro ao excluir usuário.','error'); }
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-trash"></i> Excluir este usuário'; }
 });
 
 // ── SISTEMA ──────────────────────────────────────────────────
@@ -371,12 +400,11 @@ function updateMapsPreview(url) {
   if (!url) { if (wrap) wrap.style.display = 'none'; return; }
   // Convert regular maps URL to embed URL if needed
   let embedUrl = url;
-  if (url.includes('maps.google.com') && !url.includes('/embed') && !url.includes('output=embed')) {
-    // Try to extract q= parameter first
+  if (!url.includes('output=embed') && !url.includes('/embed/')) {
     let q = '';
     try { q = new URL(url).searchParams.get('q') || ''; } catch(_) {}
-    if (!q) q = url.split('?q=')[1]?.split('&')[0] || 'Av das Nações, São André, 454';
-    embedUrl = `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`;
+    if (!q) { const m = url.match(/[?&]q=([^&]+)/); q = m ? decodeURIComponent(m[1]) : 'Av das Nações, São André, 454'; }
+    embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(q)}&output=embed&hl=pt-BR`;
   }
   if (iframe) iframe.src = embedUrl;
   if (wrap)   wrap.style.display = '';

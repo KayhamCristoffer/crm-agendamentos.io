@@ -246,10 +246,10 @@ document.getElementById('confirmarEmoji')?.addEventListener('click', async () =>
 });
 
 // ── Render profile ───────────────────────────────────────────
-const roleLabels = { admin: '👑 Admin', atendente: '🧑‍💼 Atendente', user: '👤 Usuário' };
+const roleLabels = { admin: '👑 Admin', atendente: '🧑‍💼 Atendente', cliente: '👤 Cliente', user: '👤 Cliente' };
 document.getElementById('profileName').textContent     = profile.nome || '—';
 document.getElementById('profileEmail').textContent    = user.email || '—';
-document.getElementById('profileRoleBadge').textContent = roleLabels[profile.role] || '👤 Usuário';
+document.getElementById('profileRoleBadge').textContent = roleLabels[profile.role] || '👤 Cliente';
 document.getElementById('profilePhone').textContent    = profile.telefone ? '📞 ' + profile.telefone : '';
 
 const avatarEl = document.getElementById('avatarDisplay');
@@ -273,7 +273,7 @@ applyPhoneMask(document.getElementById('fTelefone'));
 // ── Account info ─────────────────────────────────────────────
 document.getElementById('accountInfo').innerHTML = [
   { label: 'E-mail',             value: user.email },
-  { label: 'Nível de Acesso',    value: roleLabels[profile.role] || '—' },
+  { label: 'Nível de Acesso',    value: roleLabels[profile.role] || '👤 Cliente' },
   { label: 'Membro desde',       value: new Date(profile.created_at || user.created_at).toLocaleDateString('pt-BR') },
   { label: 'Última atualização', value: profile.updated_at ? new Date(profile.updated_at).toLocaleDateString('pt-BR') : '—' },
 ].map(i => `

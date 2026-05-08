@@ -642,6 +642,9 @@ function appendMessage(msg, clienteId, scroll = true) {
   const el = document.getElementById('chatMessages');
   if (!el) return;
 
+  // Deduplication: skip if message with same id already rendered
+  if (msg.id && el.querySelector(`[data-msg-id="${msg.id}"]`)) return;
+
   // Remove empty state if present
   const empty = el.querySelector('.chat-empty-state');
   if (empty) empty.remove();
@@ -649,17 +652,28 @@ function appendMessage(msg, clienteId, scroll = true) {
   // isMine: admin sent (de_admin=true) when adminMode; or client sent (de_admin=false) when client
   const isMine = adminMode ? msg.de_admin : !msg.de_admin;
 
-  const senderName = msg.de_admin
-    ? (msg.users?.nome || 'Atendente')
-    : (conversations.find(c => c.cliente_id === clienteId)?.nome || 'Cliente');
+  // Sender name logic:
+  // - Admin/atendente sees client name on their messages; shows staff name on admin messages
+  // - Client sees "CRM" for admin messages (not individual staff name)
+  let senderName;
+  if (msg.de_admin) {
+    // Message from admin/staff
+    senderName = adminMode
+      ? (msg.usuarios?.nome || 'Atendente')   // admin panel: show staff name
+      : 'CRM';                                  // client view: show "CRM"
+  } else {
+    // Message from client
+    senderName = conversations.find(c => c.cliente_id === clienteId)?.nome || 'Cliente';
+  }
   const initial = (senderName || '?')[0].toUpperCase();
 
   const time = new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
   const row = document.createElement('div');
   row.className = `msg-row ${isMine ? 'mine' : 'theirs'}`;
+  if (msg.id) row.dataset.msgId = msg.id;
   row.innerHTML = `
-    <div class="msg-avatar">${msg.users?.avatar_emote || initial}</div>
+    <div class="msg-avatar">${msg.usuarios?.avatar_emote || initial}</div>
     <div>
       ${!isMine ? `<div style="font-size:.7rem;color:var(--text3);margin-bottom:2px;margin-left:2px">${senderName}</div>` : ''}
       <div class="msg-bubble">${escapeHtml(msg.mensagem)}</div>
@@ -700,8 +714,16 @@ async function sendMessage() {
   try {
     input.value = '';
     autoResizeTA(input);
-    await sendChatMessage(activeId, user.id, text, adminMode);
-    // Realtime sub will append the message
+    const newMsg = await sendChatMessage(activeId, user.id, text, adminMode || staffMode);
+    // Append message immediately (realtime sub may also fire but appendMessage is idempotent by id)
+    if (newMsg) {
+      appendMessage(newMsg, activeId);
+      scrollToBottom();
+      // Update lastMsg in list
+      const ci = conversations.findIndex(c => c.cliente_id === activeId);
+      if (ci !== -1) conversations[ci].lastMsg = newMsg.mensagem;
+      renderClientList(conversations);
+    }
   } catch (err) {
     showToast(err.message || 'Erro ao enviar mensagem.', 'error');
     input.value = text; // restore on error
