@@ -1340,3 +1340,7 @@ select option { background: var(--bg2); color: var(--text); }
   .product-row { grid-template-columns: 1fr 60px auto; }
   .system-info-grid { grid-template-columns: 1fr; }
 }
+
+#eyeLoginIcon{
+   margin-left: -25px;
+}
