@@ -270,10 +270,10 @@ document.getElementById('cancelModal')?.addEventListener('click', closeModal);
 document.getElementById('btnDeletar')?.addEventListener('click', async () => {
   if (!adminMode || !editingId) return;
   const s = all.find(x => x.id === editingId);
-  if (!confirm(`Desativar "${s?.nome}"?`)) return;
+  if (!confirm(`Excluir permanentemente "${s?.nome}"? Esta ação não pode ser desfeita.`)) return;
   try {
     await deleteServico(editingId);
-    showToast('Serviço desativado!', 'success');
+    showToast('Serviço excluído!', 'success');
     closeModal();
     await loadAll();
   } catch(err) { showToast(err.message, 'error'); }

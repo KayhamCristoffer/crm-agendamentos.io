@@ -259,12 +259,13 @@
     <div class="form-group">
       <label><i class="fas fa-calendar-alt" style="color:var(--warning)"></i> Selecione a Data e Horário</label>
       <div class="cal-slots-layout">
-        <!-- Calendário -->
+        <!-- Calendário (identical style to tab Calendário) -->
         <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
             <button class="btn btn-ghost btn-sm" id="heatPrev"><i class="fas fa-chevron-left"></i></button>
-            <span id="heatTitle" style="flex:1;text-align:center;font-size:.85rem;font-weight:700"></span>
+            <h4 id="heatTitle" style="font-size:1rem;font-weight:700;flex:1;text-align:center;margin:0"></h4>
             <button class="btn btn-ghost btn-sm" id="heatNext"><i class="fas fa-chevron-right"></i></button>
+            <button class="btn btn-secondary btn-sm" id="heatTodayBtn">Hoje</button>
           </div>
           <div class="heatmap-labels">
             <span>Dom</span><span>Seg</span><span>Ter</span>
@@ -273,7 +274,7 @@
           <div class="heatmap-grid" id="heatGrid"></div>
           <div style="display:flex;gap:10px;margin-top:8px;font-size:.69rem;color:var(--text2);flex-wrap:wrap">
             <span><span style="display:inline-block;width:10px;height:10px;background:var(--bg3);border-radius:2px;margin-right:3px;vertical-align:middle"></span>Livre</span>
-            <span><span style="display:inline-block;width:10px;height:10px;background:rgba(99,102,241,.6);border-radius:2px;margin-right:3px;vertical-align:middle"></span>Lotado</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:rgba(99,102,241,.6);border-radius:2px;margin-right:3px;vertical-align:middle"></span>Ocupado</span>
             <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:3px;vertical-align:middle;background:repeating-linear-gradient(45deg,var(--bg3) 0,var(--bg3) 2px,transparent 2px,transparent 5px);border:1px solid var(--border)"></span>Fechado</span>
           </div>
         </div>
@@ -888,6 +889,9 @@ document.getElementById('heatPrev')?.addEventListener('click', () => {
 });
 document.getElementById('heatNext')?.addEventListener('click', () => {
   heatMonth++; if(heatMonth>12){heatMonth=1;heatYear++;} renderHeatmap();
+});
+document.getElementById('heatTodayBtn')?.addEventListener('click', () => {
+  heatYear=new Date().getFullYear(); heatMonth=new Date().getMonth()+1; renderHeatmap();
 });
 
 // ── Serviço rows ──────────────────────────────────────────────

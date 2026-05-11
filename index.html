@@ -509,23 +509,32 @@ import { signIn, signUp, resetPassword, onAuthStateChange } from './supabase/dat
 import { showToast } from './supabase/session-manager.js';
 import { applyPhoneMask } from './supabase/database.js';
 
-// Check session immediately on page load (before onAuthStateChange fires)
+// Resolve dashboard URL relative to current page (works on GitHub Pages subdirectory)
 import { sb } from './supabase/client.js';
+function toDashboard() {
+  const base = window.location.href.replace(/\/[^/]*$/, '/');
+  window.location.replace(base + 'dashboard.html');
+}
+
+let _redirecting = false;
 (async () => {
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (session?.user) { window.location.href = 'dashboard.html'; return; }
+    if (session?.user) { _redirecting = true; toDashboard(); return; }
   } catch { /* ignore */ }
-  // Show page only when we know user is not logged in
-  setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 400);
+  // No session — show the login page
+  document.getElementById('pageLoader')?.classList.add('hide');
 })();
 
 onAuthStateChange((user) => {
-  if (user) window.location.href = 'dashboard.html';
+  if (user && !_redirecting) { _redirecting = true; toDashboard(); }
 });
 
 window.addEventListener('load', () => {
-  setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 600);
+  // Safety fallback: if loader still visible after 1s and no redirect pending, show page
+  setTimeout(() => {
+    if (!_redirecting) document.getElementById('pageLoader')?.classList.add('hide');
+  }, 1000);
 });
 
 // Particles

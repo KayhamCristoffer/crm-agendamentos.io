@@ -519,7 +519,7 @@ export async function updateServico(id, u) {
   return data?.[0] ?? null;
 }
 export async function deleteServico(id) {
-  const { error } = await sb.from('servicos').update({ ativo: false }).eq('id', id);
+  const { error } = await sb.from('servicos').delete().eq('id', id);
   if (error) throw error;
 }
 
