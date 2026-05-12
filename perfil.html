@@ -29,6 +29,23 @@
     .info-row span{color:var(--text2);}
     .info-row strong{color:var(--text);}
     .history-table-wrap .table-container{max-height:320px;overflow-y:auto;}
+
+    /* ── Tag input ── */
+    .tag-input-wrap{display:flex;flex-wrap:wrap;gap:6px;background:var(--bg);border:1px solid var(--border);
+      border-radius:8px;padding:7px 10px;min-height:40px;cursor:text;transition:.15s;}
+    .tag-input-wrap:focus-within{border-color:var(--primary);}
+    .tag-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(99,102,241,.15);
+      color:var(--primary-light);border-radius:20px;padding:3px 10px;font-size:.76rem;font-weight:600;}
+    .tag-pill button{background:none;border:none;cursor:pointer;color:var(--primary-light);
+      font-size:.75rem;padding:0;line-height:1;opacity:.7;}
+    .tag-pill button:hover{opacity:1;}
+    .tag-real-input{border:none;background:transparent;color:var(--text);font-size:.84rem;
+      outline:none;flex:1;min-width:80px;}
+
+    /* ── Section divider ── */
+    .section-label{font-size:.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;
+      letter-spacing:.06em;margin:16px 0 10px;display:flex;align-items:center;gap:8px;}
+    .section-label::after{content:'';flex:1;height:1px;background:var(--border);}
   </style>
 </head>
 <body>
@@ -48,7 +65,7 @@
     </div>
 
     <div class="page-content">
-      <div style="max-width:760px;margin:0 auto">
+      <div style="max-width:820px;margin:0 auto">
 
         <!-- ── Avatar + Info ── -->
         <div class="card mb-24">
@@ -60,9 +77,10 @@
             <div style="flex:1">
               <h2 id="profileName" style="font-size:1.25rem;font-weight:800">Carregando…</h2>
               <p id="profileEmail" style="color:var(--text2);font-size:.84rem;margin-top:2px"></p>
-              <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+              <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
                 <span id="profileRoleBadge" class="badge badge-primary"></span>
                 <span id="profilePhone" style="font-size:.78rem;color:var(--text3)"></span>
+                <span id="profileCity" style="font-size:.78rem;color:var(--text3)"></span>
               </div>
             </div>
             <button class="btn btn-ghost btn-sm" id="btnPickEmoji" onclick="openEmojiPicker()" title="Trocar emoji de perfil">
@@ -92,6 +110,9 @@
           <div class="card-header">
             <span class="card-title"><i class="fas fa-user-edit" style="color:var(--primary-light)"></i> Editar Informações</span>
           </div>
+
+          <!-- Dados básicos -->
+          <div class="section-label"><i class="fas fa-id-badge"></i> Dados Básicos</div>
           <div class="form-row form-row-2">
             <div class="form-group">
               <label>Nome completo *</label>
@@ -102,10 +123,54 @@
               <input type="tel" id="fTelefone" placeholder="(XX) XXXXX-XXXX" maxlength="15"/>
             </div>
           </div>
+          <div class="form-row form-row-2">
+            <div class="form-group">
+              <label>CPF <small style="color:var(--text3)">XXX.XXX.XXX-XX</small></label>
+              <input type="text" id="fCpf" placeholder="XXX.XXX.XXX-XX" maxlength="14"/>
+            </div>
+            <div class="form-group">
+              <label>Data de Nascimento</label>
+              <input type="date" id="fNascimento"/>
+            </div>
+          </div>
+
+          <!-- Localização -->
+          <div class="section-label"><i class="fas fa-map-marker-alt"></i> Localização</div>
+          <div class="form-row form-row-2">
+            <div class="form-group">
+              <label>Endereço</label>
+              <input type="text" id="fEndereco" placeholder="Rua, número, bairro"/>
+            </div>
+            <div class="form-group">
+              <label>Cidade</label>
+              <input type="text" id="fCidade" placeholder="São Paulo"/>
+            </div>
+          </div>
+
+          <!-- Avatar -->
+          <div class="section-label"><i class="fas fa-image"></i> Avatar</div>
           <div class="form-group">
             <label>URL do Avatar <small style="color:var(--text3)">(opcional — deixe em branco para usar emoji)</small></label>
             <input type="url" id="fAvatar" placeholder="https://exemplo.com/foto.jpg"/>
           </div>
+
+          <!-- Tags -->
+          <div class="section-label"><i class="fas fa-tags"></i> Tags</div>
+          <div class="form-group">
+            <label>Tags <small style="color:var(--text3)">Digite e pressione Enter ou vírgula para adicionar</small></label>
+            <div class="tag-input-wrap" id="tagWrap" onclick="document.getElementById('tagRealInput').focus()">
+              <input type="text" id="tagRealInput" class="tag-real-input" placeholder="ex: vip, frequente…"/>
+            </div>
+            <input type="hidden" id="fTags"/>
+          </div>
+
+          <!-- Observações -->
+          <div class="section-label"><i class="fas fa-sticky-note"></i> Observações</div>
+          <div class="form-group">
+            <label>Observações pessoais <small style="color:var(--text3)">(visíveis apenas para você)</small></label>
+            <textarea id="fObs" placeholder="Anotações, preferências, alergias…" rows="3"></textarea>
+          </div>
+
           <div style="text-align:right;margin-top:4px">
             <button class="btn btn-primary" id="salvarPerfil">
               <i class="fas fa-save"></i> Salvar Alterações
@@ -179,7 +244,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
 import { requireAuth, renderUserInSidebar, showToast, isAdmin, isStaff } from './supabase/session-manager.js';
-import { updateUserProfile, getAllAgendamentos, formatDateTime, formatCurrency, STATUS_LABELS, applyPhoneMask } from './supabase/database.js';
+import { updateUserProfile, getAllAgendamentos, formatDateTime, formatCurrency, STATUS_LABELS,
+         applyPhoneMask, applyCPFMask, formatCPF, getClienteByUserId, updateCliente } from './supabase/database.js';
 import { sb } from './supabase/client.js';
 import { getSidebarHTML, initSidebarToggle, showAdminItems, showStaffItems } from './js/sidebar.js';
 
@@ -245,12 +311,61 @@ document.getElementById('confirmarEmoji')?.addEventListener('click', async () =>
   }
 });
 
+// ── Tag manager ──────────────────────────────────────────────
+let tags = [];
+
+function renderTags() {
+  const wrap = document.getElementById('tagWrap');
+  const input = document.getElementById('tagRealInput');
+  // Remove existing pills
+  wrap.querySelectorAll('.tag-pill').forEach(p => p.remove());
+  tags.forEach((t, i) => {
+    const pill = document.createElement('span');
+    pill.className = 'tag-pill';
+    pill.innerHTML = `${t}<button type="button" onclick="removeTag(${i})">×</button>`;
+    wrap.insertBefore(pill, input);
+  });
+  document.getElementById('fTags').value = tags.join(',');
+}
+
+window.removeTag = (i) => { tags.splice(i, 1); renderTags(); };
+
+function addTag(val) {
+  val.split(',').forEach(t => {
+    t = t.trim().toLowerCase();
+    if (t && !tags.includes(t)) tags.push(t);
+  });
+  renderTags();
+}
+
+document.getElementById('tagRealInput')?.addEventListener('keydown', e => {
+  const v = e.target.value;
+  if ((e.key === 'Enter' || e.key === ',') && v.trim()) {
+    e.preventDefault();
+    addTag(v);
+    e.target.value = '';
+  }
+  if (e.key === 'Backspace' && !v && tags.length) {
+    tags.pop(); renderTags();
+  }
+});
+document.getElementById('tagRealInput')?.addEventListener('blur', e => {
+  if (e.target.value.trim()) { addTag(e.target.value); e.target.value = ''; }
+});
+
+// ── Load cliente data (CPF, nascimento, endereço, etc.) ──────
+let clienteRecord = null;
+try {
+  clienteRecord = await getClienteByUserId(user.id);
+} catch(e) { console.warn('getClienteByUserId:', e.message); }
+
 // ── Render profile ───────────────────────────────────────────
 const roleLabels = { admin: '👑 Admin', atendente: '🧑‍💼 Atendente', cliente: '👤 Cliente', user: '👤 Cliente' };
 document.getElementById('profileName').textContent     = profile.nome || '—';
 document.getElementById('profileEmail').textContent    = user.email || '—';
 document.getElementById('profileRoleBadge').textContent = roleLabels[profile.role] || '👤 Cliente';
 document.getElementById('profilePhone').textContent    = profile.telefone ? '📞 ' + profile.telefone : '';
+document.getElementById('profileCity').textContent     = clienteRecord?.cidade ? '📍 ' + clienteRecord.cidade : '';
 
 const avatarEl = document.getElementById('avatarDisplay');
 if (profile.avatar_url) {
@@ -267,13 +382,30 @@ document.getElementById('fNome').value     = profile.nome || '';
 document.getElementById('fTelefone').value = profile.telefone || '';
 document.getElementById('fAvatar').value   = profile.avatar_url || '';
 
-// Apply phone mask
+// Fill extra fields from cliente record
+document.getElementById('fCpf').value       = clienteRecord?.cpf || '';
+document.getElementById('fNascimento').value = clienteRecord?.data_nascimento || '';
+document.getElementById('fEndereco').value   = clienteRecord?.endereco || '';
+document.getElementById('fCidade').value     = clienteRecord?.cidade || '';
+document.getElementById('fObs').value        = clienteRecord?.observacoes || '';
+
+// Load existing tags
+if (clienteRecord?.tags?.length) {
+  tags = [...clienteRecord.tags];
+  renderTags();
+}
+
+// Apply masks
 applyPhoneMask(document.getElementById('fTelefone'));
+applyCPFMask(document.getElementById('fCpf'));
 
 // ── Account info ─────────────────────────────────────────────
 document.getElementById('accountInfo').innerHTML = [
   { label: 'E-mail',             value: user.email },
   { label: 'Nível de Acesso',    value: roleLabels[profile.role] || '👤 Cliente' },
+  { label: 'CPF',                value: clienteRecord?.cpf ? formatCPF(clienteRecord.cpf) : '—' },
+  { label: 'Nascimento',         value: clienteRecord?.data_nascimento ? new Date(clienteRecord.data_nascimento + 'T12:00:00').toLocaleDateString('pt-BR') : '—' },
+  { label: 'Cidade',             value: clienteRecord?.cidade || '—' },
   { label: 'Membro desde',       value: new Date(profile.created_at || user.created_at).toLocaleDateString('pt-BR') },
   { label: 'Última atualização', value: profile.updated_at ? new Date(profile.updated_at).toLocaleDateString('pt-BR') : '—' },
 ].map(i => `
@@ -287,23 +419,55 @@ document.getElementById('salvarPerfil')?.addEventListener('click', async () => {
   const nome     = document.getElementById('fNome').value.trim();
   const telefone = document.getElementById('fTelefone').value.trim();
   const avatar   = document.getElementById('fAvatar').value.trim();
+  const cpf      = document.getElementById('fCpf').value.replace(/\D/g,'');
+  const nascimento = document.getElementById('fNascimento').value;
+  const endereco = document.getElementById('fEndereco').value.trim();
+  const cidade   = document.getElementById('fCidade').value.trim();
+  const obs      = document.getElementById('fObs').value.trim();
+
   if (!nome) { showToast('Informe seu nome.', 'warning'); return; }
   const btn = document.getElementById('salvarPerfil');
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Salvando…';
   try {
-    // updateUserProfile already uses UPDATE with .eq('id', userId)
-    // which is allowed by RLS policy: uid() = id OR is_admin()
+    // Save to usuarios table
     await updateUserProfile(user.id, {
       nome,
       telefone: telefone || null,
       avatar_url: avatar || null
     });
+
+    // Save extra fields to clientes table
+    if (clienteRecord?.id) {
+      await updateCliente(clienteRecord.id, {
+        nome,
+        telefone: telefone || null,
+        cpf: cpf || null,
+        data_nascimento: nascimento || null,
+        endereco: endereco || null,
+        cidade: cidade || null,
+        observacoes: obs || null,
+        tags: tags.length ? tags : null,
+      });
+    }
+
     showToast('Perfil atualizado com sucesso!', 'success');
-    // Update local profile object to reflect persisted data
-    Object.assign(profile, { nome, telefone: telefone || null, avatar_url: avatar || null });
+    Object.assign(profile, { nome, telefone: telefone||null, avatar_url: avatar||null });
     document.getElementById('profileName').textContent  = nome;
     document.getElementById('profilePhone').textContent = telefone ? '📞 ' + telefone : '';
+    document.getElementById('profileCity').textContent  = cidade ? '📍 ' + cidade : '';
+
+    // Refresh account info
+    document.getElementById('accountInfo').innerHTML = [
+      { label: 'E-mail',             value: user.email },
+      { label: 'Nível de Acesso',    value: roleLabels[profile.role] || '👤 Cliente' },
+      { label: 'CPF',                value: cpf ? formatCPF(cpf) : '—' },
+      { label: 'Nascimento',         value: nascimento ? new Date(nascimento + 'T12:00:00').toLocaleDateString('pt-BR') : '—' },
+      { label: 'Cidade',             value: cidade || '—' },
+      { label: 'Membro desde',       value: new Date(profile.created_at || user.created_at).toLocaleDateString('pt-BR') },
+      { label: 'Última atualização', value: new Date().toLocaleDateString('pt-BR') },
+    ].map(i => `<div class="info-row"><span>${i.label}</span><strong>${i.value}</strong></div>`).join('');
+
     // Update avatar display
     const av = document.getElementById('profileAvatar');
     if (avatar) {
@@ -315,7 +479,6 @@ document.getElementById('salvarPerfil')?.addEventListener('click', async () => {
       av.style.fontSize        = '';
       avatarEl.textContent = profile.avatar_emote || selectedEmoji || nome[0].toUpperCase();
     }
-    // Update sidebar to reflect new name/avatar
     renderUserInSidebar(profile);
   } catch (err) {
     showToast(err.message || 'Erro ao salvar perfil.', 'error');
@@ -373,7 +536,6 @@ document.getElementById('alterarSenha')?.addEventListener('click', async () => {
 async function loadHistory() {
   const el = document.getElementById('histContent');
   try {
-    // Get client record linked to this user's email
     const { data: clienteRows } = await sb.from('clientes').select('id').eq('email', user.email).limit(1);
     const clienteId = clienteRows?.[0]?.id;
 
@@ -381,7 +543,6 @@ async function loadHistory() {
     if (clienteId) {
       ags = await getAllAgendamentos({ cliente_id: clienteId, limit: 50 });
     } else {
-      // Show all created by this user
       const { data } = await sb.from('agendamentos')
         .select(`*,
           clientes(id,nome),

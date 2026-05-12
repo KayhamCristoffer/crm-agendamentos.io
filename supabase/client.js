@@ -26,12 +26,14 @@ export async function getCurrentUser() {
 }
 
 export async function getUserProfile(userId) {
+  // Use maybeSingle + explicit columns to avoid RLS edge cases
   const { data, error } = await sb
     .from('usuarios')
-    .select('*')
+    .select('id, email, nome, telefone, role, avatar_url, avatar_emote, ativo, created_at, updated_at')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error('Perfil não encontrado');
   return data;
 }
 

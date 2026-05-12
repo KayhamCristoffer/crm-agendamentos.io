@@ -76,7 +76,16 @@
           </div>
         </div>
         <div class="card">
-          <div class="card-header"><span class="card-title">📉 Evolução Mensal</span></div>
+          <div class="card-header" style="flex-wrap:wrap;gap:8px">
+            <span class="card-title">📉 Evolução</span>
+            <div id="periodBtns" style="display:flex;gap:4px;flex-wrap:wrap">
+              <button class="btn btn-ghost btn-sm period-btn" data-period="diario" title="Horas do dia">Diária</button>
+              <button class="btn btn-ghost btn-sm period-btn" data-period="semanal" title="7 dias da semana">Semanal</button>
+              <button class="btn btn-ghost btn-sm period-btn" data-period="mensal-dias" title="Dias do mês">1 Mês</button>
+              <button class="btn btn-primary btn-sm period-btn active" data-period="mensal" title="12 meses do ano">Mensal</button>
+              <button class="btn btn-ghost btn-sm period-btn" data-period="anual" title="Por ano">Anual</button>
+            </div>
+          </div>
           <div class="chart-wrap">
             <canvas id="chartBar"></canvas>
           </div>
@@ -177,6 +186,8 @@
 import { requireAuth, renderUserInSidebar, showToast, isAdmin, isStaff } from './supabase/session-manager.js';
 import { getLancamentos, createLancamento, deleteLancamento,
          getResumoFinanceiro, getResumoFinanceiroMensal,
+         getResumoFinanceiroDiario, getResumoFinanceiroSemanal,
+         getResumoFinanceiroMensalDias, getResumoFinanceiroAnual,
          formatCurrency, formatDate } from './supabase/database.js';
 import { getSidebarHTML, initSidebarToggle, showAdminItems, showStaffItems } from './js/sidebar.js';
 
@@ -272,56 +283,100 @@ function renderTabela(list) {
 }
 
 let pieChart = null, barChart = null;
-function renderCharts(resumo, mensal) {
-  // Pie
+let activePeriod = 'mensal'; // diario | semanal | mensal-dias | mensal | anual
+
+function renderPie(resumo) {
   const ctxPie = document.getElementById('chartPie')?.getContext('2d');
-  if (ctxPie) {
-    if (pieChart) pieChart.destroy();
-    pieChart = new Chart(ctxPie, {
-      type: 'doughnut',
-      data: {
-        labels: ['Receitas', 'Despesas'],
-        datasets: [{
-          data: [resumo.receitas||0, resumo.despesas||0],
-          backgroundColor: ['rgba(16,185,129,.7)','rgba(239,68,68,.6)'],
-          borderColor: ['#10b981','#ef4444'], borderWidth: 2
-        }]
-      },
-      options: {
-        responsive:true, maintainAspectRatio:false, cutout:'65%',
-        plugins: {
-          legend: { position:'bottom', labels: { color:'#94a3b8', font:{size:11}, padding:12 } },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${formatCurrency(ctx.raw)}` } }
-        }
+  if (!ctxPie) return;
+  if (pieChart) pieChart.destroy();
+  pieChart = new Chart(ctxPie, {
+    type: 'doughnut',
+    data: {
+      labels: ['Receitas', 'Despesas'],
+      datasets: [{
+        data: [resumo.receitas||0, resumo.despesas||0],
+        backgroundColor: ['rgba(16,185,129,.7)','rgba(239,68,68,.6)'],
+        borderColor: ['#10b981','#ef4444'], borderWidth: 2
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false, cutout:'65%',
+      plugins: {
+        legend: { position:'bottom', labels: { color:'#94a3b8', font:{size:11}, padding:12 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${formatCurrency(ctx.raw)}` } }
       }
-    });
-  }
-  // Bar
-  const ctxBar = document.getElementById('chartBar')?.getContext('2d');
-  if (ctxBar) {
-    if (barChart) barChart.destroy();
-    const labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-    barChart = new Chart(ctxBar, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [
-          { label:'Receitas', data: mensal.map(m=>m.receitas), borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.1)', fill:true, tension:.3, pointRadius:4 },
-          { label:'Despesas', data: mensal.map(m=>m.despesas), borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,.08)', fill:true, tension:.3, pointRadius:4 },
-          { label:'Lucro',    data: mensal.map(m=>m.lucro),    borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,.08)', fill:false, tension:.3, pointRadius:4, borderDash:[4,4] }
-        ]
-      },
-      options: {
-        responsive:true, maintainAspectRatio:false,
-        plugins: { legend: { labels: { color:'#94a3b8', font:{size:11} } } },
-        scales: {
-          x: { ticks: { color:'#64748b', font:{size:10} }, grid: { color:'rgba(51,65,85,.4)' } },
-          y: { ticks: { color:'#64748b', font:{size:10}, callback: v=>'R$'+v.toLocaleString('pt-BR') }, grid: { color:'rgba(51,65,85,.4)' } }
-        }
-      }
-    });
-  }
+    }
+  });
 }
+
+function renderBarChart(data) {
+  const ctxBar = document.getElementById('chartBar')?.getContext('2d');
+  if (!ctxBar) return;
+  if (barChart) barChart.destroy();
+  barChart = new Chart(ctxBar, {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.label),
+      datasets: [
+        { label:'Receitas', data: data.map(d=>d.receitas), borderColor:'#10b981', backgroundColor:'rgba(16,185,129,.1)', fill:true, tension:.3, pointRadius:4 },
+        { label:'Despesas', data: data.map(d=>d.despesas), borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,.08)', fill:true, tension:.3, pointRadius:4 },
+        { label:'Lucro',    data: data.map(d=>d.lucro),    borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,.08)', fill:false, tension:.3, pointRadius:4, borderDash:[4,4] }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: { legend: { labels: { color:'#94a3b8', font:{size:11} } } },
+      scales: {
+        x: { ticks: { color:'#64748b', font:{size:10} }, grid: { color:'rgba(51,65,85,.4)' } },
+        y: { ticks: { color:'#64748b', font:{size:10}, callback: v=>'R$'+v.toLocaleString('pt-BR') }, grid: { color:'rgba(51,65,85,.4)' } }
+      }
+    }
+  });
+}
+
+function renderCharts(resumo, mensal) {
+  renderPie(resumo);
+  renderBarChart(mensal);
+}
+
+async function loadBarPeriod() {
+  const ano = parseInt(document.getElementById('selAno').value);
+  const mes = parseInt(document.getElementById('selMes').value);
+  // Show loading shimmer on canvas
+  const wrap = document.querySelector('#chartBar')?.closest('.chart-wrap');
+  if (wrap) wrap.style.opacity = '.4';
+  try {
+    let data;
+    if (activePeriod === 'diario') {
+      const dateStr = `${ano}-${String(mes).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`;
+      data = await getResumoFinanceiroDiario(dateStr);
+    } else if (activePeriod === 'semanal') {
+      data = await getResumoFinanceiroSemanal();
+    } else if (activePeriod === 'mensal-dias') {
+      data = await getResumoFinanceiroMensalDias(ano, mes);
+    } else if (activePeriod === 'mensal') {
+      data = await getResumoFinanceiroMensal(ano);
+    } else if (activePeriod === 'anual') {
+      data = await getResumoFinanceiroAnual(5);
+    }
+    renderBarChart(data);
+  } catch(e) { console.error('loadBarPeriod:', e); }
+  finally { if (wrap) wrap.style.opacity = '1'; }
+}
+
+// Period button wiring
+document.getElementById('periodBtns')?.addEventListener('click', e => {
+  const btn = e.target.closest('.period-btn');
+  if (!btn) return;
+  document.querySelectorAll('.period-btn').forEach(b => {
+    b.classList.remove('active', 'btn-primary');
+    b.classList.add('btn-ghost');
+  });
+  btn.classList.add('active', 'btn-primary');
+  btn.classList.remove('btn-ghost');
+  activePeriod = btn.dataset.period;
+  loadBarPeriod();
+});
 
 // Navegação mês
 document.getElementById('prevMes')?.addEventListener('click', () => {

@@ -731,6 +731,96 @@ export async function getResumoFinanceiroMensal(ano) {
   return meses;
 }
 
+// ── Financeiro: resumo por hora do dia (hoje ou data específica) ──
+export async function getResumoFinanceiroDiario(data) {
+  const d = data || new Date().toISOString().slice(0,10);
+  const { data: rows, error } = await sb.from('financeiro')
+    .select('tipo, valor, data').eq('data', d);
+  if (error) throw error;
+  // 24 buckets (horas 0-23)
+  const horas = Array.from({length:24}, (_,h) => ({ hora: h, label: `${String(h).padStart(2,'0')}:00`, receitas:0, despesas:0, lucro:0 }));
+  (rows??[]).forEach(l => {
+    // financeiro.data is DATE — spread across morning hours proportionally; use index 0 as default
+    const h = 0;
+    if (l.tipo==='receita') horas[h].receitas += l.valor||0;
+    else                    horas[h].despesas += l.valor||0;
+  });
+  horas.forEach(h => { h.lucro = h.receitas - h.despesas; });
+  return horas;
+}
+
+// ── Financeiro: resumo por dia da semana (semana atual) ──────
+export async function getResumoFinanceiroSemanal(dataRef) {
+  const ref  = dataRef ? new Date(dataRef) : new Date();
+  const dow  = ref.getDay(); // 0=Dom
+  const ini  = new Date(ref); ini.setDate(ini.getDate() - dow); ini.setHours(0,0,0,0);
+  const fim  = new Date(ini); fim.setDate(fim.getDate() + 6); fim.setHours(23,59,59,999);
+  const iniStr = ini.toISOString().slice(0,10);
+  const fimStr = fim.toISOString().slice(0,10);
+  const { data: rows, error } = await sb.from('financeiro')
+    .select('tipo, valor, data').gte('data', iniStr).lte('data', fimStr);
+  if (error) throw error;
+  const labels = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const dias = Array.from({length:7}, (_,i) => {
+    const d = new Date(ini); d.setDate(ini.getDate() + i);
+    return { dia: i, label: labels[i], date: d.toISOString().slice(0,10), receitas:0, despesas:0, lucro:0 };
+  });
+  (rows??[]).forEach(l => {
+    const idx = dias.findIndex(d => d.date === l.data);
+    if (idx < 0) return;
+    if (l.tipo==='receita') dias[idx].receitas += l.valor||0;
+    else                    dias[idx].despesas += l.valor||0;
+  });
+  dias.forEach(d => { d.lucro = d.receitas - d.despesas; });
+  return dias;
+}
+
+// ── Financeiro: resumo por dia do mês ───────────────────────
+export async function getResumoFinanceiroMensalDias(ano, mes) {
+  const inicio = `${ano}-${String(mes).padStart(2,'0')}-01`;
+  const fim    = `${ano}-${String(mes).padStart(2,'0')}-31`;
+  const { data: rows, error } = await sb.from('financeiro')
+    .select('tipo, valor, data').gte('data', inicio).lte('data', fim);
+  if (error) throw error;
+  const daysInM = new Date(ano, mes, 0).getDate();
+  const dias = Array.from({length:daysInM}, (_,i) => ({
+    dia: i+1, label: String(i+1),
+    date: `${ano}-${String(mes).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`,
+    receitas:0, despesas:0, lucro:0
+  }));
+  (rows??[]).forEach(l => {
+    const d = parseInt(l.data.slice(8,10),10) - 1;
+    if (d < 0 || d >= dias.length) return;
+    if (l.tipo==='receita') dias[d].receitas += l.valor||0;
+    else                    dias[d].despesas += l.valor||0;
+  });
+  dias.forEach(d => { d.lucro = d.receitas - d.despesas; });
+  return dias;
+}
+
+// ── Financeiro: resumo anual (por ano, últimos N anos) ───────
+export async function getResumoFinanceiroAnual(anosAtras = 5) {
+  const anoAtual = new Date().getFullYear();
+  const anoInicio = anoAtual - anosAtras + 1;
+  const { data: rows, error } = await sb.from('financeiro')
+    .select('tipo, valor, data')
+    .gte('data', `${anoInicio}-01-01`)
+    .lte('data', `${anoAtual}-12-31`);
+  if (error) throw error;
+  const anos = Array.from({length:anosAtras}, (_,i) => ({
+    ano: anoInicio+i, label: String(anoInicio+i), receitas:0, despesas:0, lucro:0
+  }));
+  (rows??[]).forEach(l => {
+    const a = parseInt(l.data.slice(0,4),10);
+    const idx = anos.findIndex(x => x.ano === a);
+    if (idx < 0) return;
+    if (l.tipo==='receita') anos[idx].receitas += l.valor||0;
+    else                    anos[idx].despesas += l.valor||0;
+  });
+  anos.forEach(a => { a.lucro = a.receitas - a.despesas; });
+  return anos;
+}
+
 // ─── DASHBOARD ───────────────────────────────────────────────
 
 export async function getDashboardStats() {

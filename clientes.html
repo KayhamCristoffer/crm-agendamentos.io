@@ -235,6 +235,25 @@ function getInitials(nome) {
   return (nome||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
 }
 
+// ── Avatar color palette (deterministic by name) ─────────────
+const AVATAR_COLORS = [
+  ['#6366f1','#818cf8'], ['#10b981','#34d399'], ['#f59e0b','#fbbf24'],
+  ['#ef4444','#f87171'], ['#06b6d4','#22d3ee'], ['#8b5cf6','#a78bfa'],
+  ['#ec4899','#f472b6'], ['#14b8a6','#2dd4bf']
+];
+function avatarColor(nome) {
+  let h = 0;
+  for (let i = 0; i < (nome||'').length; i++) h = (h * 31 + (nome||'').charCodeAt(i)) & 0xffffffff;
+  const [from, to] = AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+  return `linear-gradient(135deg,${from},${to})`;
+}
+function lastVisitaBadge(iso) {
+  if (!iso) return '';
+  const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
+  if (days <= 30)  return `<span class="badge badge-success" style="font-size:.6rem">Ativo</span>`;
+  if (days <= 90)  return `<span class="badge" style="font-size:.6rem;background:rgba(245,158,11,.15);color:#f59e0b">Recente</span>`;
+  return `<span class="badge" style="font-size:.6rem;background:rgba(239,68,68,.12);color:#ef4444">Inativo</span>`;
+}
 function renderGrid(items) {
   const el = document.getElementById('clienteGrid');
   el.style.display = '';
@@ -246,31 +265,65 @@ function renderGrid(items) {
     </div>`;
     return;
   }
-  el.innerHTML = items.map(c => `
-    <div class="client-card">
-      <div style="display:flex;align-items:flex-start;gap:12px">
-        <div class="client-avatar" style="background:var(--primary)">${getInitials(c.nome)}</div>
-        <div style="flex:1;min-width:0">
-          <h4 style="font-size:.92rem;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.nome}</h4>
-          ${c.telefone?`<div style="font-size:.74rem;color:var(--text2)"><i class="fas fa-phone" style="color:var(--primary-light)"></i> ${formatPhone(c.telefone)}</div>`:''}
-          ${c.email?`<div style="font-size:.74rem;color:var(--text2);overflow:hidden;text-overflow:ellipsis"><i class="fas fa-envelope" style="color:var(--primary-light)"></i> ${c.email}</div>`:''}
-          ${c.cpf?`<div style="font-size:.72rem;color:var(--text3)"><i class="fas fa-id-card"></i> ${formatCPF(c.cpf)}</div>`:''}
+  el.innerHTML = items.map(c => {
+    const visitas   = c.total_visitas || 0;
+    const gasto     = c.total_gasto   || 0;
+    const vip       = gasto >= 500 || visitas >= 10;
+    const hasTags   = c.tags?.length > 0;
+    return `
+    <div class="client-card cc-v2" onclick="verPerfil('${c.id}')">
+
+      <!-- Header: avatar + nome + badge VIP -->
+      <div class="cc-header">
+        <div class="cc-avatar" style="background:${avatarColor(c.nome)}">${getInitials(c.nome)}</div>
+        <div class="cc-info">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <h4 class="cc-nome">${c.nome}</h4>
+            ${vip ? '<span class="badge" style="font-size:.58rem;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;padding:2px 6px">⭐ VIP</span>' : ''}
+            ${lastVisitaBadge(c.ultima_visita)}
+          </div>
+          ${c.cidade ? `<div class="cc-meta"><i class="fas fa-map-marker-alt" style="color:var(--primary-light)"></i> ${c.cidade}</div>` : ''}
         </div>
       </div>
-      ${c.tags?.length?`<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap">${c.tags.map(t=>`<span class="badge badge-info" style="font-size:.65rem">${t}</span>`).join('')}</div>`:''}
-      <div class="client-card-stats">
-        <div class="client-stat-item"><strong>${c.total_visitas||0}</strong><small>Visitas</small></div>
-        <div class="client-stat-item"><strong>${formatCurrency(c.total_gasto||0)}</strong><small>Total gasto</small></div>
-        <div class="client-stat-item"><strong>${c.ultima_visita?formatDate(c.ultima_visita):'—'}</strong><small>Última visita</small></div>
+
+      <!-- Contato -->
+      <div class="cc-contacts">
+        ${c.telefone ? `<div class="cc-contact-item"><i class="fas fa-phone"></i><span>${formatPhone(c.telefone)}</span></div>` : ''}
+        ${c.email    ? `<div class="cc-contact-item"><i class="fas fa-envelope"></i><span class="cc-ellipsis">${c.email}</span></div>` : ''}
+        ${c.cpf      ? `<div class="cc-contact-item"><i class="fas fa-id-card"></i><span>${formatCPF(c.cpf)}</span></div>` : ''}
       </div>
-      <div class="client-card-actions">
-        <button class="btn btn-ghost btn-sm" onclick="verPerfil('${c.id}')"><i class="fas fa-eye"></i> Ver</button>
-        ${adminMode?`
-        <button class="btn btn-ghost btn-sm" onclick="editarCliente('${c.id}')"><i class="fas fa-edit"></i> Editar</button>
-        <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="excluirCliente('${c.id}')"><i class="fas fa-trash"></i></button>`:''}
-        <a href="agendamentos.html?cliente=${c.id}" class="btn btn-primary btn-sm"><i class="fas fa-calendar-plus"></i> Agendar</a>
+
+      <!-- Tags -->
+      ${hasTags ? `<div class="cc-tags">${c.tags.slice(0,4).map(t=>`<span class="badge badge-info" style="font-size:.63rem">${t}</span>`).join('')}${c.tags.length>4?`<span class="badge badge-gray" style="font-size:.63rem">+${c.tags.length-4}</span>`:''}</div>` : ''}
+
+      <!-- Stats bar -->
+      <div class="cc-stats">
+        <div class="cc-stat">
+          <strong>${visitas}</strong>
+          <small><i class="fas fa-calendar-check"></i> Visitas</small>
+        </div>
+        <div class="cc-stat-divider"></div>
+        <div class="cc-stat">
+          <strong>${formatCurrency(gasto)}</strong>
+          <small><i class="fas fa-dollar-sign"></i> Total</small>
+        </div>
+        <div class="cc-stat-divider"></div>
+        <div class="cc-stat">
+          <strong>${c.ultima_visita ? formatDate(c.ultima_visita) : '—'}</strong>
+          <small><i class="fas fa-clock"></i> Última</small>
+        </div>
       </div>
-    </div>`).join('');
+
+      <!-- Actions -->
+      <div class="cc-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-ghost btn-sm cc-btn" onclick="verPerfil('${c.id}')"><i class="fas fa-eye"></i> Ver</button>
+        ${adminMode ? `
+        <button class="btn btn-ghost btn-sm cc-btn" onclick="editarCliente('${c.id}')"><i class="fas fa-edit"></i> Editar</button>
+        <button class="btn btn-ghost btn-sm cc-btn cc-btn-danger" onclick="excluirCliente('${c.id}')"><i class="fas fa-trash"></i></button>` : ''}
+        <a href="agendamentos.html?cliente=${c.id}" class="btn btn-primary btn-sm cc-btn" style="margin-left:auto"><i class="fas fa-calendar-plus"></i> Agendar</a>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderTable(items) {
