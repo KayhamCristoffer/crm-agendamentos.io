@@ -86,7 +86,7 @@
               <button class="btn btn-ghost btn-sm period-btn" data-period="anual" title="Por ano">Anual</button>
             </div>
           </div>
-          <div class="chart-wrap">
+          <div class="chart-wrap" style="height:240px">
             <canvas id="chartBar"></canvas>
           </div>
         </div>
@@ -336,7 +336,10 @@ function renderBarChart(data) {
 
 function renderCharts(resumo, mensal) {
   renderPie(resumo);
-  renderBarChart(mensal);
+  // Only re-render bar if we're in the default 'mensal' period
+  // (other periods are triggered by their own loadBarPeriod call)
+  if (activePeriod === 'mensal') renderBarChart(mensal);
+  else loadBarPeriod(); // refresh bar with current active period data
 }
 
 async function loadBarPeriod() {

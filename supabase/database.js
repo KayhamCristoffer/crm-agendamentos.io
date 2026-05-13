@@ -721,9 +721,11 @@ export async function getResumoFinanceiroMensal(ano) {
   const { data, error } = await sb.from('financeiro').select('tipo, valor, data')
     .gte('data',`${ano}-01-01`).lte('data',`${ano}-12-31`);
   if (error) throw error;
-  const meses = Array.from({length:12},(_,i)=>({mes:i+1,receitas:0,despesas:0,lucro:0}));
+  const LABELS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const meses = Array.from({length:12},(_,i)=>({ mes:i+1, label:LABELS[i], receitas:0, despesas:0, lucro:0 }));
   (data??[]).forEach(l => {
     const m = parseInt(l.data.slice(5,7),10)-1;
+    if (m < 0 || m > 11) return;
     if (l.tipo==='receita') meses[m].receitas+=l.valor||0;
     else                    meses[m].despesas+=l.valor||0;
     meses[m].lucro = meses[m].receitas - meses[m].despesas;
@@ -731,17 +733,24 @@ export async function getResumoFinanceiroMensal(ano) {
   return meses;
 }
 
-// ── Financeiro: resumo por hora do dia (hoje ou data específica) ──
+// ── Financeiro: resumo por hora do dia — usa created_at (timestamp) ──
 export async function getResumoFinanceiroDiario(data) {
   const d = data || new Date().toISOString().slice(0,10);
+  // Query by date field but also fetch created_at to extract real hour
   const { data: rows, error } = await sb.from('financeiro')
-    .select('tipo, valor, data').eq('data', d);
+    .select('tipo, valor, data, created_at').eq('data', d);
   if (error) throw error;
   // 24 buckets (horas 0-23)
-  const horas = Array.from({length:24}, (_,h) => ({ hora: h, label: `${String(h).padStart(2,'0')}:00`, receitas:0, despesas:0, lucro:0 }));
+  const horas = Array.from({length:24}, (_,h) => ({
+    hora: h, label: `${String(h).padStart(2,'0')}h`, receitas:0, despesas:0, lucro:0
+  }));
   (rows??[]).forEach(l => {
-    // financeiro.data is DATE — spread across morning hours proportionally; use index 0 as default
-    const h = 0;
+    // Use created_at timestamp to get the real hour of registration
+    let h = 0;
+    if (l.created_at) {
+      h = new Date(l.created_at).getHours();
+    }
+    if (h < 0 || h > 23) h = 0;
     if (l.tipo==='receita') horas[h].receitas += l.valor||0;
     else                    horas[h].despesas += l.valor||0;
   });

@@ -1,5 +1,5 @@
 // ============================================================
-// SIDEBAR COMPONENT v4.0 — controle de acesso por role
+// SIDEBAR COMPONENT v4.1 — controle de acesso por role
 // Roles: cliente / atendente / admin
 // admin + atendente = staff (veem tudo)
 // cliente = vê apenas Principal (dashboard, agendamentos, equipe, chat, perfil)
@@ -7,17 +7,17 @@
 export function getSidebarHTML(activePage = '', userRole = 'cliente') {
   const pages = [
     // ── Principal (todos os roles)
-    { id: 'dashboard',    href: 'dashboard.html',   icon: 'fa-chart-line',   label: 'Dashboard',     section: 'Principal' },
-    { id: 'agendamentos', href: 'agendamentos.html', icon: 'fa-calendar-alt', label: 'Agendamentos',  section: 'Principal' },
-    { id: 'equipe',       href: 'equipe.html',       icon: 'fa-user-tie',     label: 'Equipe',        section: 'Principal' },
-    { id: 'chat',         href: 'chat.html',         icon: 'fa-comments',     label: 'Chat',          section: 'Principal' },
-    { id: 'perfil',       href: 'perfil.html',       icon: 'fa-user-circle',  label: 'Meu Perfil',    section: 'Principal' },
+    { id: 'dashboard',    href: 'dashboard.html',   icon: 'fa-chart-line',       label: 'Dashboard',      section: 'Principal' },
+    { id: 'agendamentos', href: 'agendamentos.html', icon: 'fa-calendar-alt',     label: 'Agendamentos',   section: 'Principal' },
+    { id: 'equipe',       href: 'equipe.html',       icon: 'fa-user-tie',         label: 'Equipe',         section: 'Principal' },
+    { id: 'chat',         href: 'chat.html',         icon: 'fa-comments',         label: 'Chat',           section: 'Principal' },
+    { id: 'perfil',       href: 'perfil.html',       icon: 'fa-user-circle',      label: 'Meu Perfil',     section: 'Principal' },
     // ── Gestão (staff: admin + atendente)
-    { id: 'clientes',     href: 'clientes.html',     icon: 'fa-users',        label: 'Clientes',      section: 'Gestão',   staffOnly: true },
-    { id: 'servicos',     href: 'servicos.html',     icon: 'fa-tags',         label: 'Serviços',      section: 'Gestão',   staffOnly: true },
-    { id: 'financeiro',   href: 'financeiro.html',   icon: 'fa-dollar-sign',  label: 'Financeiro',    section: 'Gestão',   staffOnly: true },
+    { id: 'clientes',     href: 'clientes.html',     icon: 'fa-users',            label: 'Clientes',       section: 'Gestão',  staffOnly: true },
+    { id: 'servicos',     href: 'servicos.html',     icon: 'fa-tags',             label: 'Serviços',       section: 'Gestão',  staffOnly: true },
+    { id: 'financeiro',   href: 'financeiro.html',   icon: 'fa-dollar-sign',      label: 'Financeiro',     section: 'Gestão',  staffOnly: true },
     // ── Sistema (admin only)
-    { id: 'admin',        href: 'admin.html',        icon: 'fa-shield-alt',   label: 'Administração', section: 'Sistema',  adminOnly: true },
+    { id: 'admin',        href: 'admin.html',        icon: 'fa-cog',              label: 'Configurações',  section: 'Sistema', adminOnly: true },
   ];
 
   const sections = {};

@@ -430,17 +430,17 @@ document.getElementById('salvarPerfil')?.addEventListener('click', async () => {
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Salvando…';
   try {
-    // Save to usuarios table
+    // 1. Save to usuarios table (nome + telefone + avatar)
     await updateUserProfile(user.id, {
       nome,
       telefone: telefone || null,
       avatar_url: avatar || null
     });
 
-    // Save extra fields to clientes table
+    // 2. Save extra fields to clientes table (syncs nome too)
     if (clienteRecord?.id) {
       await updateCliente(clienteRecord.id, {
-        nome,
+        nome,                              // keep clientes.nome in sync
         telefone: telefone || null,
         cpf: cpf || null,
         data_nascimento: nascimento || null,
@@ -452,10 +452,18 @@ document.getElementById('salvarPerfil')?.addEventListener('click', async () => {
     }
 
     showToast('Perfil atualizado com sucesso!', 'success');
+
+    // 3. Update local profile object so sidebar reflects new name immediately
     Object.assign(profile, { nome, telefone: telefone||null, avatar_url: avatar||null });
+
+    // 4. Update visible elements
     document.getElementById('profileName').textContent  = nome;
     document.getElementById('profilePhone').textContent = telefone ? '📞 ' + telefone : '';
     document.getElementById('profileCity').textContent  = cidade ? '📍 ' + cidade : '';
+    // Update sidebar name + role display
+    const sidebarNomeEl = document.getElementById('sidebarNome');
+    if (sidebarNomeEl) sidebarNomeEl.textContent = nome;
+    renderUserInSidebar(profile);
 
     // Refresh account info
     document.getElementById('accountInfo').innerHTML = [
