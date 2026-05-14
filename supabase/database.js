@@ -972,3 +972,30 @@ export async function deleteUserAndData(userId) {
   if (error) throw error;
   // Note: deleting from auth.users requires service role; this handles the public schema
 }
+
+// ─── AUTO-FALTA: marca agendamentos vencidos ─────────────────
+// Agendamentos pendente/confirmado cujo data_hora já passou → marca como 'faltou'
+// Retorna array dos IDs atualizados (para exibir banner)
+export async function checkAndMarkFaltas() {
+  const agora = new Date().toISOString();
+  // Busca agendamentos passados que ainda estão pendente ou confirmado
+  const { data: vencidos, error } = await sb.from('agendamentos')
+    .select('id, data_hora, cliente_id, status')
+    .lt('data_hora', agora)
+    .in('status', ['pendente', 'confirmado']);
+  if (error) throw error;
+  if (!vencidos?.length) return [];
+
+  // Atualiza todos de uma vez
+  const ids = vencidos.map(a => a.id);
+  const { error: updErr } = await sb.from('agendamentos')
+    .update({ status: 'faltou', updated_at: new Date().toISOString() })
+    .in('id', ids);
+  if (updErr) throw updErr;
+
+  // Atualiza estatísticas de cada cliente afetado
+  const clienteIds = [...new Set(vencidos.map(a => a.cliente_id).filter(Boolean))];
+  await Promise.allSettled(clienteIds.map(cid => atualizarEstatisticasCliente(cid)));
+
+  return vencidos;
+}

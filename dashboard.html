@@ -142,6 +142,16 @@
           </div>
         </div>
 
+        <!-- Info do Estabelecimento — visível para TODOS os usuários -->
+        <div class="card" id="cardEstabelecimento">
+          <div class="card-header">
+            <span class="card-title">📍 Local & Contato</span>
+          </div>
+          <div id="estabelecimentoContent">
+            <div class="loading"><i class="fas fa-circle-notch spin"></i></div>
+          </div>
+        </div>
+
         <!-- Admin-only charts -->
         <div class="card col-2" data-admin-only="true" style="display:none">
           <div class="card-header">
@@ -394,6 +404,73 @@ async function renderStatusChart() {
     </div>`).join('');
 }
 
+// ── Info do Estabelecimento (visível a TODOS) ────────────────
+function renderEstabelecimento() {
+  const el = document.getElementById('estabelecimentoContent');
+  if (!el) return;
+  // Dados estáticos do estabelecimento — edite aqui ou mova para supabase-config.js
+  const info = {
+    nome:       'CRM Agendamentos',
+    endereco:   'Rua Exemplo, 123 — Centro',
+    cidade:     'São Paulo, SP',
+    telefone:   '(11) 99999-9999',
+    whatsapp:   '5511999999999',
+    email:      'contato@exemplo.com.br',
+    instagram:  '@crmstudio',
+    horario:    'Seg–Sex: 09h–19h  |  Sáb: 09h–17h',
+    maps:       'https://maps.google.com/?q=Rua+Exemplo+123+São+Paulo',
+  };
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:.84rem">
+      <div style="display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+        <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--secondary));
+             display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">📅</div>
+        <div>
+          <div style="font-weight:700;font-size:.96rem">${info.nome}</div>
+          <div style="font-size:.74rem;color:var(--text3)">Seu espaço de beleza e bem-estar</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;align-items:flex-start;gap:9px">
+          <i class="fas fa-map-marker-alt" style="color:var(--danger);width:14px;margin-top:2px;flex-shrink:0"></i>
+          <div>
+            <div>${info.endereco}</div>
+            <div style="color:var(--text3)">${info.cidade}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px">
+          <i class="fas fa-phone" style="color:var(--secondary);width:14px;flex-shrink:0"></i>
+          <a href="tel:${info.telefone.replace(/\D/g,'')}" style="color:var(--text)">${info.telefone}</a>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px">
+          <i class="fab fa-whatsapp" style="color:#25d366;width:14px;flex-shrink:0"></i>
+          <a href="https://wa.me/${info.whatsapp}" target="_blank" style="color:var(--text)">WhatsApp</a>
+        </div>
+        ${info.instagram?`<div style="display:flex;align-items:center;gap:9px">
+          <i class="fab fa-instagram" style="color:#e1306c;width:14px;flex-shrink:0"></i>
+          <a href="https://instagram.com/${info.instagram.replace('@','')}" target="_blank" style="color:var(--text)">${info.instagram}</a>
+        </div>`:''}
+        <div style="display:flex;align-items:center;gap:9px">
+          <i class="fas fa-envelope" style="color:var(--primary-light);width:14px;flex-shrink:0"></i>
+          <a href="mailto:${info.email}" style="color:var(--text)">${info.email}</a>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:9px">
+          <i class="fas fa-clock" style="color:var(--warning);width:14px;margin-top:2px;flex-shrink:0"></i>
+          <div style="color:var(--text2)">${info.horario}</div>
+        </div>
+      </div>
+      <a href="${info.maps}" target="_blank"
+         style="display:flex;align-items:center;justify-content:center;gap:6px;
+                margin-top:4px;padding:8px;border-radius:8px;border:1px solid var(--border);
+                font-size:.78rem;font-weight:600;color:var(--primary-light);transition:.15s"
+         onmouseover="this.style.background='rgba(99,102,241,.1)'"
+         onmouseout="this.style.background=''">  
+        <i class="fas fa-external-link-alt"></i> Abrir no Google Maps
+      </a>
+    </div>`;
+}
+
+renderEstabelecimento();
 loadDashboard();
 </script>
 </body>

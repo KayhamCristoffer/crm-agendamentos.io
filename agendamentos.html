@@ -100,6 +100,25 @@
     </div>
 
     <div class="page-content">
+      <!-- Banner: agendamentos vencidos sem fechar status -->
+      <div id="bannerFaltas" style="display:none;margin-bottom:16px;
+        background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);
+        border-radius:10px;padding:12px 16px;display:none;
+        align-items:center;gap:12px;flex-wrap:wrap">
+        <i class="fas fa-exclamation-triangle" style="color:var(--danger);font-size:1.1rem"></i>
+        <div style="flex:1;min-width:0">
+          <strong style="font-size:.88rem">Agendamentos vencidos detectados</strong>
+          <div id="bannerFaltasMsg" style="font-size:.78rem;color:var(--text2);margin-top:2px"></div>
+        </div>
+        <button class="btn btn-danger btn-sm" id="btnConfirmarFaltas">
+          <i class="fas fa-user-times"></i> Marcar como Faltou
+        </button>
+        <button class="btn btn-ghost btn-sm" id="btnDismissFaltas"
+          style="font-size:.75rem" onclick="document.getElementById('bannerFaltas').style.display='none'">
+          Ignorar
+        </button>
+      </div>
+
       <div class="tabs">
         <button class="tab-btn active" data-tab="lista">📋 Lista</button>
         <button class="tab-btn" data-tab="calendario">📅 Calendário</button>
@@ -338,6 +357,7 @@ import {
   getHeatmapDoMes, getSlotsDisponiveis,
   getAllClientes, getAllEquipe, getAllServicos, getHorarios,
   ensureUserAndClient, createCliente,
+  checkAndMarkFaltas,
   formatCurrency, formatDateTime, formatDate, formatTime,
   STATUS_LABELS, PAGAMENTO_LABELS
 } from './supabase/database.js';
@@ -434,6 +454,9 @@ async function loadAll() {
     // Update pending badge in sidebar
     const pendentes = allAgs.filter(a => a.status === 'pendente').length;
     updatePendingBadge(pendentes);
+
+    // ── Auto-check vencidos (admin/atendente only) ──────────────
+    if (adminMode || atendenteMode) checkVencidos();
 
     applyFilters();
   } catch (err) {
@@ -1258,6 +1281,55 @@ const urlParams  = new URLSearchParams(location.search);
 const urlId      = urlParams.get('id');
 const urlCliente = urlParams.get('cliente');
 const urlNovo    = urlParams.get('novo');
+
+// ── Verifica agendamentos vencidos e mostra banner ───────────
+let _vencidosPendentes = [];
+async function checkVencidos() {
+  try {
+    // Busca silenciosamente agendamentos passados ainda pendente/confirmado
+    // sem atualizar no banco — só para mostrar o banner
+    const agora = new Date().toISOString();
+    const { data } = await import('./supabase/client.js').then(m =>
+      m.sb.from('agendamentos')
+        .select('id, data_hora, status, clientes(nome)')
+        .lt('data_hora', agora)
+        .in('status', ['pendente', 'confirmado'])
+    );
+    _vencidosPendentes = data ?? [];
+    const banner = document.getElementById('bannerFaltas');
+    const msg    = document.getElementById('bannerFaltasMsg');
+    if (!banner) return;
+    if (_vencidosPendentes.length === 0) {
+      banner.style.display = 'none';
+      return;
+    }
+    const nomes = _vencidosPendentes
+      .slice(0, 3)
+      .map(a => a.clientes?.nome || 'Cliente')
+      .join(', ');
+    const extra = _vencidosPendentes.length > 3 ? ` e mais ${_vencidosPendentes.length - 3}` : '';
+    msg.textContent = `${_vencidosPendentes.length} agendamento(s) passados ainda como “${_vencidosPendentes[0].status}”: ${nomes}${extra}.`;
+    banner.style.display = 'flex';
+  } catch (e) { console.warn('checkVencidos:', e.message); }
+}
+
+document.getElementById('btnConfirmarFaltas')?.addEventListener('click', async () => {
+  const btn = document.getElementById('btnConfirmarFaltas');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Processando…';
+  try {
+    const atualizados = await checkAndMarkFaltas();
+    document.getElementById('bannerFaltas').style.display = 'none';
+    _vencidosPendentes = [];
+    showToast(`${atualizados.length} agendamento(s) marcados como “Faltou”.`, 'success');
+    await loadAll();
+  } catch (err) {
+    showToast(err.message || 'Erro ao atualizar status.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-user-times"></i> Marcar como Faltou';
+  }
+});
 
 await loadAll();
 if (urlId)                setTimeout(()=>verDetalhes(urlId), 300);
