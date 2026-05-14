@@ -18,7 +18,7 @@ export function getSidebarHTML(activePage = '', userRole = 'cliente') {
     { id: 'financeiro',   href: 'financeiro.html',   icon: 'fa-dollar-sign',      label: 'Financeiro',     section: 'Gestão',  staffOnly: true },
     // ── Sistema (admin only)
     { id: 'admin',        href: 'admin.html',        icon: 'fa-cog',              label: 'Configurações',  section: 'Sistema', adminOnly: true },
-    //{ id: 'admin',        href: 'admin.html',        icon: 'fa-cog',              label: 'Configurações',  section: 'Sistema', staffOnly: true },
+    { id: 'admin',        href: 'admin.html',        icon: 'fa-cog',              label: 'Configurações',  section: 'Sistema', staffOnly: true },
   ];
 
   const sections = {};
