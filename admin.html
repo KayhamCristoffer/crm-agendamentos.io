@@ -247,12 +247,27 @@ import { getSidebarHTML, initSidebarToggle, showAdminItems, showStaffItems } fro
 document.getElementById('sidebarMount').innerHTML = getSidebarHTML('admin');
 initSidebarToggle();
 
-const auth = await requireAuth(true); // admin required
-if (!auth) throw new Error('Not authorized');
+// Atendentes podem visualizar (read-only); apenas admins podem editar
+const auth = await requireAuth(); // aceita qualquer role autenticado
+if (!auth) throw new Error('Not authenticated');
 const { user, profile } = auth;
+const adminMode    = isAdmin(user, profile);
+const atendenteMode = profile?.role === 'atendente';
+// Bloqueia clientes completamente
+if (!adminMode && !atendenteMode) { window.location.href = 'dashboard.html'; throw new Error('Forbidden'); }
+const readOnly = !adminMode; // atendente = só leitura
 renderUserInSidebar(profile);
-showAdminItems();
+if (adminMode) showAdminItems();
+else showStaffItems();
 setTimeout(() => document.getElementById('pageLoader')?.classList.add('hide'), 500);
+
+// ── Banner read-only para atendentes ───────────────────────────
+if (readOnly) {
+  const banner = document.createElement('div');
+  banner.style.cssText = 'margin:0 0 20px;padding:12px 16px;background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.35);border-radius:10px;display:flex;align-items:center;gap:10px;font-size:.84rem;color:var(--warning)';
+  banner.innerHTML = '<i class="fas fa-eye"></i> <span><strong>Modo visualização.</strong> Como atendente, você pode ver todas as informações mas não pode editar configurações.</span>';
+  document.querySelector('.page-content')?.prepend(banner);
+}
 
 document.getElementById('logoutBtn')?.addEventListener('click', () =>
   import('./supabase/database.js').then(m => m.signOut()).then(() => window.location.href='index.html'));
@@ -286,6 +301,23 @@ document.addEventListener('visibilitychange', () => {
 // ── USERS ────────────────────────────────────────────────────
 let allUsers = [], editingUserId = null;
 
+// Desabilita todos os botões/inputs de edição quando readOnly
+function applyReadOnly() {
+  if (!readOnly) return;
+  // Botões de salvar e perigosos
+  ['salvarSistema','salvarHorarios','btnClean','exportClientes','exportAgs','exportFinanceiro',
+   'salvarRole','btnDeleteUser'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.disabled = true; el.title = 'Apenas administradores podem editar'; el.style.opacity = '.45'; el.style.cursor = 'not-allowed'; }
+  });
+  // Inputs e selects de formulários de sistema/horários
+  ['cfgNome','cfgTelefone','cfgEndereco','cfgMaps','cleanDate','cleanStatus'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.disabled = true; el.style.opacity = '.6'; }
+  });
+  // Botão Gerenciar usuário — sobrescreve com versão read-only no renderUsers
+}
+
 async function loadUsers() {
   try {
     allUsers = await getAllUsers();
@@ -316,10 +348,11 @@ function renderUsers() {
       </div>
       <span class="badge ${roleColors[u.role]||'badge-info'}" style="font-size:.7rem">${roleLabels[u.role]||u.role}</span>
       <span class="badge ${u.ativo?'badge-success':'badge-gray'}" style="font-size:.7rem">${u.ativo?'Ativo':'Inativo'}</span>
-      ${u.id !== user.id ? `
-      <button class="btn btn-ghost btn-sm btn-icon" onclick="openRoleModal('${u.id}','${escHtml(u.nome||u.email)}','${u.role}')" title="Gerenciar usuário">
-        <i class="fas fa-user-cog"></i>
-      </button>` : '<span style="font-size:.7rem;color:var(--text3);padding:4px 6px">Você</span>'}
+      ${u.id !== user.id
+        ? readOnly
+          ? `<span style="font-size:.7rem;color:var(--text3);padding:4px 6px;opacity:.5" title="Somente admin pode gerenciar"><i class="fas fa-lock"></i></span>`
+          : `<button class="btn btn-ghost btn-sm btn-icon" onclick="openRoleModal('${u.id}','${escHtml(u.nome||u.email)}','${u.role}')" title="Gerenciar usuário"><i class="fas fa-user-cog"></i></button>`
+        : '<span style="font-size:.7rem;color:var(--text3);padding:4px 6px">Você</span>'}
     </div>`).join('');
 }
 
@@ -338,6 +371,7 @@ document.getElementById('closeModalRole')?.addEventListener('click', () => docum
 document.getElementById('cancelRole')?.addEventListener('click',   () => document.getElementById('modalRole').classList.remove('open'));
 
 document.getElementById('salvarRole')?.addEventListener('click', async () => {
+  if (readOnly) { showToast('Acesso negado: apenas administradores podem alterar roles.', 'warning'); return; }
   if (!editingUserId) return;
   const role = document.getElementById('roleSelect').value;
   if (!role) { showToast('Selecione um nível.','warning'); return; }
@@ -356,6 +390,7 @@ document.getElementById('salvarRole')?.addEventListener('click', async () => {
 });
 
 document.getElementById('btnDeleteUser')?.addEventListener('click', async () => {
+  if (readOnly) { showToast('Acesso negado: apenas administradores podem excluir usuários.', 'warning'); return; }
   if (!editingUserId) return;
   const u = allUsers.find(x => x.id === editingUserId);
   const nome = u?.nome || u?.email || 'este usuário';
@@ -418,6 +453,7 @@ document.getElementById('cfgMaps')?.addEventListener('blur', () => {
 applyPhoneMask(document.getElementById('cfgTelefone'));
 
 document.getElementById('salvarSistema')?.addEventListener('click', async () => {
+  if (readOnly) { showToast('Acesso negado: apenas administradores podem salvar configurações.', 'warning'); return; }
   const btn = document.getElementById('salvarSistema'); btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Salvando…';
   try {
@@ -486,6 +522,7 @@ window.toggleHoraDia = (d, aberto) => {
 };
 
 document.getElementById('salvarHorarios')?.addEventListener('click', async () => {
+  if (readOnly) { showToast('Acesso negado: apenas administradores podem salvar horários.', 'warning'); return; }
   const btn = document.getElementById('salvarHorarios'); btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Salvando…';
   try {
@@ -502,6 +539,7 @@ document.getElementById('salvarHorarios')?.addEventListener('click', async () =>
 
 // ── LIMPEZA / EXPORT ─────────────────────────────────────────
 document.getElementById('btnClean')?.addEventListener('click', async () => {
+  if (readOnly) { showToast('Acesso negado: apenas administradores podem executar limpeza.', 'warning'); return; }
   const date   = document.getElementById('cleanDate').value;
   const status = document.getElementById('cleanStatus').value;
   if (!date) { showToast('Selecione uma data limite.','warning'); return; }
@@ -633,6 +671,7 @@ document.getElementById('gerarRelatorio')?.addEventListener('click', buildRelato
 // ── Init ─────────────────────────────────────────────────────
 await loadUsers();
 await loadSistema();
+applyReadOnly();
 </script>
 </body>
 </html>

@@ -1237,35 +1237,96 @@ window.verDetalhes = async (id) => {
     btnClose2.addEventListener('click', ()=>document.getElementById('modalDetalhes').classList.remove('open'));
     ftr.appendChild(btnClose2);
 
-    if (adminMode) {
-      const sel = document.createElement('select');
-      sel.className = 'btn btn-ghost btn-sm';
-      sel.style.border = '1px solid var(--border)';
-      sel.innerHTML = `<option value="">Alterar status…</option>
-        <option value="pendente">🕐 Pendente</option>
-        <option value="confirmado">✅ Confirmado</option>
-        <option value="concluido">✔️ Concluído</option>
-        <option value="cancelado">❌ Cancelado</option>
-        <option value="faltou">⚠️ Faltou</option>`;
-      sel.value = ag.status;
+    // ── Controle de status: admin E atendente podem alterar ──────
+    if (adminMode || atendenteMode) {
+      const agora      = new Date();
+      const dataAg     = new Date(ag.data_hora);
+      const jaPassou   = dataAg < agora;           // horário do agendamento já chegou
+      const statusAtual = ag.status;
 
-      const btnSave = document.createElement('button');
-      btnSave.className = 'btn btn-primary';
-      btnSave.innerHTML = '<i class="fas fa-save"></i> Salvar Status';
-      btnSave.addEventListener('click', async () => {
-        const ns = sel.value;
-        if (!ns) { showToast('Selecione um status.','warning'); return; }
-        btnSave.disabled = true;
-        try {
-          await updateAgendamento(id,{status:ns});
-          showToast('Status atualizado!','success');
-          document.getElementById('modalDetalhes').classList.remove('open');
-          await loadAll();
-        } catch(err){ showToast(err.message,'error'); }
-        finally { btnSave.disabled = false; }
-      });
-      ftr.appendChild(sel);
-      ftr.appendChild(btnSave);
+      // Monta as opções de status disponíveis para o status atual
+      // Regra de negócio:
+      //   pendente   → pode ir para: confirmado, cancelado
+      //   confirmado → pode ir para: concluído (só se já passou), cancelado, faltou (só se já passou)
+      //   concluido  → status final, sem alterações
+      //   cancelado  → status final, sem alterações
+      //   faltou     → status final, sem alterações
+      const statusFinal = ['concluido','cancelado','faltou'].includes(statusAtual);
+
+      if (statusFinal) {
+        // Mostra badge informativo de status final — sem select
+        const info = document.createElement('div');
+        info.style.cssText = 'font-size:.78rem;color:var(--text2);padding:6px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)';
+        info.innerHTML = `<i class="fas fa-lock" style="opacity:.5"></i> Status final — não pode ser alterado`;
+        ftr.appendChild(info);
+      } else {
+        const sel = document.createElement('select');
+        sel.className = 'btn btn-ghost btn-sm';
+        sel.style.border = '1px solid var(--border)';
+
+        // Opção placeholder
+        sel.innerHTML = `<option value="">Alterar status…</option>`;
+
+        // Opções permitidas por fluxo
+        if (statusAtual === 'pendente') {
+          sel.innerHTML += `
+            <option value="confirmado">✅ Confirmado</option>
+            <option value="cancelado">❌ Cancelado</option>`;
+        } else if (statusAtual === 'confirmado') {
+          sel.innerHTML += `
+            <option value="pendente">🕐 Pendente</option>`;
+          if (jaPassou) {
+            sel.innerHTML += `
+            <option value="concluido">✔️ Concluído</option>
+            <option value="faltou">⚠️ Faltou</option>`;
+          } else {
+            // Mostra opções desabilitadas com tooltip para feedback visual
+            sel.innerHTML += `
+            <option value="" disabled>✔️ Concluído — aguarde o horário</option>
+            <option value="" disabled>⚠️ Faltou — aguarde o horário</option>`;
+          }
+          sel.innerHTML += `<option value="cancelado">❌ Cancelado</option>`;
+        }
+
+        sel.value = '';
+
+        // Aviso visual se data ainda não chegou
+        if (!jaPassou && statusAtual === 'confirmado') {
+          const aviso = document.createElement('div');
+          aviso.style.cssText = 'grid-column:span 2;font-size:.76rem;color:var(--warning);padding:6px 10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;display:flex;align-items:center;gap:6px';
+          aviso.innerHTML = `<i class="fas fa-clock"></i> Concluído e Faltou só ficam disponíveis após o horário do agendamento (${formatDateTime(ag.data_hora)}).`;
+          // Insert before the footer's first child
+          ftr.insertBefore(aviso, ftr.firstChild);
+        }
+
+        const btnSave = document.createElement('button');
+        btnSave.className = 'btn btn-primary';
+        btnSave.innerHTML = '<i class="fas fa-save"></i> Salvar Status';
+        btnSave.addEventListener('click', async () => {
+          const ns = sel.value;
+          if (!ns) { showToast('Selecione um novo status.','warning'); return; }
+
+          // Double-check regra no cliente também (segurança extra)
+          if (ns === 'concluido' || ns === 'faltou') {
+            const agNow = new Date(ag.data_hora);
+            if (agNow > new Date()) {
+              showToast('Não é possível marcar como "' + (ns === 'concluido' ? 'Concluído' : 'Faltou') + '" antes do horário do agendamento.', 'warning');
+              return;
+            }
+          }
+
+          btnSave.disabled = true;
+          try {
+            await updateAgendamento(id, { status: ns });
+            showToast('Status atualizado com sucesso!', 'success');
+            document.getElementById('modalDetalhes').classList.remove('open');
+            await loadAll();
+          } catch(err) { showToast(err.message || 'Erro ao salvar.', 'error'); }
+          finally { btnSave.disabled = false; }
+        });
+        ftr.appendChild(sel);
+        ftr.appendChild(btnSave);
+      }
     }
   } catch(err) {
     document.getElementById('detalhesContent').innerHTML =

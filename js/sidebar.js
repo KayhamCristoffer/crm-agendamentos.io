@@ -16,8 +16,7 @@ export function getSidebarHTML(activePage = '', userRole = 'cliente') {
     { id: 'clientes',     href: 'clientes.html',     icon: 'fa-users',            label: 'Clientes',       section: 'Gestão',  staffOnly: true },
     { id: 'servicos',     href: 'servicos.html',     icon: 'fa-tags',             label: 'Serviços',       section: 'Gestão',  staffOnly: true },
     { id: 'financeiro',   href: 'financeiro.html',   icon: 'fa-dollar-sign',      label: 'Financeiro',     section: 'Gestão',  staffOnly: true },
-    // ── Sistema (admin only)
-    { id: 'admin',        href: 'admin.html',        icon: 'fa-cog',              label: 'Configurações',  section: 'Sistema', adminOnly: true },
+    // ── Sistema (admin + atendente read-only)
     { id: 'admin',        href: 'admin.html',        icon: 'fa-cog',              label: 'Configurações',  section: 'Sistema', staffOnly: true },
   ];
 
@@ -114,15 +113,15 @@ export function showAdminItems() {
   });
 }
 
-// Revela itens de staff sem o item de Administração (admin.html)
-// Usado por atendente — vê Clientes, Serviços, Financeiro mas NÃO Administração
+// Revela itens de staff (atendente) — vê Clientes, Serviços, Financeiro E Configurações (read-only)
 export function showStaffItems() {
-  document.querySelectorAll('[data-staff-only="true"]').forEach(el => {
+  document.querySelectorAll('[data-staff-only="true"],[data-admin-only="true"]').forEach(el => {
     el.style.display = '';
   });
-  // Show Gestão section header
-  const gestaoSection = document.querySelector('[data-section="Gestão"]');
-  if (gestaoSection) gestaoSection.style.display = '';
+  // Show section headers
+  document.querySelectorAll('[data-section="Gestão"],[data-section="Sistema"]').forEach(el => {
+    el.style.display = '';
+  });
 }
 
 // Alias mantido por compatibilidade com páginas existentes
