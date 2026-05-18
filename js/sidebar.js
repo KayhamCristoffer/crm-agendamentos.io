@@ -33,7 +33,7 @@ export function getSidebarHTML(activePage = '', userRole = 'cliente') {
       <div class="sidebar-logo-icon">📅</div>
       <div class="sidebar-logo-text">
         <h2>CRM Agenda</h2>
-        <small>v4.0</small>
+        <small>v4.1</small>
       </div>
     </div>
     <div class="sidebar-user">
